@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMP Comparison Portal | SES Sales Resources</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #1e40af;
+            --primary-light: #3b82f6;
+            --primary-dark: #1e3a8a;
+            --success: #059669;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            line-height: 1.5;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .nav-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            text-decoration: none;
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-back:hover {
+            opacity: 1;
+        }
+        
+        .header h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--gray-200);
+            font-weight: 600;
+            font-size: 1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--gray-50);
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
+            color: var(--gray-700);
+        }
+        
+        .form-select, .form-input {
+            padding: 0.625rem 0.875rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            background: white;
+        }
+        
+        .form-select:focus, .form-input:focus {
+            outline: none;
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-primary:disabled {
+            background: var(--gray-400);
+            cursor: not-allowed;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-outline {
+            background: white;
+            border: 1px solid var(--gray-300);
+            color: var(--gray-700);
+        }
+        
+        .btn-outline:hover {
+            background: var(--gray-50);
+            border-color: var(--gray-400);
+        }
+        
+        .btn-sm {
+            padding: 0.5rem 0.875rem;
+            font-size: 0.8rem;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1.25rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+        
+        .status-dot.loading {
+            background: var(--warning);
+            animation: pulse 1s infinite;
+        }
+        
+        .status-dot.error {
+            background: var(--danger);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        @media (max-width: 1024px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .chart-container {
+            height: 350px;
+            position: relative;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        .stat-card {
+            background: var(--gray-50);
+            border-radius: 8px;
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--gray-500);
+            margin-top: 0.25rem;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        
+        .data-table th,
+        .data-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--gray-200);
+        }
+        
+        .data-table th {
+            background: var(--gray-50);
+            font-weight: 600;
+            color: var(--gray-700);
+            position: sticky;
+            top: 0;
+        }
+        
+        .data-table tbody tr:hover {
+            background: var(--gray-50);
+        }
+        
+        .table-wrapper {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .badge-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-200);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .client-info {
+            background: linear-gradient(135deg, var(--gray-800) 0%, var(--gray-700) 100%);
+            color: white;
+            padding: 1.25rem 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .client-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .client-details {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .actions-bar {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+        
+        .year-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .year-chip {
+            padding: 0.375rem 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: white;
+        }
+        
+        .year-chip:hover {
+            border-color: var(--primary-light);
+        }
+        
+        .year-chip.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        
+        .comparison-summary {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 1rem;
+            align-items: center;
+            padding: 1rem;
+            background: var(--gray-50);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .comparison-zone {
+            text-align: center;
+        }
+        
+        .comparison-zone-name {
+            font-weight: 600;
+            color: var(--gray-800);
+        }
+        
+        .comparison-zone-avg {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        
+        .comparison-vs {
+            font-size: 0.875rem;
+            color: var(--gray-400);
+            font-weight: 500;
+        }
+        
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid var(--gray-200);
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab-btn {
+            padding: 0.875rem 1.5rem;
+            font-weight: 500;
+            color: var(--gray-600);
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab-btn:hover {
+            color: var(--primary);
+        }
+        
+        .tab-btn.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .alert {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .alert-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #93c5fd;
+        }
+        
+        .alert-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fcd34d;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <a href="../index.html" class="nav-back">← Back to Portal</a>
+            <h1>⚡ LMP Comparison Portal</h1>
+            <p>Analyze and compare Locational Marginal Pricing data across zones and time periods</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Initializing...</span>
+            </div>
+            <div class="status-item">
+                <span id="dataInfo">Loading data...</span>
+            </div>
+        </div>
+        
+        <!-- Analysis Setup -->
+        <div class="card">
+            <div class="card-header">
+                📊 Analysis Configuration
+            </div>
+            <div class="card-body">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">ISO Region</label>
+                        <select class="form-select" id="isoSelect" onchange="onISOChange()">
+                            <option value="">Select ISO...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Primary Zone</label>
+                        <select class="form-select" id="zone1Select">
+                            <option value="">Select zone...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Comparison Zone (optional)</label>
+                        <select class="form-select" id="zone2Select">
+                            <option value="">None - Single zone analysis</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Client Name (optional)</label>
+                        <input type="text" class="form-input" id="clientName" placeholder="e.g., Acme Corporation">
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label class="form-label">Select Years</label>
+                    <div class="year-selector" id="yearSelector">
+                        <!-- Years populated dynamically -->
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem;">
+                    <button class="btn btn-primary" id="runAnalysisBtn" onclick="runAnalysis()">
+                        🔍 Run Analysis
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Results Section -->
+        <div id="resultsSection" class="hidden">
+            <!-- Client Info Banner -->
+            <div class="client-info" id="clientBanner">
+                <div class="client-name" id="clientNameDisplay">Analysis Results</div>
+                <div class="client-details">
+                    <span id="analysisZone">Zone: --</span>
+                    <span id="analysisPeriod">Period: --</span>
+                    <span id="analysisRecords">Records: --</span>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="tab-nav">
+                <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">📈 Overview</button>
+                <button class="tab-btn" data-tab="trends" onclick="switchTab('trends')">📊 Trends</button>
+                <button class="tab-btn" data-tab="comparison" onclick="switchTab('comparison')">⚖️ Comparison</button>
+                <button class="tab-btn" data-tab="data" onclick="switchTab('data')">📋 Data Table</button>
+            </div>
+            
+            <!-- Overview Tab -->
+            <div class="tab-content active" id="tab-overview">
+                <div class="stats-grid" id="statsGrid">
+                    <!-- Stats populated dynamically -->
+                </div>
+                
+                <div class="card" style="margin-top: 1.5rem;">
+                    <div class="card-header">
+                        Monthly Average LMP
+                        <div class="actions-bar">
+                            <button class="btn btn-sm btn-outline" onclick="exportChart()">📥 Export Chart</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="overviewChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Trends Tab -->
+            <div class="tab-content" id="tab-trends">
+                <div class="results-grid">
+                    <div class="card">
+                        <div class="card-header">Year-over-Year Comparison</div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="yoyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">Seasonal Pattern</div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="seasonalChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">Annual Statistics</div>
+                    <div class="card-body">
+                        <div class="table-wrapper">
+                            <table class="data-table" id="annualStatsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Year</th>
+                                        <th>Avg LMP</th>
+                                        <th>Min</th>
+                                        <th>Max</th>
+                                        <th>YoY Change</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comparison Tab -->
+            <div class="tab-content" id="tab-comparison">
+                <div id="comparisonContent">
+                    <div class="alert alert-info">
+                        Select a comparison zone to see side-by-side analysis.
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Data Tab -->
+            <div class="tab-content" id="tab-data">
+                <div class="card">
+                    <div class="card-header">
+                        Raw Data
+                        <div class="actions-bar">
+                            <button class="btn btn-sm btn-success" onclick="exportToExcel()">📥 Export to Excel</button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-wrapper">
+                            <table class="data-table" id="rawDataTable">
+                                <thead>
+                                    <tr>
+                                        <th>Year</th>
+                                        <th>Month</th>
+                                        <th>Zone</th>
+                                        <th>Zone Name</th>
+                                        <th>Avg DA LMP</th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay hidden" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+    
+    <script src="../scripts/shared-data-store.js"></script>
+    <script>
+        // Global state
+        let currentData = [];
+        let comparisonData = [];
+        let charts = {};
+        let selectedYears = [];
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            await initializeApp();
+        });
+        
+        async function initializeApp() {
+            setStatus('loading', 'Loading data repository...');
+            
+            try {
+                await LMPDataStore.init();
+                
+                // Populate ISO dropdown
+                const isos = LMPDataStore.getISOs();
+                const isoSelect = document.getElementById('isoSelect');
+                
+                isos.forEach(iso => {
+                    const option = document.createElement('option');
+                    option.value = iso;
+                    option.textContent = iso.toUpperCase();
+                    isoSelect.appendChild(option);
+                });
+                
+                // Calculate total records
+                const index = LMPDataStore.getIndex();
+                let totalRecords = 0;
+                Object.values(index.isos).forEach(iso => {
+                    totalRecords += iso.totalRecords || 0;
+                });
+                
+                document.getElementById('dataInfo').textContent = 
+                    `${isos.length} ISOs · ${totalRecords.toLocaleString()} records`;
+                
+                setStatus('ready', 'Data loaded');
+                
+            } catch (error) {
+                console.error('Init error:', error);
+                setStatus('error', 'Failed to load data');
+            }
+        }
+        
+        function setStatus(state, text) {
+            const dot = document.getElementById('statusDot');
+            const textEl = document.getElementById('statusText');
+            
+            dot.className = 'status-dot';
+            if (state === 'loading') dot.classList.add('loading');
+            if (state === 'error') dot.classList.add('error');
+            
+            textEl.textContent = text;
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loadingOverlay').classList.toggle('hidden', !show);
+        }
+        
+        function onISOChange() {
+            const iso = document.getElementById('isoSelect').value;
+            const zone1Select = document.getElementById('zone1Select');
+            const zone2Select = document.getElementById('zone2Select');
+            const yearSelector = document.getElementById('yearSelector');
+            
+            // Clear existing options
+            zone1Select.innerHTML = '<option value="">Select zone...</option>';
+            zone2Select.innerHTML = '<option value="">None - Single zone analysis</option>';
+            yearSelector.innerHTML = '';
+            selectedYears = [];
+            
+            if (!iso) return;
+            
+            // Populate zones
+            const zones = LMPDataStore.getZones(iso);
+            zones.forEach(zone => {
+                const opt1 = document.createElement('option');
+                opt1.value = zone.Zone;
+                opt1.textContent = `${zone.Zone_Name} (${zone.Zone})`;
+                zone1Select.appendChild(opt1);
+                
+                const opt2 = opt1.cloneNode(true);
+                zone2Select.appendChild(opt2);
+            });
+            
+            // Populate years
+            const years = LMPDataStore.getYears(iso);
+            years.forEach(year => {
+                const chip = document.createElement('div');
+                chip.className = 'year-chip';
+                chip.textContent = year;
+                chip.dataset.year = year;
+                chip.onclick = () => toggleYear(year, chip);
+                yearSelector.appendChild(chip);
+            });
+            
+            // Select last 3 years by default
+            const defaultYears = years.slice(-3);
+            defaultYears.forEach(year => {
+                const chip = yearSelector.querySelector(`[data-year="${year}"]`);
+                if (chip) {
+                    chip.classList.add('selected');
+                    selectedYears.push(year);
+                }
+            });
+        }
+        
+        function toggleYear(year, chip) {
+            const index = selectedYears.indexOf(year);
+            if (index > -1) {
+                selectedYears.splice(index, 1);
+                chip.classList.remove('selected');
+            } else {
+                selectedYears.push(year);
+                chip.classList.add('selected');
+            }
+            selectedYears.sort();
+        }
+        
+        async function runAnalysis() {
+            const iso = document.getElementById('isoSelect').value;
+            const zone1 = document.getElementById('zone1Select').value;
+            const zone2 = document.getElementById('zone2Select').value;
+            const clientName = document.getElementById('clientName').value;
+            
+            if (!iso || !zone1 || selectedYears.length === 0) {
+                alert('Please select an ISO, zone, and at least one year.');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                // Load primary zone data
+                currentData = await LMPDataStore.query({
+                    iso: iso,
+                    years: selectedYears,
+                    zones: [zone1]
+                });
+                
+                // Load comparison zone data if selected
+                if (zone2) {
+                    comparisonData = await LMPDataStore.query({
+                        iso: iso,
+                        years: selectedYears,
+                        zones: [zone2]
+                    });
+                } else {
+                    comparisonData = [];
+                }
+                
+                // Sort data
+                const sortFn = (a, b) => {
+                    if (a.Year !== b.Year) return a.Year - b.Year;
+                    return a.Month - b.Month;
+                };
+                currentData.sort(sortFn);
+                comparisonData.sort(sortFn);
+                
+                // Update UI
+                updateClientBanner(clientName, zone1, zone2);
+                renderOverviewStats();
+                renderOverviewChart();
+                renderTrendsTab();
+                renderComparisonTab(zone1, zone2);
+                renderDataTable();
+                
+                document.getElementById('resultsSection').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('Analysis error:', error);
+                alert('Error running analysis. Check console for details.');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function updateClientBanner(clientName, zone1, zone2) {
+            const zoneName = currentData[0]?.Zone_Name || zone1;
+            
+            document.getElementById('clientNameDisplay').textContent = 
+                clientName || 'LMP Analysis Results';
+            document.getElementById('analysisZone').textContent = 
+                `Zone: ${zoneName}${zone2 ? ' vs ' + (comparisonData[0]?.Zone_Name || zone2) : ''}`;
+            document.getElementById('analysisPeriod').textContent = 
+                `Period: ${Math.min(...selectedYears)} - ${Math.max(...selectedYears)}`;
+            document.getElementById('analysisRecords').textContent = 
+                `Records: ${currentData.length}${comparisonData.length ? ' + ' + comparisonData.length : ''}`;
+        }
+        
+        function renderOverviewStats() {
+            const prices = currentData.map(d => parseFloat(d.Avg_DA_LMP));
+            const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+            const min = Math.min(...prices);
+            const max = Math.max(...prices);
+            
+            // Calculate YoY change if we have multiple years
+            let yoyChange = null;
+            if (selectedYears.length >= 2) {
+                const lastYear = Math.max(...selectedYears);
+                const prevYear = lastYear - 1;
+                
+                const lastYearPrices = currentData.filter(d => d.Year === lastYear).map(d => parseFloat(d.Avg_DA_LMP));
+                const prevYearPrices = currentData.filter(d => d.Year === prevYear).map(d => parseFloat(d.Avg_DA_LMP));
+                
+                if (lastYearPrices.length && prevYearPrices.length) {
+                    const lastAvg = lastYearPrices.reduce((a, b) => a + b, 0) / lastYearPrices.length;
+                    const prevAvg = prevYearPrices.reduce((a, b) => a + b, 0) / prevYearPrices.length;
+                    yoyChange = ((lastAvg - prevAvg) / prevAvg * 100).toFixed(1);
+                }
+            }
+            
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-value">$${avg.toFixed(2)}</div>
+                    <div class="stat-label">Average LMP</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">$${min.toFixed(2)}</div>
+                    <div class="stat-label">Minimum</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">$${max.toFixed(2)}</div>
+                    <div class="stat-label">Maximum</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">${yoyChange !== null ? (yoyChange > 0 ? '+' : '') + yoyChange + '%' : 'N/A'}</div>
+                    <div class="stat-label">YoY Change</div>
+                </div>
+            `;
+        }
+        
+        function renderOverviewChart() {
+            const ctx = document.getElementById('overviewChart').getContext('2d');
+            
+            if (charts.overview) charts.overview.destroy();
+            
+            const labels = currentData.map(d => `${d.Year}-${String(d.Month).padStart(2, '0')}`);
+            const datasets = [{
+                label: currentData[0]?.Zone_Name || 'Primary Zone',
+                data: currentData.map(d => d.Avg_DA_LMP),
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                fill: true,
+                tension: 0.3
+            }];
+            
+            if (comparisonData.length) {
+                datasets.push({
+                    label: comparisonData[0]?.Zone_Name || 'Comparison Zone',
+                    data: comparisonData.map(d => d.Avg_DA_LMP),
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                });
+            }
+            
+            charts.overview = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top' }
+                    },
+                    scales: {
+                        y: {
+                            title: { display: true, text: '$/MWh' },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderTrendsTab() {
+            // Year-over-Year Chart
+            const yoyCtx = document.getElementById('yoyChart').getContext('2d');
+            if (charts.yoy) charts.yoy.destroy();
+            
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
+            
+            const yoyDatasets = selectedYears.map((year, idx) => {
+                const yearData = currentData.filter(d => d.Year === year);
+                return {
+                    label: year.toString(),
+                    data: months.map((_, m) => {
+                        const monthData = yearData.find(d => d.Month === m + 1);
+                        return monthData ? monthData.Avg_DA_LMP : null;
+                    }),
+                    borderColor: colors[idx % colors.length],
+                    tension: 0.3
+                };
+            });
+            
+            charts.yoy = new Chart(yoyCtx, {
+                type: 'line',
+                data: { labels: months, datasets: yoyDatasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { title: { display: true, text: '$/MWh' } } }
+                }
+            });
+            
+            // Seasonal Chart
+            const seasonalCtx = document.getElementById('seasonalChart').getContext('2d');
+            if (charts.seasonal) charts.seasonal.destroy();
+            
+            const seasonalAvg = months.map((_, m) => {
+                const monthData = currentData.filter(d => d.Month === m + 1);
+                if (monthData.length === 0) return null;
+                return monthData.reduce((sum, d) => sum + d.Avg_DA_LMP, 0) / monthData.length;
+            });
+            
+            charts.seasonal = new Chart(seasonalCtx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Average LMP by Month',
+                        data: seasonalAvg,
+                        backgroundColor: seasonalAvg.map((v, i) => {
+                            if (i >= 5 && i <= 8) return 'rgba(239, 68, 68, 0.7)'; // Summer
+                            if (i >= 11 || i <= 1) return 'rgba(59, 130, 246, 0.7)'; // Winter
+                            return 'rgba(16, 185, 129, 0.7)'; // Shoulder
+                        })
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { title: { display: true, text: '$/MWh' } } }
+                }
+            });
+            
+            // Annual Stats Table
+            const tbody = document.querySelector('#annualStatsTable tbody');
+            let prevAvg = null;
+            
+            tbody.innerHTML = selectedYears.map(year => {
+                const yearData = currentData.filter(d => d.Year === year);
+                const prices = yearData.map(d => parseFloat(d.Avg_DA_LMP));
+                const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+                const min = Math.min(...prices);
+                const max = Math.max(...prices);
+                
+                let yoyHtml = '-';
+                if (prevAvg !== null) {
+                    const change = ((avg - prevAvg) / prevAvg * 100).toFixed(1);
+                    const badgeClass = change > 0 ? 'badge-danger' : 'badge-success';
+                    yoyHtml = `<span class="badge ${badgeClass}">${change > 0 ? '+' : ''}${change}%</span>`;
+                }
+                prevAvg = avg;
+                
+                return `
+                    <tr>
+                        <td><strong>${year}</strong></td>
+                        <td>$${avg.toFixed(2)}</td>
+                        <td>$${min.toFixed(2)}</td>
+                        <td>$${max.toFixed(2)}</td>
+                        <td>${yoyHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        function renderComparisonTab(zone1, zone2) {
+            const container = document.getElementById('comparisonContent');
+            
+            if (!zone2 || comparisonData.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-info">
+                        Select a comparison zone in the configuration above to see side-by-side analysis.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Calculate averages
+            const zone1Avg = currentData.reduce((sum, d) => sum + d.Avg_DA_LMP, 0) / currentData.length;
+            const zone2Avg = comparisonData.reduce((sum, d) => sum + d.Avg_DA_LMP, 0) / comparisonData.length;
+            const diff = zone1Avg - zone2Avg;
+            const diffPct = (diff / zone2Avg * 100).toFixed(1);
+            
+            container.innerHTML = `
+                <div class="comparison-summary">
+                    <div class="comparison-zone">
+                        <div class="comparison-zone-name">${currentData[0]?.Zone_Name || zone1}</div>
+                        <div class="comparison-zone-avg" style="color: #3b82f6;">$${zone1Avg.toFixed(2)}</div>
+                    </div>
+                    <div class="comparison-vs">
+                        <div>vs</div>
+                        <div class="badge ${diff > 0 ? 'badge-danger' : 'badge-success'}">
+                            ${diff > 0 ? '+' : ''}$${diff.toFixed(2)} (${diffPct}%)
+                        </div>
+                    </div>
+                    <div class="comparison-zone">
+                        <div class="comparison-zone-name">${comparisonData[0]?.Zone_Name || zone2}</div>
+                        <div class="comparison-zone-avg" style="color: #ef4444;">$${zone2Avg.toFixed(2)}</div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">Monthly Comparison</div>
+                    <div class="card-body">
+                        <div class="table-wrapper">
+                            <table class="data-table" id="comparisonTable">
+                                <thead>
+                                    <tr>
+                                        <th>Year</th>
+                                        <th>Month</th>
+                                        <th>${currentData[0]?.Zone_Name || zone1}</th>
+                                        <th>${comparisonData[0]?.Zone_Name || zone2}</th>
+                                        <th>Difference</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${currentData.map(d1 => {
+                                        const d2 = comparisonData.find(d => d.Year === d1.Year && d.Month === d1.Month);
+                                        if (!d2) return '';
+                                        const diff = d1.Avg_DA_LMP - d2.Avg_DA_LMP;
+                                        return `
+                                            <tr>
+                                                <td>${d1.Year}</td>
+                                                <td>${d1.Month}</td>
+                                                <td>$${parseFloat(d1.Avg_DA_LMP).toFixed(2)}</td>
+                                                <td>$${parseFloat(d2.Avg_DA_LMP).toFixed(2)}</td>
+                                                <td>
+                                                    <span class="badge ${diff > 0 ? 'badge-danger' : 'badge-success'}">
+                                                        ${diff > 0 ? '+' : ''}$${diff.toFixed(2)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        `;
+                                    }).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        function renderDataTable() {
+            const tbody = document.querySelector('#rawDataTable tbody');
+            const allData = [...currentData, ...comparisonData].sort((a, b) => {
+                if (a.Year !== b.Year) return a.Year - b.Year;
+                if (a.Month !== b.Month) return a.Month - b.Month;
+                return a.Zone.localeCompare(b.Zone);
+            });
+            
+            tbody.innerHTML = allData.map(d => `
+                <tr>
+                    <td>${d.Year}</td>
+                    <td>${d.Month}</td>
+                    <td>${d.Zone}</td>
+                    <td>${d.Zone_Name}</td>
+                    <td>$${parseFloat(d.Avg_DA_LMP).toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+        
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.tab === tabId);
+            });
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('active', content.id === `tab-${tabId}`);
+            });
+        }
+        
+        function exportToExcel() {
+            const allData = [...currentData, ...comparisonData];
+            const ws = XLSX.utils.json_to_sheet(allData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'LMP Data');
+            
+            const clientName = document.getElementById('clientName').value || 'LMP_Analysis';
+            const filename = `${clientName.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+            
+            XLSX.writeFile(wb, filename);
+        }
+        
+        function exportChart() {
+            const canvas = document.getElementById('overviewChart');
+            const link = document.createElement('a');
+            link.download = 'lmp_chart.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+    </script>
+</body>
+</html>

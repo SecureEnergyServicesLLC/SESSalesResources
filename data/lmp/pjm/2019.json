@@ -1,0 +1,103 @@
+{
+  "iso": "PJM",
+  "year": 2019,
+  "recordCount": 12,
+  "data": [
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 1,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 32.65
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 2,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 25.67
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 3,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 28.13
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 4,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 25.0
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 5,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 22.66
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 6,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 21.26
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 7,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 26.31
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 8,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 22.76
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 9,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 22.35
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 10,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 21.79
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 11,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 25.83
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2019,
+      "Month": 12,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 22.32
+    }
+  ]
+}

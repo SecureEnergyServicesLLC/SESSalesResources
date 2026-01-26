@@ -1,0 +1,799 @@
+{
+  "iso": "ISONE",
+  "year": 2025,
+  "recordCount": 99,
+  "data": [
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 133.56
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 130.89
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 134.31
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 132.51
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 130.3
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 133.86
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 135.04
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 133.52
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 134.92
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 130.39
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 128.41
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 131.8
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 129.23
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 126.4
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 130.69
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 131.8
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 130.38
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 131.97
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 46.98
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 46.46
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 47.39
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 46.82
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 45.51
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 46.71
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 47.3
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 46.98
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 47.63
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 41.41
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 36.28
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 41.16
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 40.76
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 40.45
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 41.16
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 41.7
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 41.29
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 41.77
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 35.21
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 31.12
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 34.94
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 34.71
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 34.9
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 34.96
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 35.39
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 35.21
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 35.46
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 43.75
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 42.04
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 43.82
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 43.75
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 42.95
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 43.52
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 44.13
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 43.84
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 44.24
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 70.27
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 68.1
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 70.6
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 70.9
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 69.16
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 69.67
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 70.71
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 70.5
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 71.11
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 45.58
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 45.02
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 46.15
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 46.37
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 44.75
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 45.13
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 45.93
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 45.73
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 46.26
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 34.21
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 33.98
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 34.66
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 34.81
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 33.61
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 33.85
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 34.38
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 34.3
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 34.67
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 40.28
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 39.58
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 40.62
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 41.96
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 39.83
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 39.67
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 40.34
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 40.36
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 40.59
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4000_ISONE",
+      "Zone_Name": "ISO NE CA",
+      "Avg_DA_LMP": 59.57
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4001_Maine",
+      "Zone_Name": "ME",
+      "Avg_DA_LMP": 59.53
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4002_NH",
+      "Zone_Name": "NH",
+      "Avg_DA_LMP": 60.64
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4003_Vermont",
+      "Zone_Name": "VT",
+      "Avg_DA_LMP": 61.03
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4004_Connecticut",
+      "Zone_Name": "CT",
+      "Avg_DA_LMP": 57.72
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4005_Rhode_Island",
+      "Zone_Name": "RI",
+      "Avg_DA_LMP": 58.61
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4006_SEMA",
+      "Zone_Name": "SEMA",
+      "Avg_DA_LMP": 59.62
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4007_WCMA",
+      "Zone_Name": "WCMA",
+      "Avg_DA_LMP": 59.65
+    },
+    {
+      "ISO": "ISONE",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "4008_NEMA",
+      "Zone_Name": "NEMA",
+      "Avg_DA_LMP": 60.41
+    }
+  ]
+}

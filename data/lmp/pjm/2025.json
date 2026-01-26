@@ -1,0 +1,2023 @@
+{
+  "iso": "PJM",
+  "year": 2025,
+  "recordCount": 252,
+  "data": [
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 67.62
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 60.13
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 64.27
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 60.0
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 75.23
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 41.55
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 59.29
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 56.13
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 75.66
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 73.27
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 56.68
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 57.44
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 61.44
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 67.19
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 68.87
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 66.77
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 66.13
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 76.48
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 64.02
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 66.99
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 1,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 68.16
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 47.15
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 47.11
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 47.38
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 47.34
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 50.89
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 39.06
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 47.49
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 45.96
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 50.15
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 48.52
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 44.81
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 45.74
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 50.16
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 47.54
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 46.38
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 46.44
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 55.52
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 50.93
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 43.63
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 49.35
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 2,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 56.6
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 34.41
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 40.29
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 43.83
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 42.0
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 51.01
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 25.47
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 40.81
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 39.85
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 46.73
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 34.97
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 41.17
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 39.63
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 36.77
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 37.36
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 40.69
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 33.23
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 45.26
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 49.37
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 35.76
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 36.4
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 3,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 39.82
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 36.01
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 45.75
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 45.97
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 45.69
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 52.58
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 23.62
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 46.35
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 46.05
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 56.38
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 36.53
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 44.96
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 44.8
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 37.49
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 36.53
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 38.38
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 35.1
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 43.36
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 50.07
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 36.54
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 36.71
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 4,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 37.83
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 28.53
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 32.93
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 32.58
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 31.93
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 40.44
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 29.54
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 33.73
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 32.93
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 53.88
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 28.2
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 31.34
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 32.53
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 30.01
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 28.76
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 32.94
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 27.84
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 32.16
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 41.7
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 28.8
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 28.81
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 5,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 29.69
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 37.56
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 44.89
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 43.67
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 43.89
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 57.75
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 40.22
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 44.83
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 43.17
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 63.31
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 44.81
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 42.25
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 42.12
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 40.65
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 37.04
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 41.39
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 35.57
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 45.89
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 53.83
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 35.56
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 37.34
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 6,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 42.31
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 56.35
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 54.67
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 56.81
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 55.67
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 73.94
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 54.21
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 56.44
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 54.51
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 77.96
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 69.1
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 53.47
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 53.65
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 56.68
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 54.85
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 59.07
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 54.16
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 58.75
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 77.4
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 52.73
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 54.86
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 7,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 60.88
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 32.34
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 36.29
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 35.18
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 36.65
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 40.94
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 37.03
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 37.61
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 36.36
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 39.42
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 34.36
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 34.84
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 35.79
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 35.69
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 32.33
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 32.73
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 31.56
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 37.17
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 38.3
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 29.93
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 32.38
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 8,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 37.19
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 26.67
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 39.95
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 40.09
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 38.47
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 51.71
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 36.85
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 40.73
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 39.65
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 52.25
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 28.52
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 37.63
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 39.72
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 32.79
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 26.61
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 28.91
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 26.65
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 38.38
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 48.24
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 25.45
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 27.18
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 9,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 31.34
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 37.01
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 49.17
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 49.94
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 49.01
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 62.15
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 34.75
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 49.59
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 47.97
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 75.97
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 37.76
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 47.97
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 46.99
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 39.79
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 36.68
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 35.31
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 36.94
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 45.32
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 58.78
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 34.47
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 37.13
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 10,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 39.01
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 41.8
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 48.06
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 52.12
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 48.18
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 64.62
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 36.93
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 49.35
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 49.57
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 61.43
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 43.03
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 47.44
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 47.26
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 43.97
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 42.33
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 42.21
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 41.39
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 50.42
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 62.34
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 39.92
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 42.67
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 11,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 45.68
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "AECO",
+      "Zone_Name": "AECO",
+      "Avg_DA_LMP": 55.06
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "AEP",
+      "Zone_Name": "AEP",
+      "Avg_DA_LMP": 50.44
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "APS",
+      "Zone_Name": "APS",
+      "Avg_DA_LMP": 59.4
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "ATSI",
+      "Zone_Name": "ATSI",
+      "Avg_DA_LMP": 51.21
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "BGE",
+      "Zone_Name": "BGE",
+      "Avg_DA_LMP": 66.53
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "COMED",
+      "Zone_Name": "COMED",
+      "Avg_DA_LMP": 40.4
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "DAY",
+      "Zone_Name": "DAY",
+      "Avg_DA_LMP": 50.8
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "DEOK",
+      "Zone_Name": "DEOK",
+      "Avg_DA_LMP": 49.07
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "DOM",
+      "Zone_Name": "DOM",
+      "Avg_DA_LMP": 66.12
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "DPL",
+      "Zone_Name": "DPL",
+      "Avg_DA_LMP": 80.39
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "DUQ",
+      "Zone_Name": "DUQ",
+      "Avg_DA_LMP": 46.09
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "EKPC",
+      "Zone_Name": "EKPC",
+      "Avg_DA_LMP": 49.41
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "EXTERNAL",
+      "Zone_Name": "EXTERNAL",
+      "Avg_DA_LMP": 59.12
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "JCPL",
+      "Zone_Name": "JCPL",
+      "Avg_DA_LMP": 55.67
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "METED",
+      "Zone_Name": "METED",
+      "Avg_DA_LMP": 55.77
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "PECO",
+      "Zone_Name": "PECO",
+      "Avg_DA_LMP": 54.66
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "PENELEC",
+      "Zone_Name": "PENELEC",
+      "Avg_DA_LMP": 69.44
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "PEPCO",
+      "Zone_Name": "PEPCO",
+      "Avg_DA_LMP": 67.09
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "PPL",
+      "Zone_Name": "PPL",
+      "Avg_DA_LMP": 49.6
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "PSEG",
+      "Zone_Name": "PSEG",
+      "Avg_DA_LMP": 59.95
+    },
+    {
+      "ISO": "PJM",
+      "Year": 2025,
+      "Month": 12,
+      "Zone": "RECO",
+      "Zone_Name": "RECO",
+      "Avg_DA_LMP": 68.99
+    }
+  ]
+}
