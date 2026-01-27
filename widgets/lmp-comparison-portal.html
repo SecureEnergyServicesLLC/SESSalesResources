@@ -3381,9 +3381,10 @@
         
         // Configuration
         const DATA_CONFIG = {
-            GITHUB_JSON_URL: 'data/lmp-database.json',  // Relative path for GitHub Pages
+            GITHUB_RAW_URL: 'https://raw.githubusercontent.com/Secure-EC/SESSalesResources/main/data/lmp-database.json',
             STORAGE_KEY: 'secureEnergy_LMP_Data',
             FALLBACK_URLS: [
+                'https://raw.githubusercontent.com/Secure-EC/SESSalesResources/main/data/lmp-database.json',
                 'data/lmp-database.json',
                 '../data/lmp-database.json',
                 './data/lmp-database.json'
@@ -3727,11 +3728,36 @@
             
             console.log('[LMP Portal] Initializing data...');
             
-            // Try localStorage first (faster, may have user-uploaded data)
-            const storageLoaded = loadFromStorage();
-            
-            // Then try GitHub JSON (may have newer/more complete data)
+            // Try GitHub first (authoritative source)
             const githubLoaded = await loadFromGitHub();
+            
+            // Fall back to localStorage if GitHub fails
+            if (!githubLoaded) {
+                console.log('[LMP Portal] GitHub load failed, trying localStorage...');
+                loadFromStorage();
+            } else {
+                // Cache GitHub data to localStorage for offline access
+                try {
+                    const cacheData = { records: [] };
+                    Object.keys(ISO_DATA).forEach(iso => {
+                        if (ISO_DATA[iso] && ISO_DATA[iso].length > 0) {
+                            ISO_DATA[iso].forEach(item => {
+                                cacheData.records.push({
+                                    iso: iso,
+                                    zone: item.zone_name,
+                                    year: item.year,
+                                    month: item.month,
+                                    lmp: item.avg_da_lmp
+                                });
+                            });
+                        }
+                    });
+                    localStorage.setItem(DATA_CONFIG.STORAGE_KEY, JSON.stringify(cacheData));
+                    console.log('[LMP Portal] Cached GitHub data to localStorage');
+                } catch (cacheErr) {
+                    console.warn('[LMP Portal] Could not cache data:', cacheErr);
+                }
+            }
             
             // Check if we have any data
             const hasData = Object.keys(ISO_DATA).some(iso => ISO_DATA[iso] && ISO_DATA[iso].length > 0);
@@ -3750,8 +3776,8 @@
                     }
                 });
                 
-                const sourceLabel = dataSource === 'github' ? 'GitHub' : 
-                                   dataSource === 'localStorage' ? 'Local Storage' : 'Unknown';
+                const sourceLabel = dataSource === 'github' ? 'GitHub Repository' : 
+                                   dataSource === 'localStorage' ? 'Local Cache' : 'Unknown';
                 showNotification(`Loaded ${totalRecords.toLocaleString()} records from ${isoCount} ISOs (${sourceLabel})`, 'success');
             } else {
                 console.log('[LMP Portal] No data available from any source');
