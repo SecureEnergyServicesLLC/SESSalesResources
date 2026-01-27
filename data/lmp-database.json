@@ -1,10 +1,10 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2026-01-27T15:26:18.337Z",
+  "lastUpdated": "2026-01-27T15:30:22.278Z",
   "meta": {
-    "source": "file: lmp_data_combined.csv",
-    "loadedAt": "2026-01-27T15:26:07.544Z",
-    "recordCount": 3420
+    "source": "file: lmp_data_export_MISO.csv",
+    "loadedAt": "2026-01-27T15:30:08.909Z",
+    "recordCount": 4031
   },
   "records": [
     {
@@ -37626,6 +37626,4894 @@
       "energy": 0,
       "congestion": 0,
       "loss": 0
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "1",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 26.54
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "1",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 30.18
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "1",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 32.74
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "1",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 30.98
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "1",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 31.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "1",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 29.02
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "1",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 29.15
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "2",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 22.87
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "2",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 25.82
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "2",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 27.25
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "2",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 26.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "2",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 27.87
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "2",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 27.42
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "2",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 24.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "3",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 26.08
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "3",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 27.08
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "3",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 29.17
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "3",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 30.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "3",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 29.6
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "3",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 25.35
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "3",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 27.77
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "4",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 24.99
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "4",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 25.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "4",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 27.19
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "4",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 30.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "4",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 28.02
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "4",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 23.99
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "4",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 30.18
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "5",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 25.86
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "5",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 24.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "5",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 25.82
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "5",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 28.08
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "5",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 26.35
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "5",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 20.77
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "5",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 29.6
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "6",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.05
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "6",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 22.97
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "6",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 24.57
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "6",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 26.09
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "6",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 24.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "6",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 19.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "6",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 28.58
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "7",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "7",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 27.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "7",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 28.39
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "7",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 25.59
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "7",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 28.54
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "7",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 23.66
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "7",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 27.28
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "8",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 22.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "8",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 24.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "8",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 25.16
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "8",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 23.95
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "8",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 25.14
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "8",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 21.17
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "8",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 24.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "9",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.81
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "9",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 25.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "9",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 26.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "9",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 26.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "9",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 25.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "9",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 19.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "9",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 26.03
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "10",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 21.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "10",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 23.59
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "10",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 24.97
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "10",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 23.23
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "10",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 23.74
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "10",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 18.69
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "10",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 23.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "11",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 24.17
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "11",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 25.66
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "11",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 27.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "11",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 25.31
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "11",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 28.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "11",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 21.47
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "11",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 25.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "12",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 20.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "12",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 23.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "12",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 23.55
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "12",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 21.46
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "12",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 23.85
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "12",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 19.94
+    },
+    {
+      "iso": "MISO",
+      "year": "2019",
+      "month": "12",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 21.7
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "1",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 19.13
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "1",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 23.52
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "1",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 23.47
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "1",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 19.77
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "1",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 23.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "1",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 19.92
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "1",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 19.87
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "2",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 19.72
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "2",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 21.59
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "2",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 21.97
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "2",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 19.78
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "2",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 21.71
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "2",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 17.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "2",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 19.93
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "3",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 18.41
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "3",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 19.22
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "3",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 20.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "3",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 19.93
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "3",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 20.22
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "3",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 15.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "3",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 20.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "4",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 16.95
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "4",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 18.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "4",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 19.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "4",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 18.78
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "4",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 19.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "4",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 14.46
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "4",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 19.23
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "5",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 18.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "5",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 19.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "5",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 19.91
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "5",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 19.43
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "5",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 21.36
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "5",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 14.94
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "5",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 20.7
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "6",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 17.89
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "6",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 21.58
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "6",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 22.12
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "6",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 18.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "6",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 22.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "6",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 14.97
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "6",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 18.95
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "7",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 19.82
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "7",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 26.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "7",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 26.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "7",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 19.71
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "7",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 31.72
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "7",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 20.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "7",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 20.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "8",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 21.12
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "8",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 25.57
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "8",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 25.32
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "8",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 23.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "8",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 26.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "8",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 19.35
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "8",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 35.89
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "9",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 19.23
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "9",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 20.46
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "9",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 21.32
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "9",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 21.19
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "9",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 20.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "9",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 14.01
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "9",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 22.7
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "10",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 22.81
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "10",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 22.47
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "10",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 25.32
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "10",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 25.19
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "10",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 25.02
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "10",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 19.1
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "10",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 33.21
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "11",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 24.4
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "11",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 18.14
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "11",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 24.13
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "11",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 24.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "11",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 22.62
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "11",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 17.93
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "11",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 26.05
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "12",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 24.74
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "12",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 24.6
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "12",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 24.39
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "12",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 25.25
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "12",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 24.53
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "12",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 21.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2020",
+      "month": "12",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 24.52
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "1",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "1",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 24.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "1",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 25.77
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "1",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 23.71
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "1",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 24.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "1",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 21.56
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "1",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 23.89
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "2",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 68.57
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "2",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 61.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "2",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 61.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "2",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 53.42
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "2",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 57.17
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "2",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 71.53
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "2",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 113.68
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "3",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 24.87
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "3",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 23.02
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "3",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 23.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "3",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 27.1
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "3",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 22.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "3",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 18.24
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "3",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 27.18
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "4",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 24.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "4",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 26.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "4",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 28.25
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "4",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 27.46
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "4",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 26.72
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "4",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 25.54
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "4",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 27.13
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "5",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 27.01
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "5",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 26.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "5",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 27.23
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "5",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 28.23
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "5",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 27.36
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "5",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 25.1
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "5",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 27.93
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "6",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 29.96
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "6",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 32.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "6",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 34.11
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "6",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 32.89
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "6",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 34.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "6",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 37.85
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "6",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 32.4
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "7",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 33.66
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "7",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 36.71
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "7",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 37.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "7",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 35.56
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "7",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 38.34
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "7",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 37.96
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "7",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 35.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "8",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 36.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "8",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 42.59
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "8",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 44.18
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "8",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 38.69
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "8",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 43.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "8",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 36.94
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "8",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 38.01
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "9",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 41.08
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "9",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 44.12
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "9",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 45.12
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "9",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 42.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "9",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 46.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "9",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 39.22
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "9",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 43.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "10",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 51.23
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "10",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 57.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "10",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 58.07
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "10",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 53.55
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "10",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 56.95
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "10",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 53.15
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "10",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 53.81
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "11",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 47.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "11",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 55.05
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "11",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 64.61
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "11",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 49.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "11",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 54.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "11",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 44.62
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "11",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 49.61
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "12",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 34.69
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "12",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 35.39
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "12",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 43.28
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "12",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 35.78
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "12",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 38.15
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "12",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 38.28
+    },
+    {
+      "iso": "MISO",
+      "year": "2021",
+      "month": "12",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 35.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "1",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 35.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "1",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 44.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "1",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 52.61
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "1",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 37.32
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "1",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 49.38
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "1",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 37.93
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "1",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 36.35
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "2",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 39.12
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "2",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 44.85
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "2",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 49.53
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "2",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 40.91
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "2",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 47.03
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "2",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 38.32
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "2",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 40.7
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "3",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 42.42
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "3",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 40.07
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "3",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 49.5
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "3",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 44.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "3",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 45.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "3",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 33.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "3",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 47.1
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "4",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 61.47
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "4",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 60.92
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "4",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 67.19
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "4",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 65.48
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "4",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 63.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "4",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 43.57
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "4",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 63.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "5",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 77.41
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "5",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 74.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "5",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 77.18
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "5",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 81.61
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "5",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 77.56
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "5",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 48.47
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "5",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 81.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "6",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 73.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "6",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 85.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "6",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 90.01
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "6",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 86.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "6",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 89.05
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "6",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 51.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "6",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 81.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "7",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 73.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "7",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 84.81
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "7",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 88.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "7",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 79.57
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "7",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 85.88
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "7",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 56.7
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "7",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 77.25
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "8",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 78.3
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "8",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 92.89
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "8",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 97.92
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "8",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 79.85
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "8",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 95.25
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "8",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 66.09
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "8",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 79.47
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "9",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 68.82
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "9",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 74.43
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "9",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 83.46
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "9",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 72.43
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "9",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 77.87
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "9",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 54.85
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "9",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 72.97
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "10",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 52.34
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "10",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 48.09
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "10",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 58.61
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "10",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 53.97
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "10",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 51.56
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "10",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 40.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "10",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 53.58
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "11",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 50.5
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "11",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 44.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "11",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 55.42
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "11",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 52.28
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "11",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 49.71
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "11",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 29.99
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "11",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 50.49
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "12",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 62.41
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "12",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 60.49
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "12",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 70.92
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "12",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 56.23
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "12",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 61.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "12",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 40.67
+    },
+    {
+      "iso": "MISO",
+      "year": "2022",
+      "month": "12",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 54.65
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "1",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 27.44
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "1",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 34.65
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "1",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 37.46
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "1",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 29.34
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "1",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 35.82
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "1",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 30.02
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "1",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 28.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "2",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.18
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "2",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 26.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "2",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 29.36
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "2",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 24.12
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "2",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 27.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "2",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 20.55
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "2",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 23.91
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "3",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 25.01
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "3",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 24.57
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "3",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 30.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "3",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 27.77
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "3",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 28.29
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "3",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 25.62
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "3",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 27.41
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "4",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 25.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "4",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 21.55
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "4",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 32.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "4",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 26.97
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "4",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 28.49
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "4",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 22.89
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "4",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 26.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "5",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 25.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "5",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 27.49
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "5",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 34.4
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "5",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 28.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "5",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 28.86
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "5",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 23.52
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "5",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 27.98
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "6",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 26.5
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "6",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 28.52
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "6",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 32.35
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "6",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 31.2
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "6",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 30.03
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "6",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 32.18
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "6",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 31.48
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "7",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 28.93
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "7",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 35.21
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "7",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 36.63
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "7",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 32.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "7",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 36.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "7",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 34.78
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "7",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 36.42
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "8",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 31.54
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "8",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 32.69
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "8",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 34.3
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "8",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 33.52
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "8",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 33.6
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "8",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 35.57
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "8",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 35.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "9",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 27.1
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "9",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 29.89
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "9",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 32.24
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "9",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 30.39
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "9",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 30.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "9",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 29.08
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "9",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 31.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "10",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 27.53
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "10",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 30.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "10",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 34.02
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "10",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 29.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "10",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 31.55
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "10",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 29.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "10",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 30.31
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "11",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 26.31
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "11",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 29.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "11",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 32.59
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "11",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 28.05
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "11",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 31.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "11",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 30.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "11",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 28.2
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "12",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.5
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "12",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 25.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "12",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 28.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "12",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 24.92
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "12",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 27.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "12",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 26.62
+    },
+    {
+      "iso": "MISO",
+      "year": "2023",
+      "month": "12",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 24.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "1",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 38.31
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "1",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 43.36
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "1",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 49.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "1",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 41.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "1",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 46.35
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "1",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 46.11
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "1",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 43.49
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "2",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 17.94
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "2",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 22.72
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "2",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 24.78
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "2",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 18.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "2",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 24.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "2",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 23.55
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "2",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 17.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "2",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 18.88
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "3",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 18.53
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "3",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 18.86
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "3",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 22.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "3",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 19.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "3",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 22.36
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "3",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 19.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "3",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 18.44
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "3",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 18.86
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "4",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 19.43
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "4",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 19.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "4",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 26.87
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "4",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 21.29
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "4",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 24.74
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "4",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 19.85
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "4",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 20.83
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "4",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 20.25
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "5",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 25.27
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "5",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 24.76
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "5",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 32.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "5",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 28.2
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "5",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 27.99
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "5",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 23.26
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "5",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 24.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "5",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 27.87
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "6",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 25.31
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "6",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 29.56
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "6",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 31.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "6",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 27.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "6",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 30.4
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "6",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 21.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "6",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 25.93
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "6",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 28.94
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "7",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.48
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "7",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 32.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "7",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 34.96
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "7",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 25.43
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "7",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 34.23
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "7",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 32.54
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "7",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 24.34
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "7",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 25.55
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "8",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.82
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "8",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 29.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "8",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 32.03
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "8",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 25.52
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "8",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 31.34
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "8",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 27.74
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "8",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 23.86
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "8",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 26.28
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "9",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 23.85
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "9",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 27.5
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "9",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 29.7
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "9",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 26.15
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "9",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 28.7
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "9",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 27.77
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "9",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 24.2
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "9",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 24.66
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "10",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 25.44
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "10",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 25.51
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "10",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 29.17
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "10",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 27.87
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "10",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 27.62
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "10",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 24.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "10",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 26.38
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "10",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 26.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "11",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 22.39
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "11",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 24.89
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "11",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 26.92
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "11",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 25.24
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "11",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 26.69
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "11",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 25.47
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "11",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 23.56
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "11",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 23.56
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "12",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 27.64
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "12",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 30.69
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "12",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 33.6
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "12",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 29.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "12",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 32.71
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "12",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 34.2
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "12",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 27.88
+    },
+    {
+      "iso": "MISO",
+      "year": "2024",
+      "month": "12",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 28.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "1",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 41.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "1",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 45.2
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "1",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 50.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "1",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 44.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "1",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 47.91
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "1",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 43.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "1",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 42.03
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "1",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 42.18
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "2",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 39.86
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "2",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 43.58
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "2",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 47.47
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "2",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 42.86
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "2",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 47.34
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "2",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 41.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "2",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 41.17
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "2",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 41.83
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "3",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 33.78
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "3",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 31.09
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "3",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 36.98
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "3",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 38.95
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "3",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 37.79
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "3",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 28.72
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "3",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 34.91
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "3",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 38.28
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "4",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 30.13
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "4",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 27.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "4",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 37.93
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "4",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 35.68
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "4",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 36.3
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "4",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 31.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "4",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 33.11
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "4",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 38.09
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "5",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 32.16
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "5",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 31.06
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "5",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 34.5
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "5",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 54.54
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "5",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 33.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "5",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 31.92
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "5",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 29.25
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "5",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 35.91
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "6",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 32.49
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "6",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 42.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "6",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 45.32
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "6",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 35.75
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "6",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 45.1
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "6",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 47.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "6",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 33.38
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "6",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 34.32
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "7",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 34.53
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "7",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 55.57
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "7",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 58.55
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "7",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 38.24
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "7",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 58.41
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "7",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 59.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "7",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 35.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "7",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 37.37
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "8",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 27.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "8",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 39.6
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "8",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 41.35
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "8",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 30.6
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "8",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 41.82
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "8",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 48.22
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "8",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 28.42
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "8",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 30.17
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "9",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 30.29
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "9",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 37.45
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "9",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 39.84
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "9",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 33.58
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "9",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 38.88
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "9",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 43.9
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "9",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 31.91
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "9",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 34.73
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "10",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 29.41
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "10",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 33.59
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "10",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 40.67
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "10",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 33.13
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "10",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 39.34
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "10",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 35.8
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "10",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 30.22
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "10",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 34.62
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "11",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 33.68
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "11",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 33.92
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "11",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 41.82
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "11",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 35.21
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "11",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 41.33
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "11",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 36.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "11",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 33.72
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "11",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 36.04
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "12",
+      "zone": "AR",
+      "zoneId": "ARKANSAS",
+      "lmp": 34.29
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "12",
+      "zone": "IL",
+      "zoneId": "ILLINOIS",
+      "lmp": 41.98
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "12",
+      "zone": "IN",
+      "zoneId": "INDIANA",
+      "lmp": 48.29
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "12",
+      "zone": "LA",
+      "zoneId": "LOUISIANA",
+      "lmp": 37.21
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "12",
+      "zone": "MI",
+      "zoneId": "MICHIGAN",
+      "lmp": 49.19
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "12",
+      "zone": "MN",
+      "zoneId": "MINN",
+      "lmp": 45.85
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "12",
+      "zone": "MS",
+      "zoneId": "MS",
+      "lmp": 36.53
+    },
+    {
+      "iso": "MISO",
+      "year": "2025",
+      "month": "12",
+      "zone": "TX",
+      "zoneId": "TEXAS",
+      "lmp": 37.45
     }
   ]
 }

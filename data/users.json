@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2026-01-27T15:26:16.779Z",
+  "lastUpdated": "2026-01-27T15:33:22.445Z",
   "users": [
     {
       "id": "admin-001",
@@ -43,6 +43,54 @@
       "role": "user",
       "status": "active",
       "createdAt": "2026-01-27T14:48:52.324Z",
+      "permissions": {
+        "lmp-comparison": true,
+        "data-manager": false,
+        "arcadia-fetcher": false,
+        "user-admin": false
+      }
+    },
+    {
+      "id": "user-1769527952869",
+      "firstName": "Brian",
+      "lastName": "Miller",
+      "email": "bmiller@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-27T15:32:32.869Z",
+      "permissions": {
+        "lmp-comparison": true,
+        "data-manager": false,
+        "arcadia-fetcher": false,
+        "user-admin": false
+      }
+    },
+    {
+      "id": "user-1769527973957",
+      "firstName": "TJ",
+      "lastName": "Kopyscinski",
+      "email": "tkopy@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-27T15:32:53.957Z",
+      "permissions": {
+        "lmp-comparison": true,
+        "data-manager": false,
+        "arcadia-fetcher": false,
+        "user-admin": false
+      }
+    },
+    {
+      "id": "user-1769527996133",
+      "firstName": "Doug",
+      "lastName": "McSweeney",
+      "email": "dmcsweeney@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-27T15:33:16.133Z",
       "permissions": {
         "lmp-comparison": true,
         "data-manager": false,
