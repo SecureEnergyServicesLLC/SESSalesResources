@@ -25,6 +25,14 @@ const WIDGETS = [
         height: 500
     },
     {
+        id: 'lmp-analytics',
+        name: 'LMP Analytics Dashboard',
+        icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>',
+        src: 'widgets/lmp-analytics.html',
+        fullWidth: true,
+        height: 800
+    },
+    {
         id: 'data-manager',
         name: 'LMP Data Manager',
         icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
@@ -568,6 +576,13 @@ function getCreateUserPanel() {
                     </label>
                 </div>
                 <div class="widget-permission-item">
+                    <span>LMP Analytics Dashboard</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="perm-lmp-analytics" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="widget-permission-item">
                     <span>My Analysis History</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="perm-analysis-history" checked>
@@ -722,6 +737,7 @@ function createUser() {
     const permissions = {
         'ai-assistant': document.getElementById('perm-ai-assistant').checked,
         'lmp-comparison': document.getElementById('perm-lmp-comparison').checked,
+        'lmp-analytics': document.getElementById('perm-lmp-analytics').checked,
         'analysis-history': document.getElementById('perm-analysis-history').checked,
         'data-manager': document.getElementById('perm-data-manager').checked,
         'arcadia-fetcher': document.getElementById('perm-arcadia-fetcher').checked,
@@ -749,6 +765,7 @@ function createUser() {
         document.getElementById('newRole').value = 'user';
         document.getElementById('perm-ai-assistant').checked = true;
         document.getElementById('perm-lmp-comparison').checked = true;
+        document.getElementById('perm-lmp-analytics').checked = true;
         document.getElementById('perm-analysis-history').checked = true;
         document.getElementById('perm-data-manager').checked = false;
         document.getElementById('perm-arcadia-fetcher').checked = false;
@@ -824,6 +841,13 @@ function editUser(userId) {
                 </label>
             </div>
             <div class="widget-permission-item">
+                <span>LMP Analytics Dashboard</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="edit-perm-lmp-analytics" ${user.permissions?.['lmp-analytics'] !== false ? 'checked' : ''}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="widget-permission-item">
                 <span>My Analysis History</span>
                 <label class="toggle-switch">
                     <input type="checkbox" id="edit-perm-analysis-history" ${user.permissions?.['analysis-history'] !== false ? 'checked' : ''}>
@@ -861,6 +885,7 @@ function saveUserEdit() {
         permissions: {
             'ai-assistant': document.getElementById('edit-perm-ai-assistant').checked,
             'lmp-comparison': document.getElementById('edit-perm-lmp-comparison').checked,
+            'lmp-analytics': document.getElementById('edit-perm-lmp-analytics').checked,
             'analysis-history': document.getElementById('edit-perm-analysis-history').checked,
             'data-manager': document.getElementById('edit-perm-data-manager').checked,
             'arcadia-fetcher': document.getElementById('edit-perm-arcadia-fetcher').checked,
@@ -1031,6 +1056,16 @@ function initAIAssistantWidget() {
                     <div class="ai-welcome-text">
                         <h3>Welcome to AI Assistant</h3>
                         <p>I can help you search users, navigate widgets, analyze LMP data, and more. Try asking me something!</p>
+                    </div>
+                </div>
+                <div class="ai-privacy-notice" style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 10px 14px; margin: 12px 0; font-size: 12px; color: var(--text-secondary);">
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" style="flex-shrink: 0; margin-top: 2px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <span><strong style="color: #f59e0b;">AI Disclaimer:</strong> This assistant uses local pattern matching only and does NOT connect to external AI services. However, as a best practice, avoid entering sensitive client data (SSN, account numbers, etc.) in any chat interface.</span>
                     </div>
                 </div>
                 <div class="ai-suggestions">

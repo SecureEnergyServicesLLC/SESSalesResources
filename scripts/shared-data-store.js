@@ -514,6 +514,7 @@ const UserStore = {
         if (role === 'admin') {
             return {
                 'lmp-comparison': true,
+                'lmp-analytics': true,
                 'data-manager': true,
                 'arcadia-fetcher': true,
                 'user-admin': true,
@@ -522,6 +523,7 @@ const UserStore = {
         }
         return {
             'lmp-comparison': true,
+            'lmp-analytics': true,
             'data-manager': false,
             'arcadia-fetcher': false,
             'user-admin': false,
