@@ -1368,7 +1368,7 @@
         let yearlyViewMode = 'cost';
         let monthByMonthViewMode = 'cost';
 
-        const zoneData = {
+        let zoneData = {
             'ISONE': [
                 { value: '4000_ISONE', label: 'ISO NE CA' },
                 { value: '4001_Maine', label: 'ME' },
@@ -1397,7 +1397,12 @@
                 { value: 'PEPCO', label: 'PEPCO' },
                 { value: 'PPL', label: 'PPL' },
                 { value: 'PSEG', label: 'PSEG' }
-            ]
+            ],
+            'NYISO': [],
+            'MISO': [],
+            'ERCOT': [],
+            'CAISO': [],
+            'SPP': []
         };
 
         const defaultUsage = {
@@ -1467,12 +1472,50 @@
             const zoneSelect = document.getElementById('zone');
             zoneSelect.innerHTML = '';
             
-            zoneData[iso].forEach(zone => {
+            // First try to get zones from ISO_DATA (loaded from JSON)
+            if (ISO_DATA[iso] && ISO_DATA[iso].length > 0) {
+                // Build unique zones from the data
+                const uniqueZones = {};
+                ISO_DATA[iso].forEach(record => {
+                    const zoneValue = record.zone || record.zone_name || '';
+                    const zoneLabel = record.zone_name || record.zone || '';
+                    if (zoneValue && !uniqueZones[zoneValue]) {
+                        uniqueZones[zoneValue] = zoneLabel;
+                    }
+                });
+                
+                // Sort and add to dropdown
+                Object.keys(uniqueZones).sort().forEach(zoneValue => {
+                    const option = document.createElement('option');
+                    option.value = zoneValue;
+                    option.textContent = uniqueZones[zoneValue] || zoneValue;
+                    zoneSelect.appendChild(option);
+                });
+                
+                // Also update zoneData for this ISO for future use
+                if (!zoneData[iso] || zoneData[iso].length === 0) {
+                    zoneData[iso] = Object.keys(uniqueZones).map(value => ({
+                        value: value,
+                        label: uniqueZones[value] || value
+                    }));
+                }
+            } 
+            // Fall back to hardcoded zoneData
+            else if (zoneData[iso] && zoneData[iso].length > 0) {
+                zoneData[iso].forEach(zone => {
+                    const option = document.createElement('option');
+                    option.value = zone.value;
+                    option.textContent = zone.label;
+                    zoneSelect.appendChild(option);
+                });
+            }
+            // No zones available
+            else {
                 const option = document.createElement('option');
-                option.value = zone.value;
-                option.textContent = zone.label;
+                option.value = '';
+                option.textContent = '-- No zones available --';
                 zoneSelect.appendChild(option);
-            });
+            }
         }
 
         function initializeUsageGrid() {
@@ -3478,9 +3521,35 @@
             dataSource = 'broadcast';
             
             // Refresh ISO dropdown and UI
+            buildZoneDataFromISO();
             updateISODropdown();
             populateZones();
             showNotification('Data updated!', 'success');
+        }
+        
+        // Build zoneData object from loaded ISO_DATA
+        function buildZoneDataFromISO() {
+            Object.keys(ISO_DATA).forEach(iso => {
+                if (ISO_DATA[iso] && ISO_DATA[iso].length > 0) {
+                    const uniqueZones = {};
+                    ISO_DATA[iso].forEach(record => {
+                        const zoneValue = record.zone || record.zone_name || '';
+                        const zoneLabel = record.zone_name || record.zone || '';
+                        if (zoneValue && !uniqueZones[zoneValue]) {
+                            uniqueZones[zoneValue] = zoneLabel;
+                        }
+                    });
+                    
+                    // Only update if we got zones from the data
+                    if (Object.keys(uniqueZones).length > 0) {
+                        zoneData[iso] = Object.keys(uniqueZones).sort().map(value => ({
+                            value: value,
+                            label: uniqueZones[value] || value
+                        }));
+                        console.log(`[LMP Portal] Built ${zoneData[iso].length} zones for ${iso}`);
+                    }
+                }
+            });
         }
         
         // Update ISO dropdown based on available data
@@ -3763,6 +3832,9 @@
             const hasData = Object.keys(ISO_DATA).some(iso => ISO_DATA[iso] && ISO_DATA[iso].length > 0);
             
             if (hasData) {
+                // Build zoneData from loaded ISO_DATA
+                buildZoneDataFromISO();
+                
                 // Update UI
                 updateISODropdown();
                 
