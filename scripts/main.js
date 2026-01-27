@@ -868,7 +868,9 @@ function renderActivityLog() {
         activities = activities.filter(a => 
             a.clientName?.toLowerCase().includes(searchTerm) ||
             a.userName?.toLowerCase().includes(searchTerm) ||
-            a.userEmail?.toLowerCase().includes(searchTerm)
+            a.userEmail?.toLowerCase().includes(searchTerm) ||
+            a.data?.iso?.toLowerCase().includes(searchTerm) ||
+            a.data?.zone?.toLowerCase().includes(searchTerm)
         );
     }
     
@@ -881,19 +883,51 @@ function renderActivityLog() {
         return;
     }
     
-    container.innerHTML = activities.map(a => `
-        <div class="activity-card">
-            <div class="activity-card-header">
-                <span class="activity-card-title">${a.action}</span>
-                <span class="activity-card-time">${new Date(a.timestamp).toLocaleString()}</span>
+    container.innerHTML = activities.map(a => {
+        // Build details section for LMP analyses
+        let detailsHTML = '';
+        if (a.widget === 'lmp-comparison' && a.data) {
+            const d = a.data;
+            const results = d.results || {};
+            detailsHTML = `
+                <div class="activity-card-details" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-secondary);">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">
+                        <span><strong>ISO:</strong> ${d.iso || 'N/A'}</span>
+                        <span><strong>Zone:</strong> ${d.zone || 'N/A'}</span>
+                        <span><strong>Start:</strong> ${d.startDate || 'N/A'}</span>
+                        <span><strong>Term:</strong> ${d.termMonths || 0} months</span>
+                        <span><strong>Fixed Rate:</strong> $${(d.fixedPrice || 0).toFixed(4)}/kWh</span>
+                        <span><strong>LMP Adj:</strong> ${(d.lmpAdjustment || 0).toFixed(1)}%</span>
+                    </div>
+                    ${results.totalIndexCost ? `
+                    <div style="margin-top: 8px; padding: 8px; background: var(--bg-tertiary); border-radius: 6px;">
+                        <strong>Results:</strong> 
+                        Index Cost: $${results.totalIndexCost?.toLocaleString(undefined, {maximumFractionDigits: 0}) || 0} | 
+                        Fixed Cost: $${results.totalFixedCost?.toLocaleString(undefined, {maximumFractionDigits: 0}) || 0} | 
+                        <span style="color: ${results.savingsVsFixed >= 0 ? '#10b981' : '#ef4444'}; font-weight: 600;">
+                            Savings: ${results.savingsVsFixed >= 0 ? '+' : ''}$${results.savingsVsFixed?.toLocaleString(undefined, {maximumFractionDigits: 0}) || 0}
+                        </span>
+                    </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        return `
+            <div class="activity-card">
+                <div class="activity-card-header">
+                    <span class="activity-card-title">${a.action}</span>
+                    <span class="activity-card-time">${new Date(a.timestamp).toLocaleString()}</span>
+                </div>
+                <div class="activity-card-meta">
+                    <span>User: ${a.userName || 'Unknown'}</span>
+                    <span>Widget: ${a.widget}</span>
+                    ${a.clientName ? `<span style="color: var(--accent-primary); font-weight: 600;">Client: ${a.clientName}</span>` : ''}
+                </div>
+                ${detailsHTML}
             </div>
-            <div class="activity-card-meta">
-                <span>User: ${a.userName || 'Unknown'}</span>
-                <span>Widget: ${a.widget}</span>
-                ${a.clientName ? `<span>Client: ${a.clientName}</span>` : ''}
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // =====================================================

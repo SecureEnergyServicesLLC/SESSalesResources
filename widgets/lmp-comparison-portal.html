@@ -975,6 +975,14 @@
         <div class="card">
             <div class="section-title">📋 Basic Parameters</div>
             
+            <!-- Client Name Input - for tracking -->
+            <div class="input-grid" style="margin-bottom: 20px;">
+                <div class="input-group" style="grid-column: span 2;">
+                    <label>👤 Client / Project Name</label>
+                    <input type="text" class="input-field" id="clientName" placeholder="Enter client or project name for tracking..." style="font-size: 16px;">
+                </div>
+            </div>
+            
             <div class="input-grid">
                 <div class="input-group">
                     <label>ISO / RTO</label>
@@ -2015,8 +2023,64 @@ const ISO_DATA = {"ISONE": [{"month": "01", "year": "2016", "zone": "4000_ISONE"
             
             if (calculationResults.length > 0) {
                 displayResults();
+                
+                // Log analysis to activity tracker
+                logAnalysisToParent();
             } else {
                 alert('Unable to calculate results. Please check your date range and zone selection.');
+            }
+        }
+        
+        // Log analysis to parent portal activity tracker
+        function logAnalysisToParent() {
+            const clientName = document.getElementById('clientName').value.trim() || 'Unnamed Analysis';
+            const iso = document.getElementById('iso').value;
+            const zone = document.getElementById('zone').value;
+            const startDate = document.getElementById('startDate').value;
+            const termMonths = parseInt(document.getElementById('termMonths').value);
+            const fixedPrice = parseFloat(document.getElementById('fixedPrice').value);
+            const lmpAdjustment = parseFloat(document.getElementById('lmpAdjustment')?.value || 0);
+            
+            // Get usage data
+            const usage = [];
+            for (let i = 0; i < 12; i++) {
+                usage.push(parseFloat(document.getElementById(`usage_${i}`).value) || 0);
+            }
+            const totalAnnualUsage = usage.reduce((a, b) => a + b, 0);
+            
+            // Get results summary
+            const lastResult = calculationResults[calculationResults.length - 1];
+            const totalIndexCost = lastResult?.cumIndex || 0;
+            const totalFixedCost = lastResult?.cumFixed || 0;
+            const savingsVsFixed = totalFixedCost - totalIndexCost;
+            const totalUsage = calculationResults.reduce((sum, r) => sum + r.usageKwh, 0);
+            const avgBlendedRate = totalUsage > 0 ? totalIndexCost / totalUsage : 0;
+            
+            // Send to parent window for logging
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'LMP_ANALYSIS_COMPLETE',
+                    data: {
+                        clientName: clientName,
+                        iso: iso,
+                        zone: zone,
+                        startDate: startDate,
+                        termMonths: termMonths,
+                        fixedPrice: fixedPrice,
+                        lmpAdjustment: lmpAdjustment,
+                        totalAnnualUsage: totalAnnualUsage,
+                        results: {
+                            totalIndexCost: totalIndexCost,
+                            totalFixedCost: totalFixedCost,
+                            savingsVsFixed: savingsVsFixed,
+                            avgBlendedRate: avgBlendedRate,
+                            totalUsage: totalUsage
+                        },
+                        timestamp: new Date().toISOString()
+                    }
+                }, '*');
+                
+                console.log('[LMP Portal] Analysis logged:', clientName);
             }
         }
 
@@ -3248,18 +3312,59 @@ const ISO_DATA = {"ISONE": [{"month": "01", "year": "2016", "zone": "4000_ISONE"
             // Merge new data with existing ISO_DATA
             Object.keys(data).forEach(iso => {
                 if (data[iso] && data[iso].length > 0) {
-                    // Add or update ISO data
                     ISO_DATA[iso] = data[iso];
                     console.log(`[LMP Portal] Updated ${iso} with ${data[iso].length} records`);
                 }
             });
             
-            // Refresh UI if we have selections
-            const isoSelect = document.getElementById('isoSelect');
-            if (isoSelect && isoSelect.value) {
-                populateZones();
-                showNotification('Data updated from Arcadia fetcher!', 'success');
+            // Refresh ISO dropdown and UI
+            updateISODropdown();
+            populateZones();
+            showNotification('Data updated!', 'success');
+        }
+        
+        // Update ISO dropdown based on available data
+        function updateISODropdown() {
+            const isoSelect = document.getElementById('iso');
+            const currentValue = isoSelect.value;
+            
+            // Get available ISOs from ISO_DATA
+            const availableISOs = Object.keys(ISO_DATA).filter(iso => 
+                ISO_DATA[iso] && ISO_DATA[iso].length > 0
+            );
+            
+            if (availableISOs.length === 0) return;
+            
+            // Clear and rebuild dropdown
+            isoSelect.innerHTML = '';
+            
+            // ISO display names
+            const isoNames = {
+                'ISONE': 'ISO-NE',
+                'PJM': 'PJM',
+                'NYISO': 'NYISO',
+                'MISO': 'MISO',
+                'ERCOT': 'ERCOT',
+                'CAISO': 'CAISO',
+                'SPP': 'SPP'
+            };
+            
+            availableISOs.forEach(iso => {
+                const option = document.createElement('option');
+                option.value = iso;
+                option.textContent = isoNames[iso] || iso;
+                isoSelect.appendChild(option);
+            });
+            
+            // Restore selection if still available, otherwise use first
+            if (availableISOs.includes(currentValue)) {
+                isoSelect.value = currentValue;
+            } else {
+                isoSelect.value = availableISOs[0];
             }
+            
+            // Update zones for selected ISO
+            updateZoneOptions();
         }
         
         // Show notification toast
@@ -3298,23 +3403,61 @@ const ISO_DATA = {"ISONE": [{"month": "01", "year": "2016", "zone": "4000_ISONE"
             }, 500);
         }
         
-        // Also check localStorage for any saved Arcadia data
+        // Load data from localStorage (shared data store from LMP Data Manager)
         (function loadStoredData() {
             try {
                 const stored = localStorage.getItem('secureEnergy_LMP_Data');
                 if (stored) {
                     const parsed = JSON.parse(stored);
-                    if (parsed.data) {
+                    
+                    // Check for records array format (from SecureEnergyData / LMP Data Manager)
+                    if (parsed.records && Array.isArray(parsed.records)) {
+                        // Convert records array to ISO_DATA format
+                        const groupedData = {};
+                        
+                        parsed.records.forEach(record => {
+                            const iso = (record.iso || '').toUpperCase();
+                            if (!iso) return;
+                            
+                            if (!groupedData[iso]) {
+                                groupedData[iso] = [];
+                            }
+                            
+                            groupedData[iso].push({
+                                month: String(record.month).padStart(2, '0'),
+                                year: String(record.year),
+                                zone: record.zoneId || record.zone || '',
+                                zone_name: record.zone || record.zoneId || '',
+                                avg_da_lmp: parseFloat(record.lmp) || 0
+                            });
+                        });
+                        
+                        // Merge with ISO_DATA (prefer shared store data)
+                        Object.keys(groupedData).forEach(iso => {
+                            if (groupedData[iso].length > 0) {
+                                ISO_DATA[iso] = groupedData[iso];
+                                console.log(`[LMP Portal] Loaded ${iso} with ${groupedData[iso].length} records from shared store`);
+                            }
+                        });
+                        
+                        // Update ISO dropdown after loading
+                        setTimeout(() => {
+                            updateISODropdown();
+                            showNotification('Loaded data from LMP Data Manager', 'success');
+                        }, 100);
+                    }
+                    // Also check old format (data object)
+                    else if (parsed.data) {
                         Object.keys(parsed.data).forEach(iso => {
                             if (parsed.data[iso] && parsed.data[iso].length > 0) {
                                 ISO_DATA[iso] = parsed.data[iso];
                             }
                         });
-                        console.log('[LMP Portal] Loaded stored Arcadia data');
+                        console.log('[LMP Portal] Loaded stored data (old format)');
                     }
                 }
             } catch (e) {
-                console.log('[LMP Portal] No stored data found');
+                console.log('[LMP Portal] No stored data found or error loading:', e.message);
             }
         })();
         
