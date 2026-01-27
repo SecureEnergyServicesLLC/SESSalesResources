@@ -1,0 +1,22 @@
+{
+    "version": "1.0.0",
+    "lastUpdated": "2025-01-26T00:00:00.000Z",
+    "users": [
+        {
+            "id": "admin-001",
+            "firstName": "System",
+            "lastName": "Administrator",
+            "email": "admin@sesenergy.org",
+            "password": "admin123",
+            "role": "admin",
+            "status": "active",
+            "createdAt": "2025-01-01T00:00:00.000Z",
+            "permissions": {
+                "lmp-comparison": true,
+                "data-manager": true,
+                "arcadia-fetcher": true,
+                "user-admin": true
+            }
+        }
+    ]
+}

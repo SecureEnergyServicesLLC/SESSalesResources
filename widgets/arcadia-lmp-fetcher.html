@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcadia LMP Data Fetcher</title>
+    <style>
+        :root {
+            --se-dark-green: #004D40;
+            --se-light-green: #3EB489;
+            --se-gradient: linear-gradient(135deg, #004D40 0%, #3EB489 100%);
+            --bg-primary: #0A0E1A;
+            --bg-secondary: #131824;
+            --bg-tertiary: #1A2030;
+            --bg-elevated: #222938;
+            --text-primary: #FFFFFF;
+            --text-secondary: #A0AEC0;
+            --text-tertiary: #718096;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-success: #00E676;
+            --accent-warning: #FFB300;
+            --accent-error: #FF5252;
+            --accent-info: #00B8D4;
+        }
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .header { margin-bottom: 20px; }
+        .header h2 { font-size: 18px; color: var(--se-light-green); margin-bottom: 6px; }
+        .header p { font-size: 12px; color: var(--text-secondary); }
+        
+        .cors-notice {
+            background: rgba(255, 179, 0, 0.1);
+            border: 1px solid rgba(255, 179, 0, 0.3);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        .cors-notice h4 { color: var(--accent-warning); font-size: 13px; margin-bottom: 6px; }
+        .cors-notice p { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+        .cors-notice code { background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 3px; font-size: 10px; }
+        
+        .section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 2px solid var(--se-light-green);
+        }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+        .form-group { margin-bottom: 10px; }
+        .form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; text-transform: uppercase; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 8px 10px; background: var(--bg-tertiary);
+            border: 1px solid var(--border-color); border-radius: 6px;
+            color: var(--text-primary); font-size: 13px; transition: all 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus {
+            outline: none; border-color: var(--se-light-green);
+            box-shadow: 0 0 0 2px rgba(62, 180, 137, 0.1);
+        }
+        
+        button {
+            padding: 8px 16px; border: none; border-radius: 6px;
+            font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-primary { background: var(--se-gradient); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(62, 180, 137, 0.3); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-success { background: linear-gradient(135deg, #00C853, #00E676); color: white; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .button-group { display: flex; gap: 10px; margin-top: 12px; }
+        
+        .iso-grid { display: flex; gap: 8px; flex-wrap: wrap; }
+        .iso-btn {
+            padding: 10px 20px; background: var(--bg-tertiary); color: var(--text-primary);
+            border: 1px solid var(--border-color); border-radius: 6px; font-weight: 600;
+        }
+        .iso-btn:hover { border-color: var(--se-light-green); }
+        .iso-btn.active { background: var(--se-gradient); border-color: var(--se-light-green); }
+        
+        .zones-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 8px; max-height: 150px; overflow-y: auto; padding: 10px;
+            background: var(--bg-tertiary); border-radius: 6px;
+        }
+        .zone-item {
+            display: flex; align-items: center; padding: 6px 10px;
+            background: var(--bg-elevated); border-radius: 4px; font-size: 12px; cursor: pointer;
+        }
+        .zone-item:hover { background: rgba(62, 180, 137, 0.1); }
+        .zone-item input { margin-right: 6px; width: 14px; height: 14px; }
+        
+        .status-message {
+            padding: 10px 14px; border-radius: 6px; margin-top: 12px;
+            font-size: 12px; display: none; align-items: center; gap: 8px;
+        }
+        .status-message.active { display: flex; }
+        .status-message.success { background: rgba(0, 230, 118, 0.1); color: var(--accent-success); border: 1px solid rgba(0, 230, 118, 0.2); }
+        .status-message.error { background: rgba(255, 82, 82, 0.1); color: var(--accent-error); border: 1px solid rgba(255, 82, 82, 0.2); }
+        .status-message.info { background: rgba(0, 184, 212, 0.1); color: var(--accent-info); border: 1px solid rgba(0, 184, 212, 0.2); }
+        .status-message.warning { background: rgba(255, 179, 0, 0.1); color: var(--accent-warning); border: 1px solid rgba(255, 179, 0, 0.2); }
+        
+        .loading { display: none; text-align: center; padding: 20px; }
+        .loading.active { display: block; }
+        .spinner {
+            width: 32px; height: 32px; border: 3px solid var(--bg-tertiary);
+            border-top-color: var(--se-light-green); border-radius: 50%;
+            animation: spin 1s linear infinite; margin: 0 auto 10px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .debug-console {
+            background: #0D1117; border: 1px solid var(--border-color); border-radius: 6px;
+            padding: 12px; font-family: 'Consolas', monospace; font-size: 11px;
+            max-height: 200px; overflow-y: auto; display: none; margin-top: 12px;
+        }
+        .debug-console.active { display: block; }
+        .debug-line { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+        .debug-line.success { color: var(--accent-success); }
+        .debug-line.error { color: var(--accent-error); }
+        .debug-line.warning { color: var(--accent-warning); }
+        .debug-line.info { color: var(--accent-info); }
+        .debug-timestamp { color: var(--text-tertiary); margin-right: 6px; }
+        
+        .results-section { display: none; }
+        .results-section.active { display: block; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 16px; }
+        .stat-card { background: var(--se-gradient); padding: 12px; border-radius: 6px; text-align: center; }
+        .stat-value { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+        .stat-label { font-size: 10px; opacity: 0.9; }
+        
+        .data-table-container { overflow-x: auto; border-radius: 6px; border: 1px solid var(--border-color); }
+        .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .data-table thead { background: var(--bg-tertiary); }
+        .data-table th, .data-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .data-table tbody tr:hover { background: var(--bg-tertiary); }
+        
+        .proxy-mode {
+            display: flex; align-items: center; gap: 10px; padding: 10px;
+            background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 12px;
+        }
+        .proxy-toggle { position: relative; width: 40px; height: 22px; }
+        .proxy-toggle input { opacity: 0; width: 0; height: 0; }
+        .proxy-slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-elevated); border-radius: 22px; transition: 0.2s;
+        }
+        .proxy-slider:before {
+            position: absolute; content: ""; height: 16px; width: 16px;
+            left: 3px; bottom: 3px; background: var(--text-secondary);
+            border-radius: 50%; transition: 0.2s;
+        }
+        .proxy-toggle input:checked + .proxy-slider { background: var(--se-light-green); }
+        .proxy-toggle input:checked + .proxy-slider:before { transform: translateX(18px); background: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>⚡ Arcadia LMP Data Fetcher</h2>
+            <p>Fetch Day-Ahead LMP data from Arcadia Signal API</p>
+        </div>
+        
+        <div class="cors-notice">
+            <h4>⚠️ Browser Security (CORS)</h4>
+            <p>Enable <strong>"Use CORS Proxy"</strong> for browser testing. Routes through <code>corsproxy.io</code>. For production, use a backend server.</p>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">1. API Credentials</div>
+            <div class="proxy-mode">
+                <label class="proxy-toggle">
+                    <input type="checkbox" id="useProxy" checked>
+                    <span class="proxy-slider"></span>
+                </label>
+                <div>
+                    <strong style="font-size: 12px;">Use CORS Proxy</strong>
+                    <p style="font-size: 10px; color: var(--text-tertiary);">Required for browser testing</p>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>App ID</label>
+                    <input type="text" id="appId" placeholder="Your Arcadia App ID">
+                </div>
+                <div class="form-group">
+                    <label>App Key</label>
+                    <input type="password" id="appKey" placeholder="Your Arcadia App Key">
+                </div>
+            </div>
+            <div class="button-group">
+                <button class="btn-primary" id="testCredsBtn">Test Credentials</button>
+                <button class="btn-secondary" id="toggleDebugBtn">Debug</button>
+            </div>
+            <div class="status-message" id="credStatus"></div>
+            <p style="margin-top: 10px; font-size: 11px; color: var(--text-tertiary);">
+                Get credentials: <a href="https://dash.genability.com/org" target="_blank" style="color: var(--se-light-green);">dash.genability.com</a>
+            </p>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">2. Date Range</div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="form-group">
+                    <label>End Date</label>
+                    <input type="date" id="endDate">
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">3. Select ISO Market</div>
+            <div class="iso-grid" id="isoSelector"></div>
+        </div>
+        
+        <div class="section" id="zoneSection" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <div class="section-title" style="margin: 0; border: none; padding: 0;">4. Select Zones</div>
+                <button class="btn-secondary" id="selectAllBtn" style="padding: 4px 10px; font-size: 11px;">Select All</button>
+            </div>
+            <div class="zones-grid" id="zonesGrid"></div>
+        </div>
+        
+        <div class="section">
+            <div class="button-group">
+                <button class="btn-primary" id="fetchBtn" style="flex: 1;">Fetch LMP Data</button>
+                <button class="btn-success" id="exportBtn" style="flex: 1;" disabled>Export CSV</button>
+            </div>
+        </div>
+        
+        <div class="status-message" id="statusMessage"></div>
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="color: var(--text-secondary); font-size: 12px;">Fetching data...</p>
+        </div>
+        <div class="debug-console" id="debugConsole"></div>
+        
+        <div class="section results-section" id="resultsSection">
+            <div class="section-title">Results</div>
+            <div class="stats-grid" id="statsGrid"></div>
+            <h4 style="margin-bottom: 10px; font-size: 13px;">Monthly Averages</h4>
+            <div class="data-table-container">
+                <table class="data-table" id="resultsTable">
+                    <thead><tr><th>Zone</th><th>Month</th><th>Year</th><th>Avg $/MWh</th><th>Records</th></tr></thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+            <div class="button-group" style="margin-top: 12px;">
+                <button class="btn-primary" id="sendToPortalBtn">📤 Send to Portal</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const ISO_CONFIG = {
+            ISONE: {
+                name: 'ISO-NE',
+                propertyKey: 'hourlyPricingDayAheadISONE',
+                zones: [
+                    { value: '4000', label: 'ISO NE CA' },
+                    { value: '4001', label: 'Maine' },
+                    { value: '4002', label: 'NH' },
+                    { value: '4003', label: 'Vermont' },
+                    { value: '4004', label: 'Connecticut' },
+                    { value: '4005', label: 'Rhode Island' },
+                    { value: '4006', label: 'SEMA' },
+                    { value: '4007', label: 'WCMA' },
+                    { value: '4008', label: 'NEMA' }
+                ]
+            },
+            PJM: {
+                name: 'PJM',
+                propertyKey: 'hourlyPricingDayAheadPJM',
+                zones: [
+                    { value: '51291', label: 'AECO' },
+                    { value: '51292', label: 'BGE' },
+                    { value: '51293', label: 'DPL' },
+                    { value: '51294', label: 'JCPL' },
+                    { value: '51295', label: 'METED' },
+                    { value: '51296', label: 'PECO' },
+                    { value: '51297', label: 'PENELEC' },
+                    { value: '51298', label: 'PEPCO' },
+                    { value: '51299', label: 'PPL' },
+                    { value: '51300', label: 'PSEG' }
+                ]
+            },
+            ERCOT: {
+                name: 'ERCOT',
+                propertyKey: 'hourlyPricingDayAheadERCOT',
+                zones: [
+                    { value: 'LZ_HOUSTON', label: 'Houston' },
+                    { value: 'LZ_NORTH', label: 'North' },
+                    { value: 'LZ_SOUTH', label: 'South' },
+                    { value: 'LZ_WEST', label: 'West' }
+                ]
+            }
+        };
+        
+        let currentISO = null;
+        let selectedZones = [];
+        let fetchedData = { hourly: [], monthly: [] };
+        let debugVisible = false;
+        
+        function getProxyUrl(targetUrl) {
+            if (!document.getElementById('useProxy').checked) return targetUrl;
+            return 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
+        }
+        
+        function addDebugLine(msg, type = 'info') {
+            const el = document.getElementById('debugConsole');
+            const ts = new Date().toLocaleTimeString();
+            el.innerHTML += `<div class="debug-line ${type}"><span class="debug-timestamp">[${ts}]</span>${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+        
+        function showStatus(msg, type = 'info', id = 'statusMessage') {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = `status-message active ${type}`;
+        }
+        
+        function hideStatus(id = 'statusMessage') {
+            document.getElementById(id).className = 'status-message';
+        }
+        
+        function init() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today);
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            document.getElementById('endDate').value = today.toISOString().split('T')[0];
+            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            const isoSelector = document.getElementById('isoSelector');
+            Object.keys(ISO_CONFIG).forEach(key => {
+                const btn = document.createElement('button');
+                btn.className = 'iso-btn';
+                btn.textContent = ISO_CONFIG[key].name;
+                btn.onclick = () => selectISO(key, btn);
+                isoSelector.appendChild(btn);
+            });
+            
+            document.getElementById('testCredsBtn').onclick = testCredentials;
+            document.getElementById('toggleDebugBtn').onclick = () => {
+                debugVisible = !debugVisible;
+                document.getElementById('debugConsole').classList.toggle('active', debugVisible);
+            };
+            document.getElementById('selectAllBtn').onclick = toggleSelectAll;
+            document.getElementById('fetchBtn').onclick = fetchData;
+            document.getElementById('exportBtn').onclick = exportCSV;
+            document.getElementById('sendToPortalBtn').onclick = sendToPortal;
+            
+            window.addEventListener('message', handleMessage);
+            notifyParent('ready', {});
+            addDebugLine('Arcadia LMP Fetcher initialized', 'success');
+        }
+        
+        function selectISO(isoKey, btnEl) {
+            currentISO = isoKey;
+            selectedZones = [];
+            document.querySelectorAll('.iso-btn').forEach(b => b.classList.remove('active'));
+            btnEl.classList.add('active');
+            document.getElementById('zoneSection').style.display = 'block';
+            
+            const grid = document.getElementById('zonesGrid');
+            grid.innerHTML = ISO_CONFIG[isoKey].zones.map(z => `
+                <label class="zone-item">
+                    <input type="checkbox" value="${z.value}" onchange="updateSelectedZones()">
+                    ${z.label}
+                </label>
+            `).join('');
+            addDebugLine(`Selected ISO: ${ISO_CONFIG[isoKey].name}`, 'info');
+        }
+        
+        function updateSelectedZones() {
+            selectedZones = Array.from(document.querySelectorAll('.zone-item input:checked')).map(cb => cb.value);
+        }
+        
+        function toggleSelectAll() {
+            const cbs = document.querySelectorAll('.zone-item input');
+            const allChecked = Array.from(cbs).every(cb => cb.checked);
+            cbs.forEach(cb => cb.checked = !allChecked);
+            updateSelectedZones();
+        }
+        
+        async function testCredentials() {
+            const appId = document.getElementById('appId').value.trim();
+            const appKey = document.getElementById('appKey').value.trim();
+            if (!appId || !appKey) { showStatus('Enter credentials', 'error', 'credStatus'); return; }
+            
+            showStatus('Testing...', 'info', 'credStatus');
+            addDebugLine('Testing credentials...', 'info');
+            
+            try {
+                const creds = btoa(`${appId}:${appKey}`);
+                const url = getProxyUrl('https://api.genability.com/rest/echo/hello');
+                addDebugLine(`URL: ${url}`, 'info');
+                
+                const res = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Basic ${creds}`, 'Accept': 'application/json' }
+                });
+                
+                addDebugLine(`Status: ${res.status}`, res.ok ? 'success' : 'error');
+                
+                if (res.ok) {
+                    showStatus('✓ Credentials valid!', 'success', 'credStatus');
+                    addDebugLine('Credentials validated', 'success');
+                } else if (res.status === 401) {
+                    showStatus('✗ Invalid credentials', 'error', 'credStatus');
+                    addDebugLine('Auth failed (401)', 'error');
+                } else {
+                    showStatus(`✗ API error: ${res.status}`, 'error', 'credStatus');
+                }
+            } catch (err) {
+                addDebugLine(`Error: ${err.message}`, 'error');
+                showStatus(`Connection error. Enable CORS proxy.`, 'error', 'credStatus');
+            }
+        }
+        
+        async function fetchData() {
+            const appId = document.getElementById('appId').value.trim();
+            const appKey = document.getElementById('appKey').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!appId || !appKey) { showStatus('Enter credentials', 'error'); return; }
+            if (!currentISO) { showStatus('Select an ISO', 'error'); return; }
+            if (selectedZones.length === 0) { showStatus('Select zones', 'error'); return; }
+            if (!startDate || !endDate) { showStatus('Select dates', 'error'); return; }
+            
+            document.getElementById('loading').classList.add('active');
+            hideStatus();
+            
+            const creds = btoa(`${appId}:${appKey}`);
+            const cfg = ISO_CONFIG[currentISO];
+            fetchedData = { hourly: [], monthly: [] };
+            let total = 0;
+            
+            addDebugLine(`Fetching ${selectedZones.length} zones...`, 'info');
+            
+            try {
+                for (const zid of selectedZones) {
+                    const zname = cfg.zones.find(z => z.value === zid)?.label || zid;
+                    addDebugLine(`Zone: ${zname}...`, 'info');
+                    
+                    const records = await fetchZoneData(creds, cfg.propertyKey, zid, startDate, endDate);
+                    if (records.length > 0) {
+                        const enriched = records.map(r => ({ ...r, zone: zname, zone_id: zid, iso: currentISO }));
+                        fetchedData.hourly.push(...enriched);
+                        total += records.length;
+                        addDebugLine(`  → ${records.length} records`, 'success');
+                    } else {
+                        addDebugLine(`  → No data`, 'warning');
+                    }
+                }
+                
+                fetchedData.monthly = calcMonthlyAverages(fetchedData.hourly);
+                displayResults();
+                showStatus(`Fetched ${total.toLocaleString()} records`, 'success');
+                addDebugLine(`Complete: ${total} records`, 'success');
+                document.getElementById('exportBtn').disabled = false;
+            } catch (err) {
+                addDebugLine(`Error: ${err.message}`, 'error');
+                showStatus(`Error: ${err.message}`, 'error');
+            } finally {
+                document.getElementById('loading').classList.remove('active');
+            }
+        }
+        
+        async function fetchZoneData(creds, propKey, zoneId, start, end) {
+            const baseUrl = 'https://api.genability.com/rest/public/properties';
+            let allRecs = [], pageStart = 0, pageCount = 1000, hasMore = true;
+            
+            while (hasMore) {
+                const params = new URLSearchParams({
+                    subKeyName: zoneId,
+                    fromDateTime: `${start}T00:00:00`,
+                    toDateTime: `${end}T23:59:59`,
+                    pageStart: pageStart.toString(),
+                    pageCount: pageCount.toString()
+                });
+                
+                const url = getProxyUrl(`${baseUrl}/${propKey}/lookups?${params}`);
+                const res = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Authorization': `Basic ${creds}`, 'Accept': 'application/json' }
+                });
+                
+                if (!res.ok) throw new Error(res.status === 401 ? 'Invalid credentials' : `API ${res.status}`);
+                
+                const data = await res.json();
+                if (data.results && data.results.length > 0) {
+                    const recs = data.results.map(item => ({
+                        datetime: item.fromDateTime || item.period,
+                        price: parseFloat(item.dataValue || item.lmpTotal || 0)
+                    })).filter(r => !isNaN(r.price));
+                    
+                    allRecs.push(...recs);
+                    hasMore = data.count && data.count > pageStart + pageCount;
+                    pageStart += pageCount;
+                } else {
+                    hasMore = false;
+                }
+            }
+            return allRecs;
+        }
+        
+        function calcMonthlyAverages(hourly) {
+            const map = {};
+            hourly.forEach(r => {
+                const d = new Date(r.datetime);
+                const y = d.getFullYear(), m = (d.getMonth() + 1).toString().padStart(2, '0');
+                const k = `${r.zone}_${y}_${m}`;
+                if (!map[k]) map[k] = { zone: r.zone, zone_id: r.zone_id, iso: r.iso, year: y.toString(), month: m, prices: [] };
+                map[k].prices.push(r.price);
+            });
+            
+            return Object.values(map).map(m => ({
+                zone: m.zone, zone_id: m.zone_id, iso: m.iso, year: m.year, month: m.month,
+                avg_da_lmp: m.prices.reduce((a, b) => a + b, 0) / m.prices.length,
+                min_price: Math.min(...m.prices), max_price: Math.max(...m.prices),
+                record_count: m.prices.length
+            })).sort((a, b) => a.zone.localeCompare(b.zone) || a.year.localeCompare(b.year) || a.month.localeCompare(b.month));
+        }
+        
+        function displayResults() {
+            document.getElementById('resultsSection').classList.add('active');
+            const m = fetchedData.monthly;
+            const total = fetchedData.hourly.length;
+            const avg = m.length > 0 ? m.reduce((a, b) => a + b.avg_da_lmp, 0) / m.length : 0;
+            const min = m.length > 0 ? Math.min(...m.map(x => x.min_price)) : 0;
+            const max = m.length > 0 ? Math.max(...m.map(x => x.max_price)) : 0;
+            
+            document.getElementById('statsGrid').innerHTML = `
+                <div class="stat-card"><div class="stat-value">${total.toLocaleString()}</div><div class="stat-label">Records</div></div>
+                <div class="stat-card"><div class="stat-value">$${avg.toFixed(2)}</div><div class="stat-label">Avg $/MWh</div></div>
+                <div class="stat-card"><div class="stat-value">$${min.toFixed(2)}</div><div class="stat-label">Min</div></div>
+                <div class="stat-card"><div class="stat-value">$${max.toFixed(2)}</div><div class="stat-label">Max</div></div>
+            `;
+            
+            document.getElementById('resultsBody').innerHTML = m.slice(0, 15).map(r => `
+                <tr><td>${r.zone}</td><td>${r.month}</td><td>${r.year}</td><td>$${r.avg_da_lmp.toFixed(2)}</td><td>${r.record_count}</td></tr>
+            `).join('');
+            
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function exportCSV() {
+            if (fetchedData.monthly.length === 0) { showStatus('No data', 'warning'); return; }
+            const headers = ['ISO','Zone','Month','Year','Avg_DA_LMP','Min','Max','Count'];
+            const rows = fetchedData.monthly.map(r => [r.iso, r.zone, r.month, r.year, r.avg_da_lmp.toFixed(4), r.min_price.toFixed(4), r.max_price.toFixed(4), r.record_count]);
+            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `arcadia_lmp_${currentISO}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            showStatus('CSV exported', 'success');
+        }
+        
+        function sendToPortal() {
+            if (fetchedData.monthly.length === 0) { showStatus('No data', 'warning'); return; }
+            const data = fetchedData.monthly.map(r => ({ month: r.month, year: r.year, zone: r.zone_id || r.zone, zone_name: r.zone, avg_da_lmp: r.avg_da_lmp }));
+            
+            notifyParent('LMP_DATA_UPDATE', { iso: currentISO, records: data, source: 'arcadia' });
+            
+            try {
+                const existing = JSON.parse(localStorage.getItem('secureEnergy_LMP_Data') || '{"data":{}}');
+                existing.data[currentISO] = data;
+                existing.meta = { lastUpdate: new Date().toISOString(), source: 'arcadia', version: '1.0' };
+                existing.version = '1.0';
+                localStorage.setItem('secureEnergy_LMP_Data', JSON.stringify(existing));
+            } catch (e) { console.error(e); }
+            
+            showStatus('Data sent to portal!', 'success');
+            addDebugLine(`Sent ${data.length} records to portal`, 'success');
+        }
+        
+        function notifyParent(type, data) {
+            if (window.parent !== window) window.parent.postMessage({ type, ...data }, '*');
+        }
+        
+        function handleMessage(e) {
+            if (e.data?.type === 'REQUEST_LMP_DATA' && fetchedData.monthly.length > 0) sendToPortal();
+        }
+        
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
