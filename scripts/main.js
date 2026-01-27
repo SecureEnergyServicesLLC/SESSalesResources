@@ -526,6 +526,13 @@ function getCreateUserPanel() {
             <div class="widget-permissions">
                 <h4>Widget Access Permissions</h4>
                 <div class="widget-permission-item">
+                    <span>AI Assistant</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="perm-ai-assistant" checked>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div class="widget-permission-item">
                     <span>LMP Comparison Portal</span>
                     <label class="toggle-switch">
                         <input type="checkbox" id="perm-lmp-comparison" checked>
@@ -673,6 +680,7 @@ function createUser() {
     }
     
     const permissions = {
+        'ai-assistant': document.getElementById('perm-ai-assistant').checked,
         'lmp-comparison': document.getElementById('perm-lmp-comparison').checked,
         'data-manager': document.getElementById('perm-data-manager').checked,
         'arcadia-fetcher': document.getElementById('perm-arcadia-fetcher').checked,
@@ -698,6 +706,7 @@ function createUser() {
         document.getElementById('newEmail').value = '';
         document.getElementById('newPassword').value = '';
         document.getElementById('newRole').value = 'user';
+        document.getElementById('perm-ai-assistant').checked = true;
         document.getElementById('perm-lmp-comparison').checked = true;
         document.getElementById('perm-data-manager').checked = false;
         document.getElementById('perm-arcadia-fetcher').checked = false;
@@ -759,6 +768,13 @@ function editUser(userId) {
         <div class="widget-permissions">
             <h4>Widget Permissions</h4>
             <div class="widget-permission-item">
+                <span>AI Assistant</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="edit-perm-ai-assistant" ${user.permissions?.['ai-assistant'] !== false ? 'checked' : ''}>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="widget-permission-item">
                 <span>LMP Comparison Portal</span>
                 <label class="toggle-switch">
                     <input type="checkbox" id="edit-perm-lmp-comparison" ${user.permissions?.['lmp-comparison'] !== false ? 'checked' : ''}>
@@ -794,6 +810,7 @@ function saveUserEdit() {
         email: document.getElementById('editEmail').value.trim(),
         role: document.getElementById('editRole').value,
         permissions: {
+            'ai-assistant': document.getElementById('edit-perm-ai-assistant').checked,
             'lmp-comparison': document.getElementById('edit-perm-lmp-comparison').checked,
             'data-manager': document.getElementById('edit-perm-data-manager').checked,
             'arcadia-fetcher': document.getElementById('edit-perm-arcadia-fetcher').checked,
