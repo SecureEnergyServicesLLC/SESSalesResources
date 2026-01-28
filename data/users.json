@@ -98,24 +98,7 @@
         "user-admin": false
       }
     },
-    {
-      "id": "user-1769547094822",
-      "firstName": "Jamie",
-      "lastName": "Lemmens",
-      "email": "jlemmens@shesthegreatest.com",
-      "password": "test123",
-      "role": "user",
-      "status": "active",
-      "createdAt": "2026-01-27T20:51:34.822Z",
-      "permissions": {
-        "ai-assistant": true,
-        "lmp-comparison": true,
-        "analysis-history": true,
-        "data-manager": false,
-        "arcadia-fetcher": false,
-        "user-admin": false
-      }
-    },
+   
     {
       "id": "user-1769608099594",
       "firstName": "Jamie",
