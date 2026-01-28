@@ -600,15 +600,48 @@ const ActivityLog = {
 
     async init() {
         console.log('[ActivityLog] Initializing...');
-        try { await GitHubSync.pullLatest(); } catch {}
+        
+        // Load localStorage FIRST to preserve local data
         const cached = this.loadFromStorage();
         if (cached?.length) {
-            const ids = new Set(this.activities.map(a => a.id));
-            cached.forEach(a => { if (!ids.has(a.id)) this.activities.push(a); });
+            this.activities = cached;
+            console.log(`[ActivityLog] ${cached.length} activities loaded from localStorage`);
         }
+        
+        // Then pull from GitHub and merge (adds new items, doesn't overwrite)
+        try { 
+            await this.pullFromGitHub(); 
+        } catch (e) {
+            console.warn('[ActivityLog] GitHub pull failed:', e.message);
+        }
+        
         this.activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        console.log(`[ActivityLog] ${this.activities.length} activities loaded`);
+        this.saveToStorage();
+        console.log(`[ActivityLog] ${this.activities.length} total activities`);
         return this.activities;
+    },
+
+    async pullFromGitHub() {
+        try {
+            const response = await fetch(
+                `https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/activity-log.json?t=${Date.now()}`
+            );
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data?.activities) {
+                const localIds = new Set(this.activities.map(a => a.id));
+                let added = 0;
+                data.activities.forEach(a => {
+                    if (!localIds.has(a.id)) {
+                        this.activities.push(a);
+                        added++;
+                    }
+                });
+                if (added > 0) console.log(`[ActivityLog] Added ${added} activities from GitHub`);
+            }
+        } catch (e) {
+            console.warn('[ActivityLog] GitHub fetch failed:', e.message);
+        }
     },
 
     loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
