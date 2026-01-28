@@ -14,7 +14,7 @@
 
 const BackgroundMusic = {
     // Path to your MP3 file - update if you place it elsewhere
-    audioPath: 'assets/audio/background-music.mp3',
+    audioPath: 'assets/audio/background.mp3',
     
     audio: null,
     isMuted: true, // Start muted due to browser autoplay policies
