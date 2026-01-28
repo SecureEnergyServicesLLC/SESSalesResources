@@ -1444,7 +1444,7 @@
             
             zoneData.forEach(r => {
                 const year = parseInt(r.year);
-                const month = iso === 'ISONE' ? parseInt(r.month) : parseInt(r.month);
+                const month = parseInt(r.month);
                 
                 if (year > maxYear || (year === maxYear && month > maxMonth)) {
                     maxYear = year;
@@ -1710,16 +1710,17 @@
             const dataSet = ISO_DATA[iso];
             if (!dataSet) return { lmp: null, isProjected: false };
             
-            const monthKey = iso === 'ISONE' ? String(targetMonth + 1).padStart(2, '0') : (targetMonth + 1);
+            // Always use padded string format for month (data is stored as "01", "02", etc.)
+            const monthKey = String(targetMonth + 1).padStart(2, '0');
             
             const record = dataSet.find(r => {
-                const recordMonth = iso === 'ISONE' ? r.month : r.month;
-                const recordYear = iso === 'ISONE' ? r.year : r.year;
+                const recordMonth = r.month;
+                const recordYear = r.year;
                 const recordZone = r.zone;
                 
                 return recordZone === zone && 
                        parseInt(recordYear) === targetYear && 
-                       (iso === 'ISONE' ? recordMonth === monthKey : recordMonth === monthKey);
+                       recordMonth === monthKey;
             });
             
             if (record && record.avg_da_lmp) {
@@ -1739,14 +1740,13 @@
             // Collect ALL available years for this zone/month, then use the last N available
             const availableYearsData = [];
             dataSet.forEach(r => {
-                const recordMonth = iso === 'ISONE' ? r.month : r.month;
+                const recordMonth = r.month;
                 const recordZone = r.zone;
                 const recordYear = parseInt(r.year);
                 
-                // Match zone and month, and only include years BEFORE the target year
+                // Match zone and month, collect all available years (we'll sort and pick most recent)
                 if (recordZone === zone && 
-                    (iso === 'ISONE' ? recordMonth === monthKey : recordMonth === monthKey) &&
-                    recordYear < targetYear &&
+                    recordMonth === monthKey &&
                     r.avg_da_lmp) {
                     availableYearsData.push({
                         year: recordYear,
@@ -1758,7 +1758,7 @@
             // Sort by year descending to get most recent years first
             availableYearsData.sort((a, b) => b.year - a.year);
             
-            // Take the last N available years (up to projectionYears)
+            // Take the last N available years (up to projectionYears) from available data
             const historicalValues = availableYearsData
                 .slice(0, projectionYears)
                 .map(d => d.lmp);
