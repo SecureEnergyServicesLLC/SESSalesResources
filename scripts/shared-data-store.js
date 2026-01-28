@@ -1,128 +1,428 @@
 /**
- * Secure Energy Shared Data Store v2.1
+ * Secure Energy Shared Data Store v2.2
  * Centralized data management for LMP data, user authentication, and activity logging
- * Supports GitHub Pages hosting with JSON file persistence
  * 
- * v2.1 Updates:
- * - Added activity counting methods for dashboard stats
- * - Enhanced activity logging for exports
+ * v2.2 Updates:
+ * - GitHub API sync for cross-user activity persistence
+ * - Comprehensive error logging system
+ * - Widget error capture via postMessage
  */
+
+// =====================================================
+// ERROR LOG STORE
+// =====================================================
+const ErrorLog = {
+    STORAGE_KEY: 'secureEnergy_errorLog',
+    MAX_ERRORS: 100,
+    errors: [],
+
+    init() {
+        console.log('[ErrorLog] Initializing...');
+        this.errors = this.loadFromStorage();
+        this.setupGlobalHandlers();
+        console.log(`[ErrorLog] ${this.errors.length} errors loaded`);
+        return this.errors;
+    },
+
+    setupGlobalHandlers() {
+        // Catch unhandled JS errors
+        window.onerror = (message, source, lineno, colno, error) => {
+            this.log({
+                type: 'javascript',
+                widget: this.getWidgetFromSource(source),
+                message: message,
+                source: source,
+                line: lineno,
+                column: colno,
+                stack: error?.stack
+            });
+            return false;
+        };
+
+        // Catch promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+            this.log({
+                type: 'promise',
+                widget: 'portal',
+                message: event.reason?.message || String(event.reason),
+                stack: event.reason?.stack
+            });
+        });
+
+        // Listen for widget errors via postMessage
+        window.addEventListener('message', (event) => {
+            if (event.data?.type === 'WIDGET_ERROR') {
+                this.log({
+                    type: event.data.errorType || 'widget',
+                    widget: event.data.widget || 'unknown',
+                    message: event.data.message,
+                    source: event.data.source,
+                    line: event.data.line,
+                    stack: event.data.stack,
+                    context: event.data.context
+                });
+            }
+        });
+    },
+
+    getWidgetFromSource(source) {
+        if (!source) return 'unknown';
+        if (source.includes('lmp-comparison')) return 'lmp-comparison';
+        if (source.includes('lmp-analytics')) return 'lmp-analytics';
+        if (source.includes('data-manager')) return 'data-manager';
+        if (source.includes('arcadia')) return 'arcadia-fetcher';
+        if (source.includes('main.js')) return 'portal';
+        return 'portal';
+    },
+
+    loadFromStorage() {
+        try {
+            const stored = localStorage.getItem(this.STORAGE_KEY);
+            return stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            return [];
+        }
+    },
+
+    saveToStorage() {
+        try {
+            if (this.errors.length > this.MAX_ERRORS) {
+                this.errors = this.errors.slice(0, this.MAX_ERRORS);
+            }
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.errors));
+        } catch (e) {
+            console.error('[ErrorLog] Save failed:', e);
+        }
+    },
+
+    log(error) {
+        const entry = {
+            id: 'err-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
+            timestamp: new Date().toISOString(),
+            type: error.type || 'error',
+            widget: error.widget || 'unknown',
+            message: error.message || 'Unknown error',
+            source: error.source || null,
+            line: error.line || null,
+            column: error.column || null,
+            stack: error.stack || null,
+            context: error.context || null,
+            resolved: false
+        };
+
+        this.errors.unshift(entry);
+        this.saveToStorage();
+        console.error(`[ErrorLog] ${entry.widget}:`, entry.message);
+        return entry;
+    },
+
+    getAll() { return this.errors; },
+    getRecent(count = 20) { return this.errors.slice(0, count); },
+    getByWidget(widget) { return this.errors.filter(e => e.widget === widget); },
+    getUnresolved() { return this.errors.filter(e => !e.resolved); },
+
+    resolve(errorId) {
+        const error = this.errors.find(e => e.id === errorId);
+        if (error) {
+            error.resolved = true;
+            error.resolvedAt = new Date().toISOString();
+            this.saveToStorage();
+        }
+    },
+
+    clearAll() {
+        this.errors = [];
+        this.saveToStorage();
+    },
+
+    getStats() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayISO = today.toISOString();
+        
+        const byWidget = {};
+        const byType = {};
+        this.errors.forEach(e => {
+            byWidget[e.widget] = (byWidget[e.widget] || 0) + 1;
+            byType[e.type] = (byType[e.type] || 0) + 1;
+        });
+
+        return {
+            total: this.errors.length,
+            today: this.errors.filter(e => e.timestamp >= todayISO).length,
+            unresolved: this.getUnresolved().length,
+            byWidget,
+            byType
+        };
+    }
+};
+
+
+// =====================================================
+// GITHUB SYNC MODULE
+// =====================================================
+const GitHubSync = {
+    TOKEN_KEY: 'secureEnergy_githubToken',
+    REPO_OWNER: 'ClemmensSES',
+    REPO_NAME: 'SESSalesResources',
+    ACTIVITY_PATH: 'data/activity-log.json',
+    USERS_PATH: 'data/users.json',
+    
+    token: null,
+    lastSync: null,
+    isSyncing: false,
+    autoSyncEnabled: true,
+
+    init() {
+        console.log('[GitHubSync] Initializing...');
+        this.token = sessionStorage.getItem(this.TOKEN_KEY);
+        this.lastSync = localStorage.getItem('secureEnergy_lastSync');
+        this.autoSyncEnabled = localStorage.getItem('secureEnergy_autoSync') !== 'false';
+        if (this.token) console.log('[GitHubSync] Token loaded');
+        return this;
+    },
+
+    setToken(token) {
+        if (!token?.trim()) {
+            this.token = null;
+            sessionStorage.removeItem(this.TOKEN_KEY);
+            return false;
+        }
+        this.token = token.trim();
+        sessionStorage.setItem(this.TOKEN_KEY, this.token);
+        return true;
+    },
+
+    hasToken() { return !!this.token; },
+    
+    clearToken() {
+        this.token = null;
+        sessionStorage.removeItem(this.TOKEN_KEY);
+    },
+
+    setAutoSync(enabled) {
+        this.autoSyncEnabled = enabled;
+        localStorage.setItem('secureEnergy_autoSync', String(enabled));
+    },
+
+    async testConnection() {
+        if (!this.token) return { success: false, error: 'No token configured' };
+
+        try {
+            const response = await fetch(`https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}`, {
+                headers: { 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json' }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                return { success: true, repo: data.full_name };
+            } else if (response.status === 401) {
+                return { success: false, error: 'Invalid token' };
+            } else if (response.status === 404) {
+                return { success: false, error: 'Repository not found' };
+            }
+            return { success: false, error: `API error: ${response.status}` };
+        } catch (e) {
+            ErrorLog.log({ type: 'github', widget: 'github-sync', message: 'Connection test failed: ' + e.message });
+            return { success: false, error: e.message };
+        }
+    },
+
+    async getFile(path) {
+        if (!this.token) throw new Error('No token');
+
+        const response = await fetch(
+            `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/contents/${path}`,
+            { headers: { 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json' } }
+        );
+
+        if (response.status === 404) return { exists: false, content: null, sha: null };
+        if (!response.ok) throw new Error(`API error: ${response.status}`);
+
+        const data = await response.json();
+        return { exists: true, content: JSON.parse(atob(data.content.replace(/\n/g, ''))), sha: data.sha };
+    },
+
+    async saveFile(path, content, message, sha = null) {
+        if (!this.token) throw new Error('No token');
+
+        const body = {
+            message,
+            content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
+            branch: 'main'
+        };
+        if (sha) body.sha = sha;
+
+        const response = await fetch(
+            `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/contents/${path}`,
+            {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            }
+        );
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.message || `API error: ${response.status}`);
+        }
+        return { success: true, sha: (await response.json()).content.sha };
+    },
+
+    async syncActivityLog() {
+        if (!this.token || this.isSyncing) {
+            return { success: false, error: this.isSyncing ? 'Sync in progress' : 'No token' };
+        }
+
+        this.isSyncing = true;
+        try {
+            const remote = await this.getFile(this.ACTIVITY_PATH);
+            const local = ActivityLog.getAll();
+            
+            let merged = [...local];
+            if (remote.exists && remote.content?.activities) {
+                const localIds = new Set(local.map(a => a.id));
+                remote.content.activities.forEach(a => {
+                    if (!localIds.has(a.id)) merged.push(a);
+                });
+                merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            }
+
+            await this.saveFile(this.ACTIVITY_PATH, {
+                version: '2.2.0',
+                lastUpdated: new Date().toISOString(),
+                activities: merged
+            }, `Sync activity log - ${new Date().toLocaleString()}`, remote.sha);
+
+            ActivityLog.activities = merged;
+            ActivityLog.saveToStorage();
+            this.lastSync = new Date().toISOString();
+            localStorage.setItem('secureEnergy_lastSync', this.lastSync);
+
+            this.isSyncing = false;
+            return { success: true, count: merged.length, lastSync: this.lastSync };
+        } catch (e) {
+            this.isSyncing = false;
+            ErrorLog.log({ type: 'github', widget: 'github-sync', message: 'Activity sync failed: ' + e.message });
+            return { success: false, error: e.message };
+        }
+    },
+
+    async syncUsers() {
+        if (!this.token || this.isSyncing) return { success: false, error: 'Not ready' };
+
+        this.isSyncing = true;
+        try {
+            const remote = await this.getFile(this.USERS_PATH);
+            const local = UserStore.getAll();
+
+            await this.saveFile(this.USERS_PATH, {
+                version: '2.2.0',
+                lastUpdated: new Date().toISOString(),
+                users: local
+            }, `Sync users - ${new Date().toLocaleString()}`, remote.sha);
+
+            this.isSyncing = false;
+            return { success: true, count: local.length };
+        } catch (e) {
+            this.isSyncing = false;
+            ErrorLog.log({ type: 'github', widget: 'github-sync', message: 'User sync failed: ' + e.message });
+            return { success: false, error: e.message };
+        }
+    },
+
+    async pullLatest() {
+        try {
+            const response = await fetch(
+                `https://raw.githubusercontent.com/${this.REPO_OWNER}/${this.REPO_NAME}/main/${this.ACTIVITY_PATH}?t=${Date.now()}`
+            );
+            if (!response.ok) return { success: false };
+
+            const data = await response.json();
+            if (data?.activities) {
+                const localIds = new Set(ActivityLog.activities.map(a => a.id));
+                data.activities.forEach(a => {
+                    if (!localIds.has(a.id)) ActivityLog.activities.push(a);
+                });
+                ActivityLog.activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+                ActivityLog.saveToStorage();
+            }
+            return { success: true };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    },
+
+    getStatus() {
+        return {
+            hasToken: this.hasToken(),
+            autoSyncEnabled: this.autoSyncEnabled,
+            lastSync: this.lastSync,
+            isSyncing: this.isSyncing
+        };
+    }
+};
+
 
 // =====================================================
 // LMP DATA STORE
 // =====================================================
 const SecureEnergyData = {
     STORAGE_KEY: 'secureEnergy_LMP_Data',
-    DATA_URL: 'data/lmp-database.json', // Relative path for GitHub Pages
+    DATA_URL: 'data/lmp-database.json',
     GITHUB_RAW_URL: 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json',
     subscribers: [],
     data: null,
     isLoaded: false,
 
-    /**
-     * Initialize the data store - attempts to load from GitHub JSON first
-     */
     async init() {
         console.log('[SecureEnergyData] Initializing...');
-        
-        // First try to load from localStorage (cached data)
-        const cached = this.loadFromStorage();
-        if (cached && cached.records && cached.records.length > 0) {
-            this.data = cached;
-            this.isLoaded = true;
-            console.log(`[SecureEnergyData] Loaded ${cached.records.length} records from cache`);
-        }
-        
-        // Then try to load fresh data from GitHub JSON
         try {
-            await this.loadFromGitHub();
+            const cached = this.loadFromStorage();
+            if (cached?.records?.length > 0) {
+                this.data = cached;
+                this.isLoaded = true;
+            }
+            try { await this.loadFromGitHub(); } catch (e) { console.warn('[SecureEnergyData] GitHub load failed'); }
+            this.notifySubscribers();
         } catch (e) {
-            console.warn('[SecureEnergyData] Could not load from GitHub, using cached data');
+            ErrorLog.log({ type: 'init', widget: 'data-store', message: 'Init failed: ' + e.message });
         }
-        
-        this.notifySubscribers();
         return this.data;
     },
 
-    /**
-     * Load data from GitHub hosted JSON file
-     */
     async loadFromGitHub() {
-        // Try GitHub raw URL first, then relative path
-        const urls = [this.GITHUB_RAW_URL, this.DATA_URL];
-        
-        for (const url of urls) {
+        for (const url of [this.GITHUB_RAW_URL, this.DATA_URL]) {
             try {
-                console.log(`[SecureEnergyData] Trying to load from: ${url}`);
-                const response = await fetch(url + '?t=' + Date.now()); // Cache bust
-                if (!response.ok) {
-                    continue;
-                }
-                
+                const response = await fetch(url + '?t=' + Date.now());
+                if (!response.ok) continue;
                 const jsonData = await response.json();
-                
-                if (jsonData && jsonData.records && jsonData.records.length > 0) {
-                    this.data = {
-                        records: jsonData.records,
-                        meta: jsonData.meta || {
-                            source: url.includes('raw.githubusercontent') ? 'GitHub Repository' : 'Local',
-                            loadedAt: new Date().toISOString(),
-                            version: jsonData.version,
-                            recordCount: jsonData.records.length
-                        }
-                    };
+                if (jsonData?.records?.length > 0) {
+                    this.data = { records: jsonData.records, meta: { source: url, loadedAt: new Date().toISOString(), recordCount: jsonData.records.length } };
                     this.isLoaded = true;
                     this.saveToStorage();
-                    console.log(`[SecureEnergyData] Loaded ${jsonData.records.length} records from ${url.includes('raw.githubusercontent') ? 'GitHub' : 'local path'}`);
                     this.notifySubscribers();
                     return true;
                 }
-            } catch (e) {
-                console.warn(`[SecureEnergyData] Failed to load from ${url}:`, e.message);
-            }
+            } catch (e) { /* try next */ }
         }
-        
         return false;
     },
 
-    /**
-     * Load from localStorage
-     */
     loadFromStorage() {
-        try {
-            const stored = localStorage.getItem(this.STORAGE_KEY);
-            if (stored) {
-                return JSON.parse(stored);
-            }
-        } catch (e) {
-            console.error('[SecureEnergyData] Storage read error:', e);
-        }
-        return null;
+        try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)); } catch { return null; }
     },
 
-    /**
-     * Save to localStorage (cache)
-     */
     saveToStorage() {
-        try {
-            if (this.data) {
-                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
-            }
-        } catch (e) {
-            console.error('[SecureEnergyData] Storage write error:', e);
+        try { if (this.data) localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {
+            ErrorLog.log({ type: 'storage', widget: 'data-store', message: 'Save failed: ' + e.message });
         }
     },
 
-    /**
-     * Load data from CSV content
-     */
     loadFromCSV(csvContent, source = 'CSV Upload') {
         try {
             const lines = csvContent.trim().split('\n');
-            if (lines.length < 2) {
-                throw new Error('CSV file is empty or has no data rows');
-            }
-
+            if (lines.length < 2) throw new Error('Empty CSV');
             const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
             const records = [];
 
@@ -130,191 +430,69 @@ const SecureEnergyData = {
                 const values = this.parseCSVLine(lines[i]);
                 if (values.length >= headers.length) {
                     const record = {};
-                    headers.forEach((header, idx) => {
-                        record[header] = values[idx]?.trim() || '';
-                    });
-                    
-                    // Normalize field names
-                    const normalized = this.normalizeRecord(record);
-                    if (normalized.iso && normalized.zone) {
-                        records.push(normalized);
-                    }
+                    headers.forEach((h, idx) => record[h] = values[idx]?.trim() || '');
+                    const norm = this.normalizeRecord(record);
+                    if (norm.iso && norm.zone) records.push(norm);
                 }
             }
 
-            if (records.length === 0) {
-                throw new Error('No valid records found in CSV');
-            }
-
-            this.data = {
-                records: records,
-                meta: {
-                    source: source,
-                    loadedAt: new Date().toISOString(),
-                    recordCount: records.length
-                }
-            };
-            
+            if (records.length === 0) throw new Error('No valid records');
+            this.data = { records, meta: { source, loadedAt: new Date().toISOString(), recordCount: records.length } };
             this.isLoaded = true;
             this.saveToStorage();
             this.notifySubscribers();
-            
-            console.log(`[SecureEnergyData] Loaded ${records.length} records from CSV`);
             return { success: true, count: records.length };
         } catch (e) {
-            console.error('[SecureEnergyData] CSV parse error:', e);
+            ErrorLog.log({ type: 'parse', widget: 'data-store', message: 'CSV error: ' + e.message });
             return { success: false, error: e.message };
         }
     },
 
-    /**
-     * Parse CSV line handling quoted values
-     */
     parseCSVLine(line) {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-            const char = line[i];
-            if (char === '"') {
-                inQuotes = !inQuotes;
-            } else if (char === ',' && !inQuotes) {
-                result.push(current);
-                current = '';
-            } else {
-                current += char;
-            }
+        const result = []; let current = ''; let inQuotes = false;
+        for (const char of line) {
+            if (char === '"') inQuotes = !inQuotes;
+            else if (char === ',' && !inQuotes) { result.push(current); current = ''; }
+            else current += char;
         }
         result.push(current);
         return result;
     },
 
-    /**
-     * Normalize record field names
-     */
-    normalizeRecord(record) {
+    normalizeRecord(r) {
         return {
-            iso: record.iso || record.isoname || record.iso_name || '',
-            zone: record.zone || record.zonename || record.zone_name || record.pnodename || '',
-            zoneId: record.zoneid || record.zone_id || record.pnodeid || '',
-            year: record.year || '',
-            month: record.month || '',
-            lmp: parseFloat(record.lmp || record.avg_da_lmp || record.avgdalmp || record.da_lmp || record.price || record.averagelmp || 0),
-            energy: parseFloat(record.energy || record.energycomponent || 0),
-            congestion: parseFloat(record.congestion || record.congestioncomponent || 0),
-            loss: parseFloat(record.loss || record.losscomponent || 0)
+            iso: r.iso || r.isoname || r.iso_name || '',
+            zone: r.zone || r.zonename || r.zone_name || r.pnodename || '',
+            zoneId: r.zoneid || r.zone_id || r.pnodeid || '',
+            year: r.year || '',
+            month: r.month || '',
+            lmp: parseFloat(r.lmp || r.avg_da_lmp || r.avgdalmp || r.da_lmp || r.price || r.averagelmp || 0),
+            energy: parseFloat(r.energy || r.energycomponent || 0),
+            congestion: parseFloat(r.congestion || r.congestioncomponent || 0),
+            loss: parseFloat(r.loss || r.losscomponent || 0)
         };
     },
 
-    /**
-     * Get all records
-     */
-    getRecords() {
-        return this.data?.records || [];
-    },
-
-    /**
-     * Get records filtered by ISO
-     */
-    getByISO(iso) {
-        const records = this.getRecords();
-        return records.filter(r => r.iso?.toUpperCase() === iso?.toUpperCase());
-    },
-
-    /**
-     * Get unique ISOs
-     */
-    getISOs() {
-        const records = this.getRecords();
-        return [...new Set(records.map(r => r.iso).filter(Boolean))];
-    },
-
-    /**
-     * Get zones for an ISO
-     */
-    getZones(iso) {
-        const records = this.getByISO(iso);
-        const zones = [...new Set(records.map(r => r.zone).filter(Boolean))];
-        return zones.sort();
-    },
-
-    /**
-     * Get years available in data
-     */
-    getYears() {
-        const records = this.getRecords();
-        const years = [...new Set(records.map(r => r.year).filter(Boolean))];
-        return years.sort();
-    },
-
-    /**
-     * Get LMP data for specific zone and time period
-     */
+    getRecords() { return this.data?.records || []; },
+    getByISO(iso) { return this.getRecords().filter(r => r.iso?.toUpperCase() === iso?.toUpperCase()); },
+    getISOs() { return [...new Set(this.getRecords().map(r => r.iso).filter(Boolean))]; },
+    getZones(iso) { return [...new Set(this.getByISO(iso).map(r => r.zone).filter(Boolean))].sort(); },
+    getYears() { return [...new Set(this.getRecords().map(r => r.year).filter(Boolean))].sort(); },
     getLMPData(iso, zone, year, month = null) {
-        const records = this.getRecords();
-        return records.filter(r => {
-            const matchISO = r.iso?.toUpperCase() === iso?.toUpperCase();
-            const matchZone = r.zone === zone;
-            const matchYear = r.year == year;
-            const matchMonth = month ? r.month == month : true;
-            return matchISO && matchZone && matchYear && matchMonth;
-        });
+        return this.getRecords().filter(r => r.iso?.toUpperCase() === iso?.toUpperCase() && r.zone === zone && r.year == year && (month ? r.month == month : true));
     },
-
-    /**
-     * Calculate average LMP
-     */
     getAverageLMP(iso, zone, year, month = null) {
         const data = this.getLMPData(iso, zone, year, month);
-        if (data.length === 0) return null;
-        const sum = data.reduce((acc, r) => acc + (r.lmp || 0), 0);
-        return sum / data.length;
+        return data.length ? data.reduce((sum, r) => sum + (r.lmp || 0), 0) / data.length : null;
     },
-
-    /**
-     * Get statistics
-     */
     getStats() {
-        const records = this.getRecords();
-        const isos = this.getISOs();
-        const years = this.getYears();
-        
-        return {
-            totalRecords: records.length,
-            isoCount: isos.length,
-            isos: isos,
-            yearRange: years.length > 0 ? [years[0], years[years.length - 1]] : null,
-            lastUpdate: this.data?.meta?.loadedAt
-        };
+        const records = this.getRecords(), isos = this.getISOs(), years = this.getYears();
+        return { totalRecords: records.length, isoCount: isos.length, isos, yearRange: years.length ? [years[0], years[years.length - 1]] : null, lastUpdate: this.data?.meta?.loadedAt };
     },
-
-    /**
-     * Subscribe to data changes
-     */
-    subscribe(callback) {
-        this.subscribers.push(callback);
-    },
-
-    /**
-     * Notify all subscribers
-     */
-    notifySubscribers() {
-        this.subscribers.forEach(cb => {
-            try { cb(this.data); } catch (e) { console.error(e); }
-        });
-    },
-
-    /**
-     * Export for GitHub update
-     */
+    subscribe(cb) { this.subscribers.push(cb); },
+    notifySubscribers() { this.subscribers.forEach(cb => { try { cb(this.data); } catch {} }); },
     exportForGitHub() {
-        return JSON.stringify({
-            version: '1.0.0',
-            lastUpdated: new Date().toISOString(),
-            meta: this.data?.meta || {},
-            records: this.getRecords()
-        }, null, 2);
+        return JSON.stringify({ version: '1.0.0', lastUpdated: new Date().toISOString(), meta: this.data?.meta || {}, records: this.getRecords() }, null, 2);
     }
 };
 
@@ -328,223 +506,86 @@ const UserStore = {
     USERS_URL: 'data/users.json',
     users: [],
 
-    /**
-     * Initialize
-     */
     async init() {
         console.log('[UserStore] Initializing...');
-        
-        // Try GitHub first
         try {
-            await this.loadFromGitHub();
+            try { await this.loadFromGitHub(); } catch {}
+            const cached = this.loadFromStorage();
+            if (cached?.length) {
+                const emails = new Set(this.users.map(u => u.email.toLowerCase()));
+                cached.forEach(u => { if (!emails.has(u.email.toLowerCase())) this.users.push(u); });
+            }
+            if (!this.users.some(u => u.email === 'admin@sesenergy.org')) {
+                this.users.unshift({
+                    id: 'admin-default', email: 'admin@sesenergy.org', password: 'admin123',
+                    firstName: 'Admin', lastName: 'User', role: 'admin', status: 'active',
+                    createdAt: new Date().toISOString(),
+                    permissions: { 'user-admin': true, 'ai-assistant': true, 'lmp-comparison': true, 'lmp-analytics': true, 'analysis-history': true, 'data-manager': true, 'arcadia-fetcher': true }
+                });
+            }
+            this.saveToStorage();
         } catch (e) {
-            console.warn('[UserStore] GitHub load failed');
+            ErrorLog.log({ type: 'init', widget: 'user-store', message: 'Init failed: ' + e.message });
         }
-        
-        // Load from localStorage
-        const cached = this.loadFromStorage();
-        if (cached && cached.length > 0) {
-            // Merge - avoid duplicates by email
-            const existingEmails = new Set(this.users.map(u => u.email.toLowerCase()));
-            cached.forEach(u => {
-                if (!existingEmails.has(u.email.toLowerCase())) {
-                    this.users.push(u);
-                }
-            });
-        }
-        
-        // Ensure default admin exists
-        if (this.users.length === 0 || !this.users.some(u => u.email === 'admin@sesenergy.org')) {
-            this.users.unshift({
-                id: 'admin-default',
-                email: 'admin@sesenergy.org',
-                password: 'admin123',
-                firstName: 'Admin',
-                lastName: 'User',
-                role: 'admin',
-                status: 'active',
-                createdAt: new Date().toISOString(),
-                permissions: {
-                    'user-admin': true,
-                    'ai-assistant': true,
-                    'lmp-comparison': true,
-                    'lmp-analytics': true,
-                    'analysis-history': true,
-                    'data-manager': true,
-                    'arcadia-fetcher': true
-                }
-            });
-        }
-        
-        this.saveToStorage();
-        console.log(`[UserStore] ${this.users.length} users loaded`);
         return this.users;
     },
 
-    /**
-     * Load from GitHub
-     */
     async loadFromGitHub() {
         const response = await fetch(this.USERS_URL + '?t=' + Date.now());
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
         const data = await response.json();
-        if (data && data.users) {
-            this.users = data.users;
-            return true;
-        }
-        return false;
+        if (data?.users) this.users = data.users;
     },
 
-    /**
-     * Load from localStorage
-     */
-    loadFromStorage() {
-        try {
-            const stored = localStorage.getItem(this.STORAGE_KEY);
-            return stored ? JSON.parse(stored) : [];
-        } catch (e) {
-            return [];
-        }
-    },
+    loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
+    saveToStorage() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.users)); },
+    getAll() { return this.users; },
+    findByEmail(email) { return this.users.find(u => u.email.toLowerCase() === email.toLowerCase()); },
+    findById(id) { return this.users.find(u => u.id === id); },
 
-    /**
-     * Save to localStorage
-     */
-    saveToStorage() {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.users));
-    },
-
-    /**
-     * Get all users
-     */
-    getAll() {
-        return this.users;
-    },
-
-    /**
-     * Find user by email
-     */
-    findByEmail(email) {
-        return this.users.find(u => u.email.toLowerCase() === email.toLowerCase());
-    },
-
-    /**
-     * Find user by ID
-     */
-    findById(id) {
-        return this.users.find(u => u.id === id);
-    },
-
-    /**
-     * Create new user
-     */
     create(userData) {
-        if (this.findByEmail(userData.email)) {
-            throw new Error('Email already exists');
-        }
-        
-        const newUser = {
-            id: 'user-' + Date.now(),
-            ...userData,
-            status: 'active',
-            createdAt: new Date().toISOString()
-        };
-        
+        if (this.findByEmail(userData.email)) throw new Error('Email exists');
+        const newUser = { id: 'user-' + Date.now(), ...userData, status: 'active', createdAt: new Date().toISOString() };
         this.users.push(newUser);
         this.saveToStorage();
+        if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) GitHubSync.syncUsers().catch(() => {});
         return newUser;
     },
 
-    /**
-     * Update user
-     */
     update(id, updates) {
-        const index = this.users.findIndex(u => u.id === id);
-        if (index === -1) throw new Error('User not found');
-        
-        // Check email uniqueness
-        if (updates.email && updates.email !== this.users[index].email) {
-            if (this.findByEmail(updates.email)) {
-                throw new Error('Email already exists');
-            }
-        }
-        
-        this.users[index] = { ...this.users[index], ...updates };
+        const idx = this.users.findIndex(u => u.id === id);
+        if (idx === -1) throw new Error('User not found');
+        if (updates.email && updates.email !== this.users[idx].email && this.findByEmail(updates.email)) throw new Error('Email exists');
+        this.users[idx] = { ...this.users[idx], ...updates };
         this.saveToStorage();
-        return this.users[index];
+        if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) GitHubSync.syncUsers().catch(() => {});
+        return this.users[idx];
     },
 
-    /**
-     * Delete user
-     */
     delete(id) {
-        const index = this.users.findIndex(u => u.id === id);
-        if (index === -1) throw new Error('User not found');
-        if (this.users[index].email === 'admin@sesenergy.org') {
-            throw new Error('Cannot delete default admin');
-        }
-        
-        this.users.splice(index, 1);
+        const idx = this.users.findIndex(u => u.id === id);
+        if (idx === -1) throw new Error('User not found');
+        if (this.users[idx].email === 'admin@sesenergy.org') throw new Error('Cannot delete default admin');
+        this.users.splice(idx, 1);
         this.saveToStorage();
+        if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) GitHubSync.syncUsers().catch(() => {});
     },
 
-    /**
-     * Authenticate user
-     */
     authenticate(email, password) {
-        console.log('[UserStore] Authenticating:', email);
-        console.log('[UserStore] Available users:', this.users.map(u => u.email));
-        
         const user = this.findByEmail(email);
-        if (!user) {
-            console.log('[UserStore] User not found');
-            return { success: false, error: 'User not found' };
-        }
-        if (user.password !== password) {
-            console.log('[UserStore] Invalid password');
-            return { success: false, error: 'Invalid password' };
-        }
-        if (user.status !== 'active') {
-            console.log('[UserStore] Account inactive');
-            return { success: false, error: 'Account is inactive' };
-        }
-        console.log('[UserStore] Authentication successful');
+        if (!user) return { success: false, error: 'User not found' };
+        if (user.password !== password) return { success: false, error: 'Invalid password' };
+        if (user.status !== 'active') return { success: false, error: 'Account inactive' };
         return { success: true, user };
     },
 
-    /**
-     * Session management
-     */
     setCurrentUser(user) {
-        const sessionUser = { ...user };
-        delete sessionUser.password;
-        localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionUser));
+        const s = { ...user }; delete s.password;
+        localStorage.setItem(this.SESSION_KEY, JSON.stringify(s));
     },
-
-    getCurrentUser() {
-        try {
-            const data = localStorage.getItem(this.SESSION_KEY);
-            return data ? JSON.parse(data) : null;
-        } catch (e) {
-            return null;
-        }
-    },
-
-    clearSession() {
-        localStorage.removeItem(this.SESSION_KEY);
-    },
-
-    /**
-     * Export users for GitHub update
-     */
-    exportForGitHub() {
-        return JSON.stringify({
-            version: '1.0.0',
-            lastUpdated: new Date().toISOString(),
-            users: this.users
-        }, null, 2);
-    }
+    getCurrentUser() { try { return JSON.parse(localStorage.getItem(this.SESSION_KEY)); } catch { return null; } },
+    clearSession() { localStorage.removeItem(this.SESSION_KEY); },
+    exportForGitHub() { return JSON.stringify({ version: '1.0.0', lastUpdated: new Date().toISOString(), users: this.users }, null, 2); }
 };
 
 
@@ -555,76 +596,27 @@ const ActivityLog = {
     STORAGE_KEY: 'secureEnergy_activityLog',
     LOG_URL: 'data/activity-log.json',
     activities: [],
+    _syncTimeout: null,
 
-    /**
-     * Initialize
-     */
     async init() {
         console.log('[ActivityLog] Initializing...');
-        
-        // Try GitHub first
-        try {
-            await this.loadFromGitHub();
-        } catch (e) {
-            console.warn('[ActivityLog] GitHub load failed');
-        }
-        
-        // Load from localStorage
+        try { await GitHubSync.pullLatest(); } catch {}
         const cached = this.loadFromStorage();
-        if (cached && cached.length > 0) {
-            // Merge - avoid duplicates by ID
-            const existingIds = new Set(this.activities.map(a => a.id));
-            cached.forEach(a => {
-                if (!existingIds.has(a.id)) {
-                    this.activities.push(a);
-                }
-            });
+        if (cached?.length) {
+            const ids = new Set(this.activities.map(a => a.id));
+            cached.forEach(a => { if (!ids.has(a.id)) this.activities.push(a); });
         }
-        
+        this.activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         console.log(`[ActivityLog] ${this.activities.length} activities loaded`);
         return this.activities;
     },
 
-    /**
-     * Load from GitHub
-     */
-    async loadFromGitHub() {
-        const response = await fetch(this.LOG_URL + '?t=' + Date.now());
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        
-        const data = await response.json();
-        if (data && data.activities) {
-            this.activities = data.activities;
-            return true;
-        }
-        return false;
-    },
+    loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
+    saveToStorage() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.activities)); },
 
-    /**
-     * Load from localStorage
-     */
-    loadFromStorage() {
-        try {
-            const stored = localStorage.getItem(this.STORAGE_KEY);
-            return stored ? JSON.parse(stored) : [];
-        } catch (e) {
-            return [];
-        }
-    },
-
-    /**
-     * Save to localStorage
-     */
-    saveToStorage() {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.activities));
-    },
-
-    /**
-     * Log an activity
-     */
     log(activity) {
         const entry = {
-            id: 'activity-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9),
+            id: 'act-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
             timestamp: new Date().toISOString(),
             userId: activity.userId || null,
             userEmail: activity.userEmail || null,
@@ -635,230 +627,70 @@ const ActivityLog = {
             data: activity.data || {},
             notes: activity.notes || null
         };
-
-        this.activities.unshift(entry); // Add to beginning
+        this.activities.unshift(entry);
         this.saveToStorage();
         
-        console.log('[ActivityLog] Logged:', entry.action, entry.widget);
+        // Debounced auto-sync
+        if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) {
+            clearTimeout(this._syncTimeout);
+            this._syncTimeout = setTimeout(() => GitHubSync.syncActivityLog().catch(() => {}), 3000);
+        }
         return entry;
     },
 
-    /**
-     * Log LMP Analysis
-     */
     logLMPAnalysis(params) {
         return this.log({
-            userId: params.userId,
-            userEmail: params.userEmail,
-            userName: params.userName,
-            widget: 'lmp-comparison',
-            action: 'LMP Analysis',
-            clientName: params.clientName,
-            data: {
-                clientName: params.clientName, // Also store in data for consistency
-                iso: params.iso,
-                zone: params.zone,
-                startDate: params.startDate,
-                termMonths: params.termMonths,
-                fixedPrice: params.fixedPrice,
-                lmpAdjustment: params.lmpAdjustment,
-                totalAnnualUsage: params.usage || params.totalAnnualUsage,
-                baselineYear: params.baselineYear,
-                comparisonYears: params.comparisonYears,
-                rate: params.rate,
-                usage: params.usage,
-                results: params.results
-            },
-            notes: params.notes
+            userId: params.userId, userEmail: params.userEmail, userName: params.userName,
+            widget: 'lmp-comparison', action: 'LMP Analysis', clientName: params.clientName,
+            data: { clientName: params.clientName, iso: params.iso, zone: params.zone, startDate: params.startDate, termMonths: params.termMonths, fixedPrice: params.fixedPrice, lmpAdjustment: params.lmpAdjustment, totalAnnualUsage: params.usage || params.totalAnnualUsage, results: params.results }
         });
     },
 
-    /**
-     * Log LMP Analytics Export
-     */
     logLMPExport(params) {
         return this.log({
-            userId: params.userId,
-            userEmail: params.userEmail,
-            userName: params.userName,
-            widget: 'lmp-analytics',
-            action: 'LMP Export',
-            clientName: params.clientName || null,
-            data: {
-                exportType: params.exportType || 'chart',
-                iso: params.iso,
-                zone: params.zone,
-                format: params.format || 'PNG'
-            },
-            notes: params.notes
+            userId: params.userId, userEmail: params.userEmail, userName: params.userName,
+            widget: 'lmp-analytics', action: 'LMP Export', clientName: params.clientName,
+            data: { exportType: params.exportType, iso: params.iso, zone: params.zone, format: params.format || 'PNG' }
         });
     },
 
-    /**
-     * Log Analysis History Export (user exporting their records)
-     */
     logHistoryExport(params) {
         return this.log({
-            userId: params.userId,
-            userEmail: params.userEmail,
-            userName: params.userName,
-            widget: 'analysis-history',
-            action: 'History Export',
-            data: {
-                recordCount: params.recordCount || 0,
-                format: params.format || 'CSV'
-            },
-            notes: params.notes
+            userId: params.userId, userEmail: params.userEmail, userName: params.userName,
+            widget: 'analysis-history', action: 'History Export',
+            data: { recordCount: params.recordCount, format: params.format || 'CSV' }
         });
     },
 
-    /**
-     * Get all activities
-     */
-    getAll() {
-        return this.activities;
-    },
-
-    /**
-     * Get activities by user
-     */
-    getByUser(userId) {
-        return this.activities.filter(a => a.userId === userId);
-    },
-
-    /**
-     * Get activities by widget
-     */
-    getByWidget(widget) {
-        return this.activities.filter(a => a.widget === widget);
-    },
-
-    /**
-     * Get activities by action
-     */
-    getByAction(action) {
-        return this.activities.filter(a => a.action === action);
-    },
-
-    /**
-     * Get activities by client
-     */
+    getAll() { return this.activities; },
+    getByUser(userId) { return this.activities.filter(a => a.userId === userId); },
+    getByWidget(widget) { return this.activities.filter(a => a.widget === widget); },
     getByClient(clientName) {
-        return this.activities.filter(a => 
-            a.clientName?.toLowerCase().includes(clientName.toLowerCase())
-        );
+        const lc = clientName.toLowerCase();
+        return this.activities.filter(a => a.clientName?.toLowerCase().includes(lc) || a.data?.clientName?.toLowerCase().includes(lc));
     },
+    getRecent(count = 50) { return this.activities.slice(0, count); },
 
-    /**
-     * Get recent activities
-     */
-    getRecent(count = 50) {
-        return this.activities.slice(0, count);
-    },
-
-    /**
-     * Get today's start timestamp (midnight local time)
-     */
-    getTodayStart() {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return today.toISOString();
-    },
-
-    /**
-     * Count activities by action type
-     * @param {string} action - Action type to count (e.g., 'Login', 'LMP Analysis', 'LMP Export')
-     * @param {boolean} todayOnly - If true, only count today's activities
-     * @returns {number} Count of matching activities
-     */
+    getTodayStart() { const t = new Date(); t.setHours(0, 0, 0, 0); return t.toISOString(); },
     countByAction(action, todayOnly = false) {
-        const todayStart = this.getTodayStart();
-        return this.activities.filter(a => {
-            const matchesAction = a.action === action;
-            if (!matchesAction) return false;
-            if (todayOnly) {
-                return a.timestamp >= todayStart;
-            }
-            return true;
-        }).length;
+        const start = this.getTodayStart();
+        return this.activities.filter(a => a.action === action && (!todayOnly || a.timestamp >= start)).length;
     },
+    countLogins(todayOnly = false) { return this.countByAction('Login', todayOnly); },
+    countLMPAnalyses(todayOnly = false) { return this.countByAction('LMP Analysis', todayOnly); },
+    countLMPExports(todayOnly = false) { return this.countByAction('LMP Export', todayOnly); },
 
-    /**
-     * Count activities by widget type
-     * @param {string} widget - Widget name to count
-     * @param {boolean} todayOnly - If true, only count today's activities
-     * @returns {number} Count of matching activities
-     */
-    countByWidget(widget, todayOnly = false) {
-        const todayStart = this.getTodayStart();
-        return this.activities.filter(a => {
-            const matchesWidget = a.widget === widget;
-            if (!matchesWidget) return false;
-            if (todayOnly) {
-                return a.timestamp >= todayStart;
-            }
-            return true;
-        }).length;
-    },
-
-    /**
-     * Count portal logins
-     * @param {boolean} todayOnly - If true, only count today's logins
-     * @returns {number} Login count
-     */
-    countLogins(todayOnly = false) {
-        return this.countByAction('Login', todayOnly);
-    },
-
-    /**
-     * Count LMP Comparison calculations/analyses
-     * @param {boolean} todayOnly - If true, only count today's analyses
-     * @returns {number} Analysis count
-     */
-    countLMPAnalyses(todayOnly = false) {
-        return this.countByAction('LMP Analysis', todayOnly);
-    },
-
-    /**
-     * Count LMP Analytics exports
-     * @param {boolean} todayOnly - If true, only count today's exports
-     * @returns {number} Export count
-     */
-    countLMPExports(todayOnly = false) {
-        return this.countByAction('LMP Export', todayOnly);
-    },
-
-    /**
-     * Get comprehensive activity statistics
-     * @returns {Object} Statistics object with counts
-     */
     getActivityStats() {
         return {
-            logins: {
-                today: this.countLogins(true),
-                total: this.countLogins(false)
-            },
-            lmpAnalyses: {
-                today: this.countLMPAnalyses(true),
-                total: this.countLMPAnalyses(false)
-            },
-            lmpExports: {
-                today: this.countLMPExports(true),
-                total: this.countLMPExports(false)
-            },
+            logins: { today: this.countLogins(true), total: this.countLogins(false) },
+            lmpAnalyses: { today: this.countLMPAnalyses(true), total: this.countLMPAnalyses(false) },
+            lmpExports: { today: this.countLMPExports(true), total: this.countLMPExports(false) },
             totalActivities: this.activities.length
         };
     },
 
-    /**
-     * Export for GitHub
-     */
     exportForGitHub() {
-        return JSON.stringify({
-            version: '1.0.0',
-            lastUpdated: new Date().toISOString(),
-            activities: this.activities
-        }, null, 2);
+        return JSON.stringify({ version: '2.2.0', lastUpdated: new Date().toISOString(), activities: this.activities }, null, 2);
     }
 };
 
@@ -866,33 +698,21 @@ const ActivityLog = {
 // =====================================================
 // INITIALIZATION
 // =====================================================
-// Auto-initialize when script loads
 if (typeof window !== 'undefined') {
     window.SecureEnergyData = SecureEnergyData;
     window.UserStore = UserStore;
     window.ActivityLog = ActivityLog;
+    window.GitHubSync = GitHubSync;
+    window.ErrorLog = ErrorLog;
     
-    // Debug/Reset function - call from console: resetUserStore()
-    window.resetUserStore = function() {
-        localStorage.removeItem('secureEnergy_users');
-        localStorage.removeItem('secureEnergy_currentUser');
-        console.log('[UserStore] Reset complete. Refresh the page.');
-        location.reload();
-    };
+    ErrorLog.init();
+    GitHubSync.init();
     
-    // Listen for cross-window messages
-    window.addEventListener('message', function(event) {
-        if (event.data?.type === 'LMP_DATA_REQUEST') {
-            window.postMessage({
-                type: 'LMP_DATA_RESPONSE',
-                data: SecureEnergyData.data,
-                stats: SecureEnergyData.getStats()
-            }, '*');
-        }
-    });
+    window.resetUserStore = () => { localStorage.removeItem('secureEnergy_users'); localStorage.removeItem('secureEnergy_currentUser'); location.reload(); };
+    window.resetActivityLog = () => { localStorage.removeItem('secureEnergy_activityLog'); location.reload(); };
+    window.resetErrorLog = () => { ErrorLog.clearAll(); };
 }
 
-// Export for module environments
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { SecureEnergyData, UserStore, ActivityLog };
+    module.exports = { SecureEnergyData, UserStore, ActivityLog, GitHubSync, ErrorLog };
 }
