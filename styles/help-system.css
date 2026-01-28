@@ -1,0 +1,241 @@
+/**
+ * Secure Energy Analytics Portal - Help System Styles
+ * Add this to your main.css or include as separate file
+ */
+
+/* =====================================================
+   HELP ICON (in widget headers)
+   ===================================================== */
+.help-icon {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px 8px;
+    margin-left: auto;
+    margin-right: 8px;
+    border-radius: 4px;
+    opacity: 0.5;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+}
+
+.help-icon:hover {
+    opacity: 1;
+    color: var(--accent-primary);
+    background: var(--bg-tertiary);
+}
+
+/* =====================================================
+   TOOLTIP
+   ===================================================== */
+.help-tooltip {
+    position: fixed;
+    z-index: 10000;
+    width: 280px;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-primary);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.help-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.help-tooltip-arrow {
+    position: absolute;
+    top: -6px;
+    left: 20px;
+    width: 12px;
+    height: 12px;
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border-primary);
+    border-top: 1px solid var(--border-primary);
+    transform: rotate(45deg);
+}
+
+.help-tooltip.above .help-tooltip-arrow {
+    top: auto;
+    bottom: -6px;
+    transform: rotate(225deg);
+}
+
+.help-tooltip-title {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--accent-primary);
+    margin-bottom: 6px;
+}
+
+.help-tooltip-desc {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.help-tooltip-tips {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-primary);
+}
+
+.tip-item {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+}
+
+/* =====================================================
+   GUIDED TOUR
+   ===================================================== */
+.tour-highlight {
+    position: relative;
+    z-index: 100;
+    box-shadow: 0 0 0 4px var(--se-green, #00c853), 
+                0 0 40px rgba(0, 200, 83, 0.3) !important;
+    border-radius: 12px;
+}
+
+.tour-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--bg-primary);
+    border: 2px solid var(--se-green, #00c853);
+    border-radius: 12px;
+    padding: 20px;
+    width: 300px;
+    max-width: 90%;
+    z-index: 101;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    text-align: center;
+}
+
+.tour-popup-title {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--se-green, #00c853);
+    margin-bottom: 8px;
+}
+
+.tour-popup-msg {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    margin-bottom: 16px;
+}
+
+.tour-popup-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.tour-next-btn {
+    background: var(--se-green, #00c853);
+    color: #000;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.tour-next-btn:hover {
+    background: var(--se-light-green, #69f0ae);
+    transform: translateY(-1px);
+}
+
+/* =====================================================
+   ENHANCED AI ASSISTANT STYLES
+   ===================================================== */
+.ai-help-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.ai-help-item {
+    background: var(--bg-tertiary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border: 1px solid transparent;
+}
+
+.ai-help-item:hover {
+    background: var(--bg-secondary);
+    border-color: var(--accent-primary);
+    transform: translateY(-1px);
+}
+
+/* Improve existing AI message styling */
+.ai-message p {
+    margin: 8px 0;
+}
+
+.ai-message strong {
+    color: var(--accent-primary);
+}
+
+.ai-message a {
+    color: var(--se-green, #00c853);
+    text-decoration: none;
+}
+
+.ai-message a:hover {
+    text-decoration: underline;
+}
+
+/* Result lists in AI responses */
+.ai-result-list {
+    margin: 8px 0 8px 20px;
+    padding: 0;
+}
+
+.ai-result-list li {
+    margin: 4px 0;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/* =====================================================
+   RESPONSIVE ADJUSTMENTS
+   ===================================================== */
+@media (max-width: 768px) {
+    .help-tooltip {
+        width: 260px;
+        left: 10px !important;
+        right: 10px !important;
+    }
+    
+    .ai-help-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .tour-popup {
+        width: 260px;
+    }
+}
