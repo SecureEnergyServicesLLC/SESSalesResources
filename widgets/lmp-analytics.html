@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LMP Analytics - Secure Energy</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- SheetJS for Excel export -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- PptxGenJS for PowerPoint export -->
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <style>
         :root {
             --se-dark-green: #004D40;
@@ -137,6 +141,9 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .btn:hover {
@@ -147,6 +154,95 @@
         .btn-secondary {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-elevated);
+            box-shadow: none;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+        }
+
+        .btn-export:hover {
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-pptx {
+            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+        }
+
+        .btn-pptx:hover {
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        /* Export Dropdown */
+        .export-dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .export-dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            margin-top: 4px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-width: 200px;
+            z-index: 1000;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            overflow: hidden;
+        }
+
+        .export-dropdown-content.show {
+            display: block;
+        }
+
+        .export-dropdown-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .export-dropdown-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .export-dropdown-item svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .export-dropdown-item .export-icon-excel {
+            color: #10b981;
+        }
+
+        .export-dropdown-item .export-icon-pptx {
+            color: #ef4444;
+        }
+
+        .export-dropdown-divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 0;
+        }
+
+        .export-dropdown-header {
+            padding: 8px 16px;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: var(--text-tertiary);
+            letter-spacing: 0.5px;
         }
 
         .grid {
@@ -262,6 +358,12 @@
             color: var(--text-secondary);
         }
 
+        .zone-tag.average {
+            background: rgba(62, 180, 137, 0.2);
+            color: var(--se-light-green);
+            font-weight: 600;
+        }
+
         .table-scroll {
             max-height: 400px;
             overflow-y: auto;
@@ -334,6 +436,38 @@
         .no-data svg {
             margin-bottom: 16px;
             opacity: 0.5;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 14px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+            z-index: 10000;
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-left: 3px solid var(--accent-success);
+        }
+
+        .toast.error {
+            border-left: 3px solid var(--accent-error);
         }
 
         /* Responsive */
@@ -421,8 +555,64 @@
                 </select>
             </div>
             <div style="flex: 1;"></div>
+            
+            <!-- Export Dropdown -->
+            <div class="export-dropdown">
+                <button class="btn btn-secondary" onclick="toggleExportDropdown(event)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="7 10 12 15 17 10"/>
+                        <line x1="12" y1="15" x2="12" y2="3"/>
+                    </svg>
+                    Export
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="6 9 12 15 18 9"/>
+                    </svg>
+                </button>
+                <div class="export-dropdown-content" id="exportDropdown">
+                    <div class="export-dropdown-header">Export Data</div>
+                    <div class="export-dropdown-item" onclick="exportToExcel('filtered')">
+                        <svg class="export-icon-excel" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                            <text x="7" y="17" font-size="7" fill="white" font-weight="bold">XLS</text>
+                        </svg>
+                        <span>Export Filtered Data to Excel</span>
+                    </div>
+                    <div class="export-dropdown-item" onclick="exportToExcel('all')">
+                        <svg class="export-icon-excel" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                            <text x="7" y="17" font-size="7" fill="white" font-weight="bold">XLS</text>
+                        </svg>
+                        <span>Export All Data to Excel</span>
+                    </div>
+                    <div class="export-dropdown-item" onclick="exportSummaryToExcel()">
+                        <svg class="export-icon-excel" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                            <text x="7" y="17" font-size="7" fill="white" font-weight="bold">XLS</text>
+                        </svg>
+                        <span>Export Summary Statistics</span>
+                    </div>
+                    <div class="export-dropdown-divider"></div>
+                    <div class="export-dropdown-header">Export Charts</div>
+                    <div class="export-dropdown-item" onclick="exportChartsToPowerPoint()">
+                        <svg class="export-icon-pptx" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                            <text x="6" y="17" font-size="6" fill="white" font-weight="bold">PPT</text>
+                        </svg>
+                        <span>Export Charts to PowerPoint</span>
+                    </div>
+                    <div class="export-dropdown-item" onclick="exportAllToPowerPoint()">
+                        <svg class="export-icon-pptx" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                            <text x="6" y="17" font-size="6" fill="white" font-weight="bold">PPT</text>
+                        </svg>
+                        <span>Export Full Report to PowerPoint</span>
+                    </div>
+                </div>
+            </div>
+            
             <button class="btn" onclick="refreshData()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 6px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
                     <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
                     <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
                 </svg>
@@ -439,6 +629,9 @@
         </div>
     </div>
 
+    <!-- Toast Container -->
+    <div id="toast" class="toast"></div>
+
     <script>
         // Data storage
         let lmpData = [];
@@ -448,6 +641,13 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             loadData();
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.export-dropdown')) {
+                    document.getElementById('exportDropdown')?.classList.remove('show');
+                }
+            });
         });
 
         // Listen for data broadcasts from parent
@@ -457,6 +657,405 @@
                 processExternalData(event.data.data);
             }
         });
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${type === 'success' ? '#10b981' : '#ef4444'}" stroke-width="2">
+                    ${type === 'success' 
+                        ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
+                        : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+                    }
+                </svg>
+                <span>${message}</span>
+            `;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Toggle export dropdown
+        function toggleExportDropdown(event) {
+            event.stopPropagation();
+            document.getElementById('exportDropdown').classList.toggle('show');
+        }
+
+        // ===========================================
+        // EXCEL EXPORT FUNCTIONS
+        // ===========================================
+        
+        function exportToExcel(scope) {
+            const data = scope === 'all' ? lmpData : getFilteredData();
+            
+            if (data.length === 0) {
+                showToast('No data to export', 'error');
+                return;
+            }
+
+            // Prepare data for export
+            const exportData = data.map(r => ({
+                'ISO': r.iso,
+                'Zone': r.zone,
+                'Year': r.year,
+                'Month': r.month,
+                'LMP ($/MWh)': r.lmp.toFixed(2)
+            }));
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(exportData);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 10 },  // ISO
+                { wch: 30 },  // Zone
+                { wch: 8 },   // Year
+                { wch: 8 },   // Month
+                { wch: 15 }   // LMP
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'LMP Data');
+
+            // Generate filename
+            const iso = document.getElementById('isoSelect').value;
+            const zone = document.getElementById('zoneSelect').value;
+            const timestamp = new Date().toISOString().split('T')[0];
+            const filename = `LMP_Data_${scope === 'all' ? 'All' : (iso !== 'all' ? iso : 'Filtered')}_${timestamp}.xlsx`;
+
+            // Download
+            XLSX.writeFile(wb, filename);
+            showToast(`Exported ${data.length.toLocaleString()} records to Excel`);
+            document.getElementById('exportDropdown').classList.remove('show');
+        }
+
+        function exportSummaryToExcel() {
+            const data = getFilteredData();
+            
+            if (data.length === 0) {
+                showToast('No data to export', 'error');
+                return;
+            }
+
+            // Calculate statistics
+            const zoneStats = {};
+            data.forEach(r => {
+                const key = `${r.iso}|${r.zone}`;
+                if (!zoneStats[key]) {
+                    zoneStats[key] = {
+                        iso: r.iso,
+                        zone: r.zone,
+                        values: [],
+                        years: new Set()
+                    };
+                }
+                zoneStats[key].values.push(r.lmp);
+                zoneStats[key].years.add(r.year);
+            });
+
+            const summaryData = Object.values(zoneStats).map(s => {
+                const sorted = [...s.values].sort((a, b) => a - b);
+                return {
+                    'ISO': s.iso,
+                    'Zone': s.zone,
+                    'Data Points': s.values.length,
+                    'Years Covered': s.years.size,
+                    'Min LMP ($/MWh)': sorted[0].toFixed(2),
+                    'Max LMP ($/MWh)': sorted[sorted.length - 1].toFixed(2),
+                    'Avg LMP ($/MWh)': (s.values.reduce((a, b) => a + b, 0) / s.values.length).toFixed(2),
+                    'Median LMP ($/MWh)': sorted[Math.floor(sorted.length / 2)].toFixed(2)
+                };
+            }).sort((a, b) => parseFloat(b['Avg LMP ($/MWh)']) - parseFloat(a['Avg LMP ($/MWh)']));
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(summaryData);
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 10 },  // ISO
+                { wch: 30 },  // Zone
+                { wch: 12 },  // Data Points
+                { wch: 14 },  // Years Covered
+                { wch: 18 },  // Min LMP
+                { wch: 18 },  // Max LMP
+                { wch: 18 },  // Avg LMP
+                { wch: 20 }   // Median LMP
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'Summary Statistics');
+
+            // Add trends sheet
+            const trends = calculateTrends('yoy');
+            if (trends.length > 0) {
+                const trendsData = trends.map(t => ({
+                    'ISO': t.iso,
+                    'Zone': t.zone,
+                    'Period': t.period,
+                    'Previous LMP ($/MWh)': t.previous.toFixed(2),
+                    'Current LMP ($/MWh)': t.current.toFixed(2),
+                    'Change ($/MWh)': t.change.toFixed(2),
+                    'Change (%)': t.changePercent.toFixed(2)
+                })).sort((a, b) => parseFloat(b['Change (%)']) - parseFloat(a['Change (%)']));
+
+                const wsTrends = XLSX.utils.json_to_sheet(trendsData);
+                wsTrends['!cols'] = [
+                    { wch: 10 }, { wch: 30 }, { wch: 20 },
+                    { wch: 22 }, { wch: 22 }, { wch: 18 }, { wch: 12 }
+                ];
+                XLSX.utils.book_append_sheet(wb, wsTrends, 'YoY Trends');
+            }
+
+            const timestamp = new Date().toISOString().split('T')[0];
+            XLSX.writeFile(wb, `LMP_Summary_${timestamp}.xlsx`);
+            showToast('Exported summary statistics to Excel');
+            document.getElementById('exportDropdown').classList.remove('show');
+        }
+
+        // ===========================================
+        // POWERPOINT EXPORT FUNCTIONS
+        // ===========================================
+
+        async function exportChartsToPowerPoint() {
+            try {
+                const pptx = new PptxGenJS();
+                pptx.title = 'LMP Analytics Charts';
+                pptx.author = 'Secure Energy Sales Resources';
+                
+                // Define slide master
+                pptx.defineSlideMaster({
+                    title: 'SE_MASTER',
+                    background: { color: '0A0E1A' },
+                    objects: [
+                        { rect: { x: 0, y: '90%', w: '100%', h: '10%', fill: { color: '004D40' } } },
+                        { text: { text: 'Secure Energy Sales Resources', options: { x: 0.5, y: '92%', w: 4, h: 0.4, color: 'FFFFFF', fontSize: 10 } } }
+                    ]
+                });
+
+                const iso = document.getElementById('isoSelect').value;
+                const zone = document.getElementById('zoneSelect').value;
+                const period = document.getElementById('periodSelect').value;
+
+                // Title slide
+                let slide = pptx.addSlide({ masterName: 'SE_MASTER' });
+                slide.addText('LMP Analytics Report', { 
+                    x: 0.5, y: 2, w: 9, h: 1, 
+                    fontSize: 36, color: '3EB489', bold: true 
+                });
+                slide.addText(`${iso !== 'all' ? iso : 'All ISOs'} ${zone !== 'all' ? '- ' + zone : ''}\n${new Date().toLocaleDateString()}`, { 
+                    x: 0.5, y: 3.2, w: 9, h: 1, 
+                    fontSize: 18, color: 'A0AEC0' 
+                });
+
+                // Trend Chart slide
+                const trendCanvas = document.getElementById('trendChart');
+                if (trendCanvas) {
+                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
+                    slide.addText('LMP Price Trends Over Time', { 
+                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
+                        fontSize: 24, color: '3EB489', bold: true 
+                    });
+                    
+                    const trendImage = trendCanvas.toDataURL('image/png');
+                    slide.addImage({ 
+                        data: trendImage, 
+                        x: 0.3, y: 0.9, w: 9.4, h: 4.5 
+                    });
+                }
+
+                // Comparison Chart slide
+                const comparisonCanvas = document.getElementById('comparisonChart');
+                if (comparisonCanvas) {
+                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
+                    slide.addText('Zone Price Comparison', { 
+                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
+                        fontSize: 24, color: '3EB489', bold: true 
+                    });
+                    
+                    const compImage = comparisonCanvas.toDataURL('image/png');
+                    slide.addImage({ 
+                        data: compImage, 
+                        x: 0.3, y: 0.9, w: 9.4, h: 4.5 
+                    });
+                }
+
+                // Generate filename
+                const timestamp = new Date().toISOString().split('T')[0];
+                await pptx.writeFile({ fileName: `LMP_Charts_${timestamp}.pptx` });
+                
+                showToast('Exported charts to PowerPoint');
+                document.getElementById('exportDropdown').classList.remove('show');
+            } catch (error) {
+                console.error('PowerPoint export error:', error);
+                showToast('Error exporting to PowerPoint', 'error');
+            }
+        }
+
+        async function exportAllToPowerPoint() {
+            try {
+                const pptx = new PptxGenJS();
+                pptx.title = 'LMP Analytics Full Report';
+                pptx.author = 'Secure Energy Sales Resources';
+                
+                const iso = document.getElementById('isoSelect').value;
+                const zone = document.getElementById('zoneSelect').value;
+                const filteredData = getFilteredData();
+
+                // Define slide master
+                pptx.defineSlideMaster({
+                    title: 'SE_MASTER',
+                    background: { color: '0A0E1A' },
+                    objects: [
+                        { rect: { x: 0, y: '90%', w: '100%', h: '10%', fill: { color: '004D40' } } },
+                        { text: { text: 'Secure Energy Sales Resources | LMP Analytics', options: { x: 0.5, y: '92%', w: 5, h: 0.4, color: 'FFFFFF', fontSize: 10 } } }
+                    ]
+                });
+
+                // Title slide
+                let slide = pptx.addSlide({ masterName: 'SE_MASTER' });
+                slide.addText('LMP Analytics Report', { 
+                    x: 0.5, y: 1.8, w: 9, h: 1, 
+                    fontSize: 40, color: '3EB489', bold: true 
+                });
+                slide.addText(`${iso !== 'all' ? iso : 'All ISOs'} ${zone !== 'all' && zone !== 'iso_average' ? '- ' + zone : zone === 'iso_average' ? '- ISO Averages' : ''}`, { 
+                    x: 0.5, y: 2.9, w: 9, h: 0.6, 
+                    fontSize: 24, color: 'FFFFFF' 
+                });
+                slide.addText(`Generated: ${new Date().toLocaleDateString()}\nData Points: ${filteredData.length.toLocaleString()}`, { 
+                    x: 0.5, y: 3.6, w: 9, h: 0.8, 
+                    fontSize: 14, color: 'A0AEC0' 
+                });
+
+                // Key Metrics slide
+                slide = pptx.addSlide({ masterName: 'SE_MASTER' });
+                slide.addText('Key Metrics Overview', { 
+                    x: 0.5, y: 0.3, w: 9, h: 0.5, 
+                    fontSize: 24, color: '3EB489', bold: true 
+                });
+
+                // Calculate metrics
+                const allLmps = filteredData.map(r => r.lmp);
+                const avgLmp = allLmps.reduce((a, b) => a + b, 0) / allLmps.length;
+                const minLmp = Math.min(...allLmps);
+                const maxLmp = Math.max(...allLmps);
+                const isos = [...new Set(filteredData.map(r => r.iso))];
+                const zones = [...new Set(filteredData.map(r => r.zone))];
+
+                const metrics = [
+                    { label: 'Average LMP', value: `$${avgLmp.toFixed(2)}/MWh` },
+                    { label: 'Minimum LMP', value: `$${minLmp.toFixed(2)}/MWh` },
+                    { label: 'Maximum LMP', value: `$${maxLmp.toFixed(2)}/MWh` },
+                    { label: 'ISOs Covered', value: isos.length.toString() },
+                    { label: 'Zones Analyzed', value: zones.length.toString() },
+                    { label: 'Data Points', value: filteredData.length.toLocaleString() }
+                ];
+
+                metrics.forEach((m, i) => {
+                    const col = i % 3;
+                    const row = Math.floor(i / 3);
+                    slide.addShape(pptx.ShapeType.rect, {
+                        x: 0.5 + col * 3.1, y: 1.2 + row * 2,
+                        w: 2.9, h: 1.6,
+                        fill: { color: '1A2030' },
+                        line: { color: '3EB489', pt: 1 }
+                    });
+                    slide.addText(m.value, { 
+                        x: 0.5 + col * 3.1, y: 1.4 + row * 2, 
+                        w: 2.9, h: 0.8, 
+                        fontSize: 28, color: '3EB489', bold: true, align: 'center' 
+                    });
+                    slide.addText(m.label, { 
+                        x: 0.5 + col * 3.1, y: 2.2 + row * 2, 
+                        w: 2.9, h: 0.5, 
+                        fontSize: 12, color: 'A0AEC0', align: 'center' 
+                    });
+                });
+
+                // Trend Chart slide
+                const trendCanvas = document.getElementById('trendChart');
+                if (trendCanvas) {
+                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
+                    slide.addText('LMP Price Trends Over Time', { 
+                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
+                        fontSize: 24, color: '3EB489', bold: true 
+                    });
+                    const trendImage = trendCanvas.toDataURL('image/png');
+                    slide.addImage({ data: trendImage, x: 0.3, y: 0.9, w: 9.4, h: 4.5 });
+                }
+
+                // Comparison Chart slide
+                const comparisonCanvas = document.getElementById('comparisonChart');
+                if (comparisonCanvas) {
+                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
+                    slide.addText('Zone Price Comparison', { 
+                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
+                        fontSize: 24, color: '3EB489', bold: true 
+                    });
+                    const compImage = comparisonCanvas.toDataURL('image/png');
+                    slide.addImage({ data: compImage, x: 0.3, y: 0.9, w: 9.4, h: 4.5 });
+                }
+
+                // Top Movers slide
+                const trends = calculateTrends('yoy');
+                if (trends.length > 0) {
+                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
+                    slide.addText('Top Price Movers (Year over Year)', { 
+                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
+                        fontSize: 24, color: '3EB489', bold: true 
+                    });
+
+                    const gainers = trends.filter(t => t.change > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, 5);
+                    const losers = trends.filter(t => t.change < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, 5);
+
+                    // Gainers table
+                    slide.addText('Top Increases', { x: 0.5, y: 0.9, w: 4.5, h: 0.4, fontSize: 14, color: '10b981', bold: true });
+                    
+                    const gainerRows = [['Zone', 'Change']];
+                    gainers.forEach(g => {
+                        gainerRows.push([`${g.iso} - ${g.zone}`, `+${g.changePercent.toFixed(1)}%`]);
+                    });
+                    
+                    slide.addTable(gainerRows, {
+                        x: 0.5, y: 1.3, w: 4.5,
+                        fontSize: 10,
+                        color: 'FFFFFF',
+                        fill: { color: '1A2030' },
+                        border: { pt: 0.5, color: '3EB489' },
+                        fontFace: 'Arial'
+                    });
+
+                    // Losers table
+                    slide.addText('Top Decreases', { x: 5.2, y: 0.9, w: 4.5, h: 0.4, fontSize: 14, color: 'ef4444', bold: true });
+                    
+                    const loserRows = [['Zone', 'Change']];
+                    losers.forEach(l => {
+                        loserRows.push([`${l.iso} - ${l.zone}`, `${l.changePercent.toFixed(1)}%`]);
+                    });
+                    
+                    slide.addTable(loserRows, {
+                        x: 5.2, y: 1.3, w: 4.5,
+                        fontSize: 10,
+                        color: 'FFFFFF',
+                        fill: { color: '1A2030' },
+                        border: { pt: 0.5, color: 'ef4444' },
+                        fontFace: 'Arial'
+                    });
+                }
+
+                const timestamp = new Date().toISOString().split('T')[0];
+                await pptx.writeFile({ fileName: `LMP_Full_Report_${timestamp}.pptx` });
+                
+                showToast('Exported full report to PowerPoint');
+                document.getElementById('exportDropdown').classList.remove('show');
+            } catch (error) {
+                console.error('PowerPoint export error:', error);
+                showToast('Error exporting to PowerPoint', 'error');
+            }
+        }
+
+        // ===========================================
+        // DATA LOADING & PROCESSING
+        // ===========================================
 
         // Load data from various sources
         async function loadData() {
@@ -624,6 +1223,8 @@
             }
 
             zoneSelect.innerHTML = '<option value="all">All Zones</option>';
+            // Add ISO Average option
+            zoneSelect.innerHTML += '<option value="iso_average">📊 No Specific Zones (ISO Average)</option>';
             zones.sort().forEach(zone => {
                 zoneSelect.innerHTML += `<option value="${zone}">${zone}</option>`;
             });
@@ -730,7 +1331,11 @@
                 filtered = filtered.filter(r => r.iso === iso);
             }
 
-            if (zone !== 'all') {
+            // Handle ISO Average mode
+            if (zone === 'iso_average') {
+                // Aggregate data to ISO level averages
+                filtered = calculateISOAverages(filtered);
+            } else if (zone !== 'all') {
                 filtered = filtered.filter(r => r.zone === zone);
             }
 
@@ -742,6 +1347,36 @@
             }
 
             return filtered;
+        }
+
+        // Calculate ISO-level averages across all zones
+        function calculateISOAverages(data) {
+            const isoMonthly = {};
+            
+            // Group by ISO, year, month and calculate averages
+            data.forEach(r => {
+                const key = `${r.iso}|${r.year}|${r.month}`;
+                if (!isoMonthly[key]) {
+                    isoMonthly[key] = {
+                        iso: r.iso,
+                        year: r.year,
+                        month: r.month,
+                        sum: 0,
+                        count: 0
+                    };
+                }
+                isoMonthly[key].sum += r.lmp;
+                isoMonthly[key].count++;
+            });
+
+            // Convert to records with ISO Average as zone
+            return Object.values(isoMonthly).map(item => ({
+                iso: item.iso,
+                zone: 'ISO Average',
+                year: item.year,
+                month: item.month,
+                lmp: item.sum / item.count
+            }));
         }
 
         // Update trend chart
@@ -762,10 +1397,12 @@
                 trendChart.destroy();
             }
 
-            // Group by ISO/Zone
+            const zone = document.getElementById('zoneSelect').value;
+
+            // Group by ISO/Zone (or just ISO for average mode)
             const groups = {};
             data.forEach(r => {
-                const key = `${r.iso} - ${r.zone}`;
+                const key = zone === 'iso_average' ? r.iso : `${r.iso} - ${r.zone}`;
                 if (!groups[key]) groups[key] = [];
                 groups[key].push(r);
             });
@@ -946,7 +1583,13 @@
             
             let data = [...lmpData];
             if (iso !== 'all') data = data.filter(r => r.iso === iso);
-            if (zone !== 'all') data = data.filter(r => r.zone === zone);
+            
+            // Handle ISO average mode for trends
+            if (zone === 'iso_average') {
+                data = calculateISOAverages(data);
+            } else if (zone !== 'all') {
+                data = data.filter(r => r.zone === zone);
+            }
 
             const trends = [];
 
@@ -1035,6 +1678,8 @@
                 return '<div style="padding: 40px; text-align: center; color: var(--text-tertiary);">No data available</div>';
             }
 
+            const zone = document.getElementById('zoneSelect').value;
+
             return `
                 <table class="trends-table">
                     <thead>
@@ -1053,7 +1698,7 @@
                                 <td>${i + 1}</td>
                                 <td>
                                     <strong>${t.iso}</strong><br>
-                                    <span class="zone-tag">${t.zone}</span>
+                                    <span class="zone-tag ${t.zone === 'ISO Average' ? 'average' : ''}">${t.zone}</span>
                                 </td>
                                 <td style="font-size: 12px; color: var(--text-secondary);">${t.period}</td>
                                 <td>$${t.previous.toFixed(2)}</td>
@@ -1083,10 +1728,12 @@
                 comparisonChart.destroy();
             }
 
-            // Calculate average LMP per zone
+            const zone = document.getElementById('zoneSelect').value;
+
+            // Calculate average LMP per zone (or per ISO for average mode)
             const zoneAvg = {};
             data.forEach(r => {
-                const key = `${r.iso} - ${r.zone}`;
+                const key = zone === 'iso_average' ? r.iso : `${r.iso} - ${r.zone}`;
                 if (!zoneAvg[key]) zoneAvg[key] = { sum: 0, count: 0, iso: r.iso };
                 zoneAvg[key].sum += r.lmp;
                 zoneAvg[key].count++;
@@ -1156,14 +1803,16 @@
             const container = document.getElementById('summaryTable');
             if (!container) return;
 
-            // Calculate stats per zone
+            const zone = document.getElementById('zoneSelect').value;
+
+            // Calculate stats per zone (or per ISO for average mode)
             const zoneStats = {};
             data.forEach(r => {
-                const key = `${r.iso}|${r.zone}`;
+                const key = zone === 'iso_average' ? r.iso : `${r.iso}|${r.zone}`;
                 if (!zoneStats[key]) {
                     zoneStats[key] = {
                         iso: r.iso,
-                        zone: r.zone,
+                        zone: zone === 'iso_average' ? 'ISO Average' : r.zone,
                         values: [],
                         years: new Set()
                     };
@@ -1204,7 +1853,7 @@
                         ${stats.map(s => `
                             <tr>
                                 <td><strong>${s.iso}</strong></td>
-                                <td><span class="zone-tag">${s.zone}</span></td>
+                                <td><span class="zone-tag ${s.zone === 'ISO Average' ? 'average' : ''}">${s.zone}</span></td>
                                 <td>${s.count.toLocaleString()}</td>
                                 <td>${s.years}</td>
                                 <td class="trend-positive">$${s.min.toFixed(2)}</td>
