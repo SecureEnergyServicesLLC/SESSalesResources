@@ -1,16 +1,25 @@
 /**
  * Background Music Controller
  * Plays quiet classical music in the background with mute toggle
+ * 
+ * SETUP: Download a royalty-free MP3 and place it at: assets/audio/background-music.mp3
+ * 
+ * Recommended free sources:
+ * - https://pixabay.com/music/search/classical%20piano/ (no attribution required)
+ * - https://freemusicarchive.org/genre/Classical (check license)
+ * - https://musopen.org/music/ (public domain)
+ * - https://archive.org/details/classical_music_202209 (public domain)
+ *   Direct link: https://archive.org/download/classical_music_202209/Debussy%20-%20Claire%20de%20Lune.mp3
  */
 
 const BackgroundMusic = {
-    // YouTube video ID for peaceful classical piano (3+ hours)
-    // Using embedded YouTube player for reliable streaming
-    youtubeVideoId: '4Tr0otuiQuU',
+    // Path to your MP3 file - update if you place it elsewhere
+    audioPath: 'assets/audio/background-music.mp3',
     
-    player: null,
+    audio: null,
     isMuted: true, // Start muted due to browser autoplay policies
     isReady: false,
+    hasError: false,
     
     init() {
         // Load saved preference
@@ -20,82 +29,36 @@ const BackgroundMusic = {
         // Create mute button in top bar
         this.createMuteButton();
         
-        // Load YouTube IFrame API
-        this.loadYouTubeAPI();
+        // Create audio element
+        this.createAudioPlayer();
     },
     
-    loadYouTubeAPI() {
-        // Create script tag for YouTube API
-        const tag = document.createElement('script');
-        tag.src = 'https://www.youtube.com/iframe_api';
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    createAudioPlayer() {
+        this.audio = new Audio(this.audioPath);
+        this.audio.loop = true;
+        this.audio.volume = 0.25; // 25% volume for background music
+        this.audio.preload = 'auto';
         
-        // YouTube API will call onYouTubeIframeAPIReady when ready
-        window.onYouTubeIframeAPIReady = () => this.createPlayer();
-    },
-    
-    createPlayer() {
-        // Create hidden container for YouTube player
-        const container = document.createElement('div');
-        container.id = 'bgMusicPlayer';
-        container.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none;';
-        document.body.appendChild(container);
+        // Set initial mute state
+        this.audio.muted = this.isMuted;
         
-        // Initialize YouTube player
-        this.player = new YT.Player('bgMusicPlayer', {
-            height: '1',
-            width: '1',
-            videoId: this.youtubeVideoId,
-            playerVars: {
-                autoplay: 1,
-                loop: 1,
-                playlist: this.youtubeVideoId, // Required for looping
-                controls: 0,
-                disablekb: 1,
-                fs: 0,
-                modestbranding: 1,
-                rel: 0
-            },
-            events: {
-                onReady: (event) => this.onPlayerReady(event),
-                onStateChange: (event) => this.onPlayerStateChange(event),
-                onError: (event) => this.onPlayerError(event)
-            }
+        this.audio.addEventListener('canplaythrough', () => {
+            this.isReady = true;
+            this.updateButtonState();
+            console.log('🎵 Background music ready');
+            
+            // Try to play (will be muted initially)
+            this.audio.play().catch(e => {
+                // Autoplay blocked - user will need to click unmute
+                console.log('Autoplay blocked - click unmute to play');
+            });
         });
-    },
-    
-    onPlayerReady(event) {
-        this.isReady = true;
-        // Set volume to a comfortable background level (0-100)
-        this.player.setVolume(25);
         
-        // Apply saved mute state
-        if (this.isMuted) {
-            this.player.mute();
-        } else {
-            this.player.unMute();
-        }
-        
-        this.updateButtonState();
-        console.log('🎵 Background music ready');
-    },
-    
-    onPlayerStateChange(event) {
-        // If video ends, restart it (backup for loop)
-        if (event.data === YT.PlayerState.ENDED) {
-            this.player.playVideo();
-        }
-    },
-    
-    onPlayerError(event) {
-        console.warn('Background music error:', event.data);
-        // Update button to show error state
-        const btn = document.getElementById('bgMusicBtn');
-        if (btn) {
-            btn.title = 'Music unavailable';
-            btn.style.opacity = '0.5';
-        }
+        this.audio.addEventListener('error', (e) => {
+            this.hasError = true;
+            console.warn('Background music error:', e);
+            this.updateButtonState();
+        });
     },
     
     createMuteButton() {
@@ -103,7 +66,7 @@ const BackgroundMusic = {
         const btn = document.createElement('button');
         btn.id = 'bgMusicBtn';
         btn.className = 'bg-music-btn';
-        btn.title = this.isMuted ? 'Unmute background music' : 'Mute background music';
+        btn.title = this.isMuted ? 'Play background music' : 'Mute background music';
         btn.innerHTML = this.getMuteIcon();
         btn.onclick = () => this.toggleMute();
         
@@ -118,6 +81,14 @@ const BackgroundMusic = {
     },
     
     getMuteIcon() {
+        if (this.hasError) {
+            // Error icon
+            return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <line x1="23" y1="9" x2="17" y2="15"/>
+                <line x1="17" y1="9" x2="23" y2="15"/>
+            </svg>`;
+        }
         if (this.isMuted) {
             // Muted icon (speaker with X)
             return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -136,20 +107,23 @@ const BackgroundMusic = {
     },
     
     toggleMute() {
-        if (!this.isReady) {
-            console.log('Player not ready yet');
+        if (this.hasError) {
+            console.log('Audio file not found. Please add an MP3 to: ' + this.audioPath);
             return;
         }
         
         this.isMuted = !this.isMuted;
         
-        if (this.isMuted) {
-            this.player.mute();
-        } else {
-            this.player.unMute();
-            // Ensure video is playing when unmuting
-            if (this.player.getPlayerState() !== YT.PlayerState.PLAYING) {
-                this.player.playVideo();
+        if (this.audio) {
+            this.audio.muted = this.isMuted;
+            
+            // If unmuting, make sure audio is playing
+            if (!this.isMuted) {
+                this.audio.play().catch(e => {
+                    console.log('Playback failed:', e);
+                    this.isMuted = true;
+                    this.updateButtonState();
+                });
             }
         }
         
@@ -163,8 +137,16 @@ const BackgroundMusic = {
         const btn = document.getElementById('bgMusicBtn');
         if (btn) {
             btn.innerHTML = this.getMuteIcon();
-            btn.title = this.isMuted ? 'Unmute background music' : 'Mute background music';
-            btn.classList.toggle('unmuted', !this.isMuted);
+            
+            if (this.hasError) {
+                btn.title = 'Music unavailable - check console';
+                btn.style.opacity = '0.5';
+                btn.classList.remove('unmuted');
+            } else {
+                btn.title = this.isMuted ? 'Play background music' : 'Mute background music';
+                btn.style.opacity = '1';
+                btn.classList.toggle('unmuted', !this.isMuted);
+            }
         }
     },
     
@@ -209,8 +191,8 @@ const BackgroundMusic = {
     
     // Public methods for external control
     setVolume(level) {
-        if (this.isReady && this.player) {
-            this.player.setVolume(Math.max(0, Math.min(100, level)));
+        if (this.audio) {
+            this.audio.volume = Math.max(0, Math.min(1, level));
         }
     },
     
