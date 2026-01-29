@@ -341,13 +341,20 @@ const GitHubSync = {
             const response = await fetch(
                 `https://raw.githubusercontent.com/${this.REPO_OWNER}/${this.REPO_NAME}/main/${this.WIDGET_PREFS_PATH}?t=${Date.now()}`
             );
-            if (!response.ok) return;
+            if (!response.ok) {
+                // File may not exist yet - this is OK, silent fail
+                if (response.status === 404) {
+                    console.log('[GitHubSync] Widget preferences file not found (will be created on first save)');
+                }
+                return;
+            }
             const data = await response.json();
             if (data?.preferences) {
                 WidgetPreferences.mergeFromGitHub(data.preferences);
             }
         } catch (e) {
-            console.warn('[GitHubSync] Widget prefs fetch failed:', e.message);
+            // Silent fail - file may not exist yet
+            console.log('[GitHubSync] Widget prefs fetch skipped:', e.message);
         }
     },
 
@@ -449,15 +456,18 @@ const GitHubSync = {
 // =====================================================
 const SecureEnergyData = {
     STORAGE_KEY: 'secureEnergy_lmpData',
-    DATA_URL: 'data/lmp-data.json',
+    DATA_URL: 'data/lmp-database.json',
+    GITHUB_RAW_URL: 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json',
     lmpData: [],
     _subscribers: [],
+    isLoaded: false,
 
     async init() {
         console.log('[SecureEnergyData] Initializing...');
         const cached = this.loadFromStorage();
         if (cached?.length) {
             this.lmpData = cached;
+            this.isLoaded = true;
             console.log(`[SecureEnergyData] ${cached.length} records from cache`);
         }
         try { await this.fetchLatest(); } catch (e) { console.warn('[SecureEnergyData] Fetch failed:', e.message); }
@@ -467,31 +477,67 @@ const SecureEnergyData = {
 
     async fetchLatest() {
         try {
-            const response = await fetch(`https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-data.json?t=${Date.now()}`);
+            const response = await fetch(`${this.GITHUB_RAW_URL}?t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
-                if (data?.records) {
-                    this.lmpData = data.records;
+                if (data?.records?.length) {
+                    this.lmpData = data.records.map(r => this.normalizeRecord(r));
+                    this.isLoaded = true;
                     this.saveToStorage();
                     console.log(`[SecureEnergyData] ${this.lmpData.length} records from GitHub`);
                 }
+            } else {
+                console.warn(`[SecureEnergyData] GitHub fetch returned ${response.status}`);
             }
-        } catch (e) { console.warn('[SecureEnergyData] GitHub fetch failed'); }
+        } catch (e) { console.warn('[SecureEnergyData] GitHub fetch failed:', e.message); }
+    },
+
+    // Normalize field names from CSV export (avg_da_lmp → lmp)
+    normalizeRecord(record) {
+        return {
+            iso: record.iso || record.ISO,
+            zone: record.zone || record.Zone || record.ZONE,
+            month: record.month || record.Month,
+            year: record.year || record.Year,
+            lmp: parseFloat(record.lmp || record.LMP || record.avg_da_lmp || record.Avg_DA_LMP || 0),
+            peak_lmp: parseFloat(record.peak_lmp || record.Peak_LMP || record.avg_peak_lmp || 0),
+            offpeak_lmp: parseFloat(record.offpeak_lmp || record.OffPeak_LMP || record.avg_offpeak_lmp || 0)
+        };
     },
 
     loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
     saveToStorage() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.lmpData)); },
 
+    // Primary accessors
     getAll() { return this.lmpData; },
+    getRecords() { return this.lmpData; },  // Alias for compatibility with widgets
+    getData() { return this.lmpData; },     // Another alias
     getByISO(iso) { return this.lmpData.filter(r => r.iso === iso); },
     getByZone(iso, zone) { return this.lmpData.filter(r => r.iso === iso && r.zone === zone); },
     
+    // Get unique zones for an ISO
+    getZonesForISO(iso) {
+        const zones = [...new Set(this.lmpData.filter(r => r.iso === iso).map(r => r.zone))];
+        return zones.sort();
+    },
+
+    // Get all unique ISOs
+    getISOs() {
+        return [...new Set(this.lmpData.map(r => r.iso))].sort();
+    },
+    
     getStats() {
         const isos = [...new Set(this.lmpData.map(r => r.iso))];
+        const byISO = {};
+        isos.forEach(iso => {
+            byISO[iso] = [...new Set(this.lmpData.filter(r => r.iso === iso).map(r => r.zone))].length;
+        });
         return {
             totalRecords: this.lmpData.length,
             isoCount: isos.length,
-            isos: isos.sort()
+            isos: isos.sort(),
+            zonesByISO: byISO,
+            isLoaded: this.isLoaded
         };
     },
 
@@ -499,10 +545,19 @@ const SecureEnergyData = {
     notifySubscribers() { this._subscribers.forEach(cb => cb(this.getStats())); },
 
     bulkUpdate(records) {
-        this.lmpData = records;
+        this.lmpData = records.map(r => this.normalizeRecord(r));
+        this.isLoaded = true;
         this.saveToStorage();
         this.notifySubscribers();
         window.postMessage({ type: 'LMP_BULK_UPDATE', count: records.length }, '*');
+    },
+
+    // Clear cached data (useful for troubleshooting)
+    clearCache() {
+        localStorage.removeItem(this.STORAGE_KEY);
+        this.lmpData = [];
+        this.isLoaded = false;
+        console.log('[SecureEnergyData] Cache cleared');
     }
 };
 
