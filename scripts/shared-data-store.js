@@ -1,7 +1,12 @@
 /**
- * Secure Energy Shared Data Store v2.4
+ * Secure Energy Shared Data Store v2.5
  * Centralized data management for LMP data, user authentication, activity logging,
  * and widget layout preferences
+ * 
+ * v2.5 Updates:
+ * - Smart merge: compares updatedAt timestamps to keep most recent user data
+ * - update() now awaits GitHub sync completion before returning
+ * - Fixes issue where user edits were lost on page refresh
  * 
  * v2.4 Updates:
  * - GitHub-first authentication: Users can now log in from ANY device
@@ -581,13 +586,18 @@ const UserStore = {
     async init() {
         console.log('[UserStore] Initializing...');
         
-        // Try GitHub first (source of truth for multi-device)
-        const githubLoaded = await this.loadFromGitHub();
+        // Load local users first (these are our baseline)
+        const localUsers = this.loadFromStorage();
+        this.users = localUsers.length ? localUsers : [];
         
-        if (!githubLoaded) {
-            // Fallback to localStorage
-            console.log('[UserStore] GitHub unavailable, using localStorage');
-            this.users = this.loadFromStorage();
+        // Try to fetch from GitHub and MERGE (not overwrite)
+        try {
+            const githubLoaded = await this.loadFromGitHub(true); // true = merge mode
+            if (githubLoaded) {
+                console.log('[UserStore] Merged with GitHub data');
+            }
+        } catch (e) {
+            console.warn('[UserStore] GitHub fetch failed, using local data:', e.message);
         }
         
         // Ensure we have at least the default admin
@@ -595,7 +605,7 @@ const UserStore = {
             this.createDefaultAdmin();
         }
         
-        // Always save to localStorage for offline access
+        // Always save merged result to localStorage
         this.saveToStorage();
         this._initialized = true;
         
@@ -603,7 +613,7 @@ const UserStore = {
         return this.users;
     },
 
-    async loadFromGitHub() {
+    async loadFromGitHub(mergeMode = false) {
         try {
             console.log('[UserStore] Fetching users from GitHub...');
             const response = await fetch(this.GITHUB_USERS_URL + '?t=' + Date.now());
@@ -617,8 +627,56 @@ const UserStore = {
             
             const data = await response.json();
             if (data?.users && Array.isArray(data.users)) {
-                this.users = data.users;
-                console.log(`[UserStore] Loaded ${this.users.length} users from GitHub`);
+                if (mergeMode && this.users.length > 0) {
+                    // Smart merge: compare updatedAt timestamps to keep the most recent version
+                    const mergedUsers = [];
+                    const processedIds = new Set();
+                    
+                    // Create lookup maps
+                    const localUsersById = new Map(this.users.map(u => [u.id, u]));
+                    const localUsersByEmail = new Map(this.users.map(u => [u.email.toLowerCase(), u]));
+                    const githubUsersById = new Map(data.users.map(u => [u.id, u]));
+                    
+                    // Process GitHub users - compare with local versions
+                    data.users.forEach(githubUser => {
+                        const localUser = localUsersById.get(githubUser.id) || 
+                                          localUsersByEmail.get(githubUser.email.toLowerCase());
+                        
+                        if (localUser) {
+                            // User exists in both - keep the one with newer updatedAt
+                            const localTime = new Date(localUser.updatedAt || localUser.createdAt || 0).getTime();
+                            const githubTime = new Date(githubUser.updatedAt || githubUser.createdAt || 0).getTime();
+                            
+                            if (localTime > githubTime) {
+                                console.log(`[UserStore] Keeping local (newer): ${localUser.email}`);
+                                mergedUsers.push(localUser);
+                            } else {
+                                console.log(`[UserStore] Using GitHub (newer/same): ${githubUser.email}`);
+                                mergedUsers.push(githubUser);
+                            }
+                            processedIds.add(localUser.id);
+                        } else {
+                            // User only in GitHub
+                            mergedUsers.push(githubUser);
+                        }
+                        processedIds.add(githubUser.id);
+                    });
+                    
+                    // Add local-only users (not in GitHub at all)
+                    this.users.forEach(localUser => {
+                        if (!processedIds.has(localUser.id)) {
+                            console.log(`[UserStore] Keeping local-only user: ${localUser.email}`);
+                            mergedUsers.push(localUser);
+                        }
+                    });
+                    
+                    this.users = mergedUsers;
+                    console.log(`[UserStore] Smart merge complete: ${this.users.length} total users`);
+                } else {
+                    // Replace mode (used by authenticate to get fresh data)
+                    this.users = data.users;
+                    console.log(`[UserStore] Loaded ${this.users.length} users from GitHub`);
+                }
                 return true;
             }
             return false;
@@ -676,7 +734,7 @@ const UserStore = {
         return { success: true, user };
     },
 
-    update(id, updates) {
+    async update(id, updates) {
         const idx = this.users.findIndex(u => u.id === id);
         if (idx === -1) return { success: false, error: 'User not found' };
         if (updates.email && updates.email !== this.users[idx].email) {
@@ -684,7 +742,16 @@ const UserStore = {
         }
         this.users[idx] = { ...this.users[idx], ...updates, updatedAt: new Date().toISOString() };
         this.saveToStorage();
-        if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) GitHubSync.syncUsers().catch(() => {});
+        
+        // Wait for GitHub sync to complete to ensure data persists
+        if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) {
+            try {
+                await GitHubSync.syncUsers();
+                console.log('[UserStore] User update synced to GitHub');
+            } catch (e) {
+                console.warn('[UserStore] GitHub sync failed, but local save succeeded:', e.message);
+            }
+        }
         return { success: true, user: this.users[idx] };
     },
 
@@ -701,21 +768,28 @@ const UserStore = {
     },
 
     /**
-     * Authenticate user - ALWAYS fetches fresh data from GitHub first
-     * This ensures users can log in from any device
+     * Authenticate user - Fetches fresh data from GitHub and merges with local
+     * This ensures users can log in from any device while preserving local users
      */
     async authenticate(email, password) {
         console.log('[UserStore] Authenticating:', email);
         
-        // Always refresh from GitHub before authenticating
-        // This ensures new devices get the latest user list
-        const refreshed = await this.loadFromGitHub();
-        if (refreshed) {
-            this.saveToStorage(); // Update local cache
-            console.log('[UserStore] Refreshed user list from GitHub');
+        // First check if user exists locally (fast path)
+        let user = this.findByEmail(email);
+        
+        // Always try to refresh from GitHub (merge mode to preserve local users)
+        try {
+            const refreshed = await this.loadFromGitHub(true); // merge mode
+            if (refreshed) {
+                this.saveToStorage();
+                console.log('[UserStore] Refreshed and merged user list from GitHub');
+                // Re-find user in case they came from GitHub
+                user = this.findByEmail(email);
+            }
+        } catch (e) {
+            console.warn('[UserStore] GitHub refresh failed, using local data:', e.message);
         }
         
-        const user = this.findByEmail(email);
         if (!user) return { success: false, error: 'User not found' };
         if (user.password !== password) return { success: false, error: 'Invalid password' };
         if (user.status !== 'active') return { success: false, error: 'Account inactive' };

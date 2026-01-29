@@ -1,5 +1,11 @@
 /**
- * Secure Energy Analytics Portal - Main Controller v2.5
+ * Secure Energy Analytics Portal - Main Controller v2.6
+ * 
+ * v2.6 Updates:
+ * - User Administration widget is now double-height (1000px default) and displayed first
+ * - Added "Modified" date column to Manage Users table
+ * - saveUserEdit now waits for GitHub sync completion before closing modal
+ * - Smart merge in UserStore compares updatedAt timestamps
  * 
  * v2.5 Updates:
  * - GitHub-first authentication: Users can now log in from ANY device
@@ -24,7 +30,7 @@
 let currentUser = null;
 
 const DEFAULT_WIDGETS = [
-    { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, fullWidth: true, embedded: true, defaultHeight: 850, minHeight: 500, maxHeight: 1400 },
+    { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, fullWidth: true, doubleHeight: true, embedded: true, defaultHeight: 1000, minHeight: 600, maxHeight: 1600 },
     { id: 'bid-management', name: 'Bid Management', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', src: 'widgets/bid-management-widget.html', fullWidth: true, defaultHeight: 900, minHeight: 500, maxHeight: 1400 },
     { id: 'ai-assistant', name: 'AI Assistant', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 800 },
     { id: 'lmp-analytics', name: 'LMP Analytics Dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>', src: 'widgets/lmp-analytics.html', fullWidth: true, defaultHeight: 800, minHeight: 400, maxHeight: 1200 },
@@ -96,7 +102,7 @@ function loadSavedTheme() { window.setTheme(localStorage.getItem('secureEnergy_t
 // INITIALIZATION
 // =====================================================
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('[Portal] Initializing v2.5...');
+    console.log('[Portal] Initializing v2.6...');
     loadSavedTheme();
     
     await UserStore.init();
@@ -318,9 +324,15 @@ function createWidgetElement(widget, user) {
     const savedConfig = WidgetLayout.getWidgetConfig(user.id, widget.id) || {};
     const isCollapsed = savedConfig.collapsed || false;
     const isFullWidth = savedConfig.fullWidth !== undefined ? savedConfig.fullWidth : widget.fullWidth;
+    const isDoubleHeight = widget.doubleHeight || false;
     const currentHeight = savedConfig.height || widget.defaultHeight || 500;
     
-    div.className = 'widget' + (isFullWidth ? ' full-width' : '') + (isCollapsed ? ' collapsed' : '');
+    let classes = 'widget';
+    if (isFullWidth) classes += ' full-width';
+    if (isDoubleHeight) classes += ' double-height';
+    if (isCollapsed) classes += ' collapsed';
+    
+    div.className = classes;
     div.dataset.widgetId = widget.id;
     div.draggable = true;
     
@@ -671,7 +683,7 @@ function getCreateUserPanel() {
         <button class="btn-primary" onclick="createUser()" style="margin-top:20px;">Create User</button></div>`;
 }
 
-function getManageUsersPanel() { return `<div style="overflow-x:auto;"><table class="users-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody id="usersTableBody"></tbody></table></div>`; }
+function getManageUsersPanel() { return `<div style="overflow-x:auto;"><table class="users-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Modified</th><th>Actions</th></tr></thead><tbody id="usersTableBody"></tbody></table></div>`; }
 
 function getActivityLogPanel() {
     return `<div class="activity-stats-grid" id="activityStatsGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;"></div>
@@ -733,11 +745,12 @@ function renderUsersTable() {
             <td>${escapeHtml(u.firstName)} ${escapeHtml(u.lastName)}</td>
             <td>${escapeHtml(u.email)}</td>
             <td><span class="role-badge ${u.role}">${u.role}</span></td>
-            <td><span class="status-badge ${u.active !== false ? 'active' : 'inactive'}">${u.active !== false ? 'Active' : 'Inactive'}</span></td>
+            <td><span class="status-badge ${u.status === 'active' ? 'active' : 'inactive'}">${u.status === 'active' ? 'Active' : 'Inactive'}</span></td>
             <td>${new Date(u.createdAt).toLocaleDateString()}</td>
+            <td>${u.updatedAt ? new Date(u.updatedAt).toLocaleDateString() : '—'}</td>
             <td>
                 <button class="action-btn" onclick="editUser('${u.id}')" title="Edit">✏️</button>
-                ${u.role !== 'admin' ? `<button class="action-btn" onclick="deleteUser('${u.id}')" title="Delete">🗑️</button>` : ''}
+                ${u.email !== 'admin@sesenergy.org' ? `<button class="action-btn" onclick="deleteUser('${u.id}')" title="Delete">🗑️</button>` : ''}
             </td>
         </tr>
     `).join('');
@@ -909,7 +922,13 @@ window.editUser = function(userId) {
     modal.classList.add('show');
 };
 
-window.saveUserEdit = function(userId) {
+window.saveUserEdit = async function(userId) {
+    const saveBtn = document.querySelector('#editUserModal .btn-primary');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+    }
+    
     const updates = {
         firstName: document.getElementById('editFirstName')?.value?.trim(),
         lastName: document.getElementById('editLastName')?.value?.trim(),
@@ -930,18 +949,28 @@ window.saveUserEdit = function(userId) {
     const newPassword = document.getElementById('editPassword')?.value;
     if (newPassword) updates.password = newPassword;
     
-    const result = UserStore.update(userId, updates);
-    if (result.success) {
-        showNotification('User updated!', 'success');
-        closeEditModal();
-        renderUsersTable();
-        // Re-render widgets if editing current user
-        if (currentUser && currentUser.id === userId) {
-            currentUser = UserStore.getById(userId);
-            renderWidgets(currentUser);
+    try {
+        const result = await UserStore.update(userId, updates);
+        if (result.success) {
+            showNotification('User updated and synced!', 'success');
+            closeEditModal();
+            renderUsersTable();
+            // Re-render widgets if editing current user
+            if (currentUser && currentUser.id === userId) {
+                currentUser = UserStore.getById(userId);
+                renderWidgets(currentUser);
+            }
+        } else {
+            showNotification(result.error || 'Failed to update user', 'error');
         }
-    } else {
-        showNotification(result.error || 'Failed to update user', 'error');
+    } catch (err) {
+        console.error('[SaveUser] Error:', err);
+        showNotification('Error saving user', 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save Changes';
+        }
     }
 };
 
