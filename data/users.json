@@ -1,6 +1,6 @@
 {
   "version": "2.2.0",
-  "lastUpdated": "2026-01-29T14:28:25.564Z",
+  "lastUpdated": "2026-01-29T14:39:06.883Z",
   "users": [
     {
       "id": "admin-001",
@@ -92,7 +92,11 @@
       "status": "active",
       "createdAt": "2026-01-27T15:33:16.133Z",
       "permissions": {
+        "ai-assistant": true,
         "lmp-comparison": true,
+        "lmp-analytics": true,
+        "peak-demand": true,
+        "analysis-history": true,
         "data-manager": false,
         "arcadia-fetcher": false,
         "user-admin": false
