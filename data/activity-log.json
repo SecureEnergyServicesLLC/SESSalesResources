@@ -1,7 +1,19 @@
 {
   "version": "2.3.0",
-  "lastUpdated": "2026-01-29T16:34:08.954Z",
+  "lastUpdated": "2026-01-29T16:34:16.264Z",
   "activities": [
+    {
+      "id": "act-1769704453263-1no3pu",
+      "timestamp": "2026-01-29T16:34:13.263Z",
+      "userId": "user-1769608099594",
+      "userEmail": "jcollins@sesenergy.org",
+      "userName": "Jamie Collins",
+      "widget": "portal",
+      "action": "Login",
+      "clientName": null,
+      "data": {},
+      "notes": null
+    },
     {
       "id": "act-1769704445953-dpp8z5",
       "timestamp": "2026-01-29T16:34:05.953Z",
