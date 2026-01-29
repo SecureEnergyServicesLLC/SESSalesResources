@@ -1,5 +1,11 @@
 /**
- * Secure Energy Analytics Portal - Main Controller v2.4
+ * Secure Energy Analytics Portal - Main Controller v2.5
+ * 
+ * v2.5 Updates:
+ * - GitHub-first authentication: Users can now log in from ANY device
+ * - Async login handler that fetches fresh user data from GitHub
+ * - User Administration widget now displays first and larger by default
+ * - Increased default height for admin widget (850px) to show full error/activity details
  * 
  * v2.4 Updates:
  * - Added Bid Management System widget
@@ -18,7 +24,7 @@
 let currentUser = null;
 
 const DEFAULT_WIDGETS = [
-    { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, fullWidth: true, embedded: true, defaultHeight: 700, minHeight: 400, maxHeight: 1200 },
+    { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, fullWidth: true, embedded: true, defaultHeight: 850, minHeight: 500, maxHeight: 1400 },
     { id: 'bid-management', name: 'Bid Management', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', src: 'widgets/bid-management-widget.html', fullWidth: true, defaultHeight: 900, minHeight: 500, maxHeight: 1400 },
     { id: 'ai-assistant', name: 'AI Assistant', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 800 },
     { id: 'lmp-analytics', name: 'LMP Analytics Dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>', src: 'widgets/lmp-analytics.html', fullWidth: true, defaultHeight: 800, minHeight: 400, maxHeight: 1200 },
@@ -90,7 +96,7 @@ function loadSavedTheme() { window.setTheme(localStorage.getItem('secureEnergy_t
 // INITIALIZATION
 // =====================================================
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('[Portal] Initializing v2.4...');
+    console.log('[Portal] Initializing v2.5...');
     loadSavedTheme();
     
     await UserStore.init();
@@ -188,19 +194,53 @@ function showPortal(user) {
     renderWidgets(user);
 }
 
-document.getElementById('loginForm').addEventListener('submit', function(e) {
+document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    const email = document.getElementById('loginEmail').value, password = document.getElementById('loginPassword').value;
-    const result = UserStore.authenticate(email, password);
-    if (result.success) {
-        currentUser = result.user;
-        UserStore.setCurrentUser(result.user);
-        showPortal(result.user);
-        showNotification('Welcome back, ' + result.user.firstName + '!', 'success');
-        ActivityLog.log({ userId: result.user.id, userEmail: result.user.email, userName: `${result.user.firstName} ${result.user.lastName}`, widget: 'portal', action: 'Login' });
-    } else {
-        document.getElementById('loginError').textContent = result.error;
-        document.getElementById('loginError').classList.add('show');
+    
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const errorEl = document.getElementById('loginError');
+    const submitBtn = this.querySelector('button[type="submit"]');
+    
+    // Show loading state
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.dataset.originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Signing in...';
+    }
+    if (errorEl) errorEl.classList.remove('show');
+    
+    try {
+        // authenticate() is now async - it fetches fresh user data from GitHub first
+        // This ensures users can log in from ANY device
+        const result = await UserStore.authenticate(email, password);
+        
+        if (result.success) {
+            currentUser = result.user;
+            UserStore.setCurrentUser(result.user);
+            showPortal(result.user);
+            showNotification('Welcome back, ' + result.user.firstName + '!', 'success');
+            ActivityLog.log({ 
+                userId: result.user.id, 
+                userEmail: result.user.email, 
+                userName: `${result.user.firstName} ${result.user.lastName}`, 
+                widget: 'portal', 
+                action: 'Login' 
+            });
+        } else {
+            errorEl.textContent = result.error;
+            errorEl.classList.add('show');
+        }
+    } catch (err) {
+        console.error('[Login] Error:', err);
+        errorEl.textContent = 'Login error. Please try again.';
+        errorEl.classList.add('show');
+    } finally {
+        // Reset button state
+        if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = submitBtn.dataset.originalText || 'Sign In';
+        }
     }
 });
 

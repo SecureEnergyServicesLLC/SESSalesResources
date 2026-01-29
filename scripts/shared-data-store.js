@@ -1,7 +1,13 @@
 /**
- * Secure Energy Shared Data Store v2.3
+ * Secure Energy Shared Data Store v2.4
  * Centralized data management for LMP data, user authentication, activity logging,
  * and widget layout preferences
+ * 
+ * v2.4 Updates:
+ * - GitHub-first authentication: Users can now log in from ANY device
+ * - UserStore.init() fetches users from GitHub before falling back to localStorage
+ * - UserStore.authenticate() always refreshes from GitHub before validating
+ * - Fixes "user not found" errors when logging in from new computers
  * 
  * v2.3 Updates:
  * - Widget layout preferences integrated into user profiles
@@ -568,18 +574,68 @@ const SecureEnergyData = {
 const UserStore = {
     STORAGE_KEY: 'secureEnergy_users',
     SESSION_KEY: 'secureEnergy_currentUser',
+    GITHUB_USERS_URL: 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/users.json',
     users: [],
+    _initialized: false,
 
     async init() {
         console.log('[UserStore] Initializing...');
-        this.users = this.loadFromStorage();
-        if (!this.users.length) this.createDefaultAdmin();
+        
+        // Try GitHub first (source of truth for multi-device)
+        const githubLoaded = await this.loadFromGitHub();
+        
+        if (!githubLoaded) {
+            // Fallback to localStorage
+            console.log('[UserStore] GitHub unavailable, using localStorage');
+            this.users = this.loadFromStorage();
+        }
+        
+        // Ensure we have at least the default admin
+        if (!this.users.length) {
+            this.createDefaultAdmin();
+        }
+        
+        // Always save to localStorage for offline access
+        this.saveToStorage();
+        this._initialized = true;
+        
         console.log(`[UserStore] ${this.users.length} users loaded`);
         return this.users;
     },
 
-    loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
-    saveToStorage() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.users)); },
+    async loadFromGitHub() {
+        try {
+            console.log('[UserStore] Fetching users from GitHub...');
+            const response = await fetch(this.GITHUB_USERS_URL + '?t=' + Date.now());
+            
+            if (!response.ok) {
+                if (response.status === 404) {
+                    console.log('[UserStore] users.json not found on GitHub');
+                }
+                return false;
+            }
+            
+            const data = await response.json();
+            if (data?.users && Array.isArray(data.users)) {
+                this.users = data.users;
+                console.log(`[UserStore] Loaded ${this.users.length} users from GitHub`);
+                return true;
+            }
+            return false;
+        } catch (e) {
+            console.warn('[UserStore] GitHub fetch failed:', e.message);
+            return false;
+        }
+    },
+
+    loadFromStorage() { 
+        try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } 
+        catch { return []; } 
+    },
+    
+    saveToStorage() { 
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.users)); 
+    },
 
     createDefaultAdmin() {
         this.users.push({
@@ -644,7 +700,21 @@ const UserStore = {
         return { success: true };
     },
 
-    authenticate(email, password) {
+    /**
+     * Authenticate user - ALWAYS fetches fresh data from GitHub first
+     * This ensures users can log in from any device
+     */
+    async authenticate(email, password) {
+        console.log('[UserStore] Authenticating:', email);
+        
+        // Always refresh from GitHub before authenticating
+        // This ensures new devices get the latest user list
+        const refreshed = await this.loadFromGitHub();
+        if (refreshed) {
+            this.saveToStorage(); // Update local cache
+            console.log('[UserStore] Refreshed user list from GitHub');
+        }
+        
         const user = this.findByEmail(email);
         if (!user) return { success: false, error: 'User not found' };
         if (user.password !== password) return { success: false, error: 'Invalid password' };
