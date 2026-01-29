@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bid Management System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root{--primary:#004D40;--primary-light:#3EB489;--bg:#f8f9fa;--border:#e0e0e0;--success:#28a745;--warning:#ffc107;--danger:#dc3545;--info:#17a2b8}
+        *{box-sizing:border-box;margin:0;padding:0}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:#333;font-size:14px}
+        .container{padding:20px}
+        .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:2px solid var(--primary)}
+        .header h1{color:var(--primary);font-size:1.4rem;display:flex;align-items:center;gap:10px}
+        .tabs{display:flex;gap:5px;margin-bottom:20px;border-bottom:2px solid var(--border)}
+        .tab{padding:10px 20px;background:#fff;border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;cursor:pointer;font-weight:500;color:#666;position:relative;bottom:-2px}
+        .tab:hover{background:var(--bg);color:var(--primary)}
+        .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+        .tab-content{display:none;background:#fff;border-radius:0 8px 8px 8px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+        .tab-content.active{display:block}
+        .section-title{font-size:1.1rem;color:var(--primary);margin-bottom:15px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+        .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:20px}
+        .form-group{display:flex;flex-direction:column;gap:5px}
+        .form-group.full-width{grid-column:1/-1}
+        .form-group label{font-weight:500;color:#555;font-size:.85rem}
+        .form-group input,.form-group select,.form-group textarea{padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:14px}
+        .form-group input:focus,.form-group select:focus{outline:none;border-color:var(--primary-light);box-shadow:0 0 0 3px rgba(62,180,137,0.15)}
+        .btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-weight:500;font-size:14px;display:inline-flex;align-items:center;gap:6px;transition:all .2s}
+        .btn-primary{background:var(--primary);color:#fff}
+        .btn-primary:hover{background:#003d33}
+        .btn-success{background:var(--success);color:#fff}
+        .btn-secondary{background:#6c757d;color:#fff}
+        .btn-danger{background:var(--danger);color:#fff}
+        .btn-outline{background:#fff;border:1px solid var(--primary);color:var(--primary)}
+        .btn-outline:hover{background:var(--primary);color:#fff}
+        .btn-sm{padding:5px 10px;font-size:12px}
+        .btn-group{display:flex;gap:10px;flex-wrap:wrap}
+        .card{background:#fff;border:1px solid var(--border);border-radius:8px;padding:15px;margin-bottom:15px}
+        .badge{padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;text-transform:uppercase}
+        .badge-success{background:#d4edda;color:#155724}
+        .badge-warning{background:#fff3cd;color:#856404}
+        .badge-info{background:#d1ecf1;color:#0c5460}
+        .badge-danger{background:#f8d7da;color:#721c24}
+        .badge-secondary{background:#e2e3e5;color:#383d41}
+        table{width:100%;border-collapse:collapse;font-size:13px}
+        th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}
+        th{background:var(--bg);font-weight:600;color:var(--primary)}
+        tr:hover{background:#f5f5f5}
+        .empty-state{text-align:center;padding:40px 20px;color:#888}
+        .file-upload-zone{border:2px dashed var(--border);border-radius:8px;padding:30px;text-align:center;cursor:pointer;background:#fafafa}
+        .file-upload-zone:hover{border-color:var(--primary-light);background:#e8f5e9}
+        .file-upload-zone input{display:none}
+        .pricing-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:10px}
+        .pricing-cell{text-align:center;padding:8px;background:var(--bg);border-radius:4px}
+        .pricing-cell .term{font-size:11px;color:#666}
+        .pricing-cell .price{font-weight:600;color:var(--primary)}
+        .quote-card{border-left:4px solid var(--primary-light)}
+        .quote-card.selected{border-left-color:var(--success);background:#f8fff8}
+        .modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;justify-content:center;align-items:center}
+        .modal-overlay.active{display:flex}
+        .modal{background:#fff;border-radius:12px;width:90%;max-width:800px;max-height:90vh;overflow:auto}
+        .modal-header{padding:20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+        .modal-header h2{color:var(--primary);font-size:1.25rem}
+        .modal-close{background:none;border:none;font-size:24px;cursor:pointer;color:#666}
+        .modal-body{padding:20px}
+        .modal-footer{padding:15px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px}
+        .toast{position:fixed;bottom:20px;right:20px;padding:12px 20px;border-radius:8px;color:#fff;font-weight:500;z-index:2000;animation:slideIn .3s}
+        .toast.success{background:var(--success)}
+        .toast.error{background:var(--danger)}
+        .toast.info{background:var(--info)}
+        @keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:15px;margin-bottom:20px}
+        .stat-card{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:15px;border-radius:8px;text-align:center}
+        .stat-value{font-size:1.8rem;font-weight:700}
+        .stat-label{font-size:.75rem;opacity:.9}
+        .location-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-bottom:1px solid var(--border)}
+        .checkbox-wrapper{display:flex;align-items:center;gap:8px}
+        .search-wrapper{position:relative}
+        .search-results{position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid var(--border);border-radius:0 0 6px 6px;max-height:200px;overflow-y:auto;z-index:100;display:none}
+        .search-results.active{display:block}
+        .search-result-item{padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f0f0}
+        .search-result-item:hover{background:var(--bg)}
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Bid Management System</h1>
+        <button class="btn btn-outline" onclick="showNewBidModal()">+ New Bid</button>
+    </div>
+    
+    <div class="tabs">
+        <div class="tab active" data-tab="bids">My Bids</div>
+        <div class="tab" data-tab="clients">Clients</div>
+        <div class="tab" data-tab="suppliers">Suppliers</div>
+        <div class="tab" data-tab="create">Create Bid Sheet</div>
+    </div>
+    
+    <!-- Bids Tab -->
+    <div id="tab-bids" class="tab-content active">
+        <div class="stats-grid" id="bid-stats"></div>
+        <h3 class="section-title">Recent Bids</h3>
+        <table><thead><tr><th>Bid ID</th><th>Client</th><th>Date</th><th>Locations</th><th>Quotes</th><th>Status</th><th>Actions</th></tr></thead><tbody id="bids-tbody"></tbody></table>
+        <div id="bids-empty" class="empty-state" style="display:none"><p>No bids yet.</p><button class="btn btn-primary" onclick="showNewBidModal()">Create First Bid</button></div>
+    </div>
+    
+    <!-- Clients Tab -->
+    <div id="tab-clients" class="tab-content">
+        <div class="btn-group" style="margin-bottom:20px"><button class="btn btn-primary" onclick="showNewClientModal()">+ Add Client</button><button class="btn btn-secondary" onclick="exportClients()">Export CSV</button></div>
+        <div class="form-group" style="max-width:300px;margin-bottom:15px"><input type="text" id="client-search" placeholder="Search clients..." oninput="filterClients()"></div>
+        <table><thead><tr><th>ID</th><th>Company</th><th>Contact</th><th>ISO</th><th>Locations</th><th>Usage</th><th>Sales Rep</th><th>Actions</th></tr></thead><tbody id="clients-tbody"></tbody></table>
+    </div>
+    
+    <!-- Suppliers Tab -->
+    <div id="tab-suppliers" class="tab-content">
+        <div class="btn-group" style="margin-bottom:20px"><button class="btn btn-primary" onclick="showNewSupplierModal()">+ Add Supplier</button></div>
+        <table><thead><tr><th>Supplier</th><th>Products</th><th>Terms</th><th>Commodities</th><th>ISOs</th><th>Status</th><th>Actions</th></tr></thead><tbody id="suppliers-tbody"></tbody></table>
+    </div>
+    
+    <!-- Create Bid Sheet Tab -->
+    <div id="tab-create" class="tab-content">
+        <h3 class="section-title">Step 1: Select or Create Bid</h3>
+        <div class="form-grid">
+            <div class="form-group"><label>Select Existing Bid</label><select id="select-bid" onchange="loadBidForSheet()"><option value="">-- Select --</option></select></div>
+            <div class="form-group" style="align-self:end"><button class="btn btn-outline" onclick="showNewBidModal()">Create New</button></div>
+        </div>
+        <div id="bid-sheet-builder" style="display:none">
+            <h3 class="section-title">Step 2: Add Supplier Pricing</h3>
+            <div class="form-grid">
+                <div class="form-group"><label>Supplier</label><select id="upload-supplier"><option value="">-- Select --</option></select></div>
+                <div class="form-group"><label>Product</label><select id="upload-product"><option value="Fixed">Fixed</option><option value="Ancillary Lock">Ancillary Lock</option><option value="Ancillary Lock - No Capacity">Ancillary Lock - No Capacity</option></select></div>
+            </div>
+            <div class="file-upload-zone" id="pricing-upload-zone"><input type="file" id="pricing-file-input" accept=".xlsx,.xls,.csv" onchange="handlePricingUpload(event)"><p><strong>Drag & drop pricing file</strong></p><p style="font-size:12px;color:#888">.xlsx, .xls, .csv</p></div>
+            <div style="margin-top:20px">
+                <h4>Or Enter Manually</h4>
+                <div class="form-group" style="max-width:200px;margin:10px 0"><label>Swing Type</label><input type="text" id="manual-swing" placeholder="e.g., Unlimited"></div>
+                <div id="manual-pricing-inputs" class="form-grid"></div>
+                <button class="btn btn-primary" onclick="addManualPricing()" style="margin-top:10px">Add Quote</button>
+            </div>
+            <h3 class="section-title" style="margin-top:30px">Step 3: Review & Select Quotes</h3>
+            <div id="quotes-list"></div>
+            <h3 class="section-title" style="margin-top:30px">Step 4: Generate Bid Sheet</h3>
+            <button class="btn btn-success" onclick="generateBidSheet()" id="generate-btn" disabled>Generate Excel Bid Sheet</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="new-bid-modal">
+    <div class="modal">
+        <div class="modal-header"><h2>Create New Bid</h2><button class="modal-close" onclick="closeModal('new-bid-modal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-group full-width search-wrapper"><label>Client *</label><input type="text" id="bid-client-search" placeholder="Search or enter new..." oninput="searchClientsForBid()" autocomplete="off"><div class="search-results" id="bid-client-results"></div><input type="hidden" id="bid-client-id"></div>
+                <div class="form-group"><label>Date</label><input type="date" id="bid-date"></div>
+                <div class="form-group"><label>Commodity</label><select id="bid-commodity"><option value="electric">Electric</option><option value="gas">Gas</option></select></div>
+                <div class="form-group"><label>ISO</label><select id="bid-iso"><option value="">Select</option><option>PJM</option><option>ISONE</option><option>NYISO</option><option>ERCOT</option><option>CAISO</option><option>MISO</option></select></div>
+                <div class="form-group full-width"><label>Notes</label><textarea id="bid-notes" rows="2"></textarea></div>
+            </div>
+            <h4>Locations</h4>
+            <div id="bid-locations-list" style="margin:10px 0"><p style="color:#888">No locations.</p></div>
+            <button class="btn btn-outline btn-sm" onclick="addBidLocation()">+ Add Location</button>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('new-bid-modal')">Cancel</button><button class="btn btn-primary" onclick="saveBid()">Create</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="new-client-modal">
+    <div class="modal">
+        <div class="modal-header"><h2>Add Client</h2><button class="modal-close" onclick="closeModal('new-client-modal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-group"><label>Company *</label><input type="text" id="client-company-name"></div>
+                <div class="form-group"><label>Contact</label><input type="text" id="client-contact-name"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="client-email"></div>
+                <div class="form-group"><label>Phone</label><input type="tel" id="client-phone"></div>
+                <div class="form-group"><label>City</label><input type="text" id="client-city"></div>
+                <div class="form-group"><label>State</label><input type="text" id="client-state" maxlength="2"></div>
+                <div class="form-group"><label>ISO</label><select id="client-iso"><option value="">Select</option><option>PJM</option><option>ISONE</option><option>NYISO</option><option>ERCOT</option><option>CAISO</option><option>MISO</option></select></div>
+                <div class="form-group"><label>Usage (kWh/yr)</label><input type="number" id="client-usage"></div>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('new-client-modal')">Cancel</button><button class="btn btn-primary" onclick="saveClient()">Save</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="new-supplier-modal">
+    <div class="modal">
+        <div class="modal-header"><h2>Add/Edit Supplier</h2><button class="modal-close" onclick="closeModal('new-supplier-modal')">&times;</button></div>
+        <div class="modal-body">
+            <input type="hidden" id="supplier-edit-id">
+            <div class="form-grid">
+                <div class="form-group"><label>Name *</label><input type="text" id="supplier-name"></div>
+                <div class="form-group"><label>Display Name</label><input type="text" id="supplier-display-name"></div>
+                <div class="form-group"><label>Website</label><input type="url" id="supplier-website"></div>
+                <div class="form-group"><label>Email</label><input type="email" id="supplier-email"></div>
+                <div class="form-group full-width"><label>Commodities</label><div style="display:flex;gap:15px"><label class="checkbox-wrapper"><input type="checkbox" id="supplier-commodity-elec" checked> Electric</label><label class="checkbox-wrapper"><input type="checkbox" id="supplier-commodity-gas"> Gas</label></div></div>
+                <div class="form-group full-width"><label>ISOs</label><div style="display:flex;gap:10px;flex-wrap:wrap"><label class="checkbox-wrapper"><input type="checkbox" class="supplier-iso" value="PJM"> PJM</label><label class="checkbox-wrapper"><input type="checkbox" class="supplier-iso" value="ISONE"> ISONE</label><label class="checkbox-wrapper"><input type="checkbox" class="supplier-iso" value="NYISO"> NYISO</label><label class="checkbox-wrapper"><input type="checkbox" class="supplier-iso" value="ERCOT"> ERCOT</label><label class="checkbox-wrapper"><input type="checkbox" class="supplier-iso" value="CAISO"> CAISO</label><label class="checkbox-wrapper"><input type="checkbox" class="supplier-iso" value="MISO"> MISO</label></div></div>
+                <div class="form-group full-width"><label>Terms (comma-separated)</label><input type="text" id="supplier-terms" placeholder="12, 18, 24, 36, 48"></div>
+            </div>
+            <h4 style="margin-top:20px">Products</h4>
+            <div id="supplier-products-list"></div>
+            <button class="btn btn-outline btn-sm" onclick="addSupplierProductField()" style="margin-top:10px">+ Add Product</button>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('new-supplier-modal')">Cancel</button><button class="btn btn-primary" onclick="saveSupplier()">Save</button></div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="location-modal">
+    <div class="modal" style="max-width:500px">
+        <div class="modal-header"><h2>Add Location</h2><button class="modal-close" onclick="closeModal('location-modal')">&times;</button></div>
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="form-group"><label>Name *</label><input type="text" id="loc-name"></div>
+                <div class="form-group"><label>Address</label><input type="text" id="loc-address"></div>
+                <div class="form-group"><label>City</label><input type="text" id="loc-city"></div>
+                <div class="form-group"><label>State</label><input type="text" id="loc-state" maxlength="2"></div>
+                <div class="form-group"><label>Zone</label><input type="text" id="loc-zone"></div>
+                <div class="form-group"><label>Utility</label><input type="text" id="loc-utility"></div>
+                <div class="form-group"><label>Account #</label><input type="text" id="loc-account"></div>
+                <div class="form-group"><label>Usage (kWh)</label><input type="number" id="loc-usage"></div>
+            </div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('location-modal')">Cancel</button><button class="btn btn-primary" onclick="confirmAddLocation()">Add</button></div>
+    </div>
+</div>
+
+<script>
+let currentBid=null,currentUser=null,bidLocations=[],supplierProductIndex=0;
+
+document.addEventListener('DOMContentLoaded',()=>{
+    if(window.SecureEnergyClients)SecureEnergyClients.init();
+    if(window.SecureEnergySuppliers)SecureEnergySuppliers.init();
+    if(window.SecureEnergyBids)SecureEnergyBids.init();
+    window.addEventListener('message',e=>{if(e.data.type==='CURRENT_USER')currentUser=e.data.user});
+    window.parent.postMessage({type:'GET_CURRENT_USER'},'*');
+    document.getElementById('bid-date').valueAsDate=new Date();
+    initTabs();loadBidsTable();loadClientsTable();loadSuppliersTable();loadBidDropdown();populateSupplierDropdowns();generateManualPricingInputs();setupFileUpload();
+});
+
+function initTabs(){document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));t.classList.add('active');document.getElementById('tab-'+t.dataset.tab).classList.add('active')}))}
+
+function loadBidsTable(){
+    const bids=window.SecureEnergyBids?.getAllBids()||[];
+    const tbody=document.getElementById('bids-tbody');
+    const empty=document.getElementById('bids-empty');
+    const stats=window.SecureEnergyBids?.getStats()||{};
+    document.getElementById('bid-stats').innerHTML=`<div class="stat-card"><div class="stat-value">${stats.total||0}</div><div class="stat-label">Total</div></div><div class="stat-card"><div class="stat-value">${stats.draft||0}</div><div class="stat-label">Draft</div></div><div class="stat-card"><div class="stat-value">${stats.sent||0}</div><div class="stat-label">Sent</div></div><div class="stat-card"><div class="stat-value">${stats.accepted||0}</div><div class="stat-label">Accepted</div></div>`;
+    if(bids.length===0){tbody.innerHTML='';empty.style.display='block';return}
+    empty.style.display='none';
+    tbody.innerHTML=bids.map(b=>`<tr onclick="editBid('${b.id}')" style="cursor:pointer"><td><strong>${b.id}</strong></td><td>${b.clientName||'-'}</td><td>${formatDate(b.bidDate)}</td><td>${b.locations?.length||0}</td><td>${b.supplierQuotes?.length||0}</td><td><span class="badge badge-${getStatusBadge(b.status)}">${b.status}</span></td><td><button class="btn btn-sm btn-outline" onclick="event.stopPropagation();editBid('${b.id}')">Edit</button> <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();if(confirm('Delete?'))deleteBid('${b.id}')">Del</button></td></tr>`).join('');
+}
+
+function showNewBidModal(){bidLocations=[];document.getElementById('bid-client-search').value='';document.getElementById('bid-client-id').value='';document.getElementById('bid-date').valueAsDate=new Date();document.getElementById('bid-commodity').value='electric';document.getElementById('bid-iso').value='';document.getElementById('bid-notes').value='';document.getElementById('bid-locations-list').innerHTML='<p style="color:#888">No locations.</p>';document.getElementById('new-bid-modal').classList.add('active')}
+
+function saveBid(){
+    const clientName=document.getElementById('bid-client-search').value.trim();
+    let clientId=document.getElementById('bid-client-id').value;
+    if(!clientName){showToast('Enter client','error');return}
+    if(!clientId&&clientName){const r=SecureEnergyClients.createClient({name:clientName,companyName:clientName,salesRepId:currentUser?.id,salesRepName:currentUser?.name||currentUser?.username});if(r.success)clientId=r.client.id;loadClientsTable()}
+    const r=SecureEnergyBids.createBid({clientId,clientName,bidDate:document.getElementById('bid-date').value,commodityType:document.getElementById('bid-commodity').value,iso:document.getElementById('bid-iso').value,notes:document.getElementById('bid-notes').value,locations:bidLocations,salesRepId:currentUser?.id,salesRepName:currentUser?.name||currentUser?.username});
+    if(r.success){showToast('Bid created!','success');closeModal('new-bid-modal');loadBidsTable();loadBidDropdown();document.getElementById('select-bid').value=r.bid.id;loadBidForSheet()}
+}
+
+function editBid(id){currentBid=SecureEnergyBids.getBid(id);if(!currentBid)return;document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));document.querySelector('[data-tab="create"]').classList.add('active');document.getElementById('tab-create').classList.add('active');document.getElementById('select-bid').value=id;loadBidForSheet()}
+
+function deleteBid(id){SecureEnergyBids.deleteBid(id);loadBidsTable();loadBidDropdown();showToast('Deleted','success')}
+
+function searchClientsForBid(){const q=document.getElementById('bid-client-search').value;const r=document.getElementById('bid-client-results');if(q.length<2){r.classList.remove('active');return}const clients=SecureEnergyClients?.searchClients(q)||[];r.innerHTML=clients.length?clients.slice(0,5).map(c=>`<div class="search-result-item" onclick="selectClientForBid('${c.id}','${(c.companyName||c.name).replace(/'/g,"\\'")}')">${c.companyName||c.name}<br><small style="color:#888">${c.id}</small></div>`).join(''):'<div class="search-result-item">New client will be created</div>';r.classList.add('active')}
+
+function selectClientForBid(id,name){document.getElementById('bid-client-search').value=name;document.getElementById('bid-client-id').value=id;document.getElementById('bid-client-results').classList.remove('active');const c=SecureEnergyClients.getClient(id);if(c?.iso)document.getElementById('bid-iso').value=c.iso;if(c?.locations?.length){bidLocations=c.locations.map(l=>({...l}));renderBidLocations()}}
+
+function addBidLocation(){['loc-name','loc-address','loc-city','loc-state','loc-zone','loc-utility','loc-account','loc-usage'].forEach(id=>document.getElementById(id).value='');document.getElementById('location-modal').classList.add('active')}
+
+function confirmAddLocation(){bidLocations.push({id:'LOC-'+Date.now().toString(36).toUpperCase(),name:document.getElementById('loc-name').value||'Location '+(bidLocations.length+1),address:document.getElementById('loc-address').value,city:document.getElementById('loc-city').value,state:document.getElementById('loc-state').value,zone:document.getElementById('loc-zone').value,utility:document.getElementById('loc-utility').value,accountNumber:document.getElementById('loc-account').value,annualUsage:parseFloat(document.getElementById('loc-usage').value)||0});renderBidLocations();closeModal('location-modal')}
+
+function renderBidLocations(){const c=document.getElementById('bid-locations-list');if(!bidLocations.length){c.innerHTML='<p style="color:#888">No locations.</p>';return}c.innerHTML=bidLocations.map((l,i)=>`<div class="location-item"><div><strong>${l.name}</strong><br><small>${l.city||''} ${l.state||''} ${l.zone?'Zone: '+l.zone:''}</small></div><button class="btn btn-sm btn-danger" onclick="bidLocations.splice(${i},1);renderBidLocations()">Remove</button></div>`).join('')}
+
+function loadClientsTable(){const clients=SecureEnergyClients?.getAllClients()||[];document.getElementById('clients-tbody').innerHTML=clients.map(c=>`<tr><td><code style="font-size:10px">${c.id}</code></td><td><strong>${c.companyName||c.name}</strong></td><td>${c.contactName||'-'}</td><td>${c.iso||'-'}</td><td>${c.locations?.length||0}</td><td>${c.annualUsage?formatNumber(c.annualUsage)+' kWh':'-'}</td><td>${c.salesRepName||'-'}</td><td><button class="btn btn-sm btn-primary" onclick="createBidForClient('${c.id}')">New Bid</button></td></tr>`).join('')}
+
+function showNewClientModal(){['client-company-name','client-contact-name','client-email','client-phone','client-city','client-state','client-usage'].forEach(id=>document.getElementById(id).value='');document.getElementById('client-iso').value='';document.getElementById('new-client-modal').classList.add('active')}
+
+function saveClient(){const name=document.getElementById('client-company-name').value.trim();if(!name){showToast('Company required','error');return}const r=SecureEnergyClients.createClient({name,companyName:name,contactName:document.getElementById('client-contact-name').value,contactEmail:document.getElementById('client-email').value,contactPhone:document.getElementById('client-phone').value,city:document.getElementById('client-city').value,state:document.getElementById('client-state').value,iso:document.getElementById('client-iso').value,annualUsage:parseFloat(document.getElementById('client-usage').value)||0,salesRepId:currentUser?.id,salesRepName:currentUser?.name||currentUser?.username});if(r.success){showToast('Client: '+r.client.id,'success');closeModal('new-client-modal');loadClientsTable()}}
+
+function createBidForClient(id){const c=SecureEnergyClients.getClient(id);if(!c)return;showNewBidModal();document.getElementById('bid-client-search').value=c.companyName||c.name;document.getElementById('bid-client-id').value=id;if(c.iso)document.getElementById('bid-iso').value=c.iso}
+
+function filterClients(){const q=document.getElementById('client-search').value.toLowerCase();document.querySelectorAll('#clients-tbody tr').forEach(r=>r.style.display=r.textContent.toLowerCase().includes(q)?'':' none')}
+
+function exportClients(){const csv=SecureEnergyClients?.exportClients('csv');if(csv){downloadFile(csv,'clients.csv','text/csv');showToast('Exported','success')}}
+
+function loadSuppliersTable(){const suppliers=SecureEnergySuppliers?.getAllSuppliers()||[];document.getElementById('suppliers-tbody').innerHTML=suppliers.map(s=>`<tr><td><strong>${s.displayName||s.name}</strong></td><td>${s.products?.map(p=>p.name).join(', ')||'-'}</td><td>${s.termOptions?.join(', ')||'-'}</td><td>${s.commodities?.join(', ')||'-'}</td><td>${s.isos?.join(', ')||'-'}</td><td><span class="badge badge-${s.status==='active'?'success':'secondary'}">${s.status}</span></td><td><button class="btn btn-sm btn-outline" onclick="editSupplier('${s.id}')">Edit</button></td></tr>`).join('')}
+
+function showNewSupplierModal(){document.getElementById('supplier-edit-id').value='';['supplier-name','supplier-display-name','supplier-website','supplier-email'].forEach(id=>document.getElementById(id).value='');document.getElementById('supplier-commodity-elec').checked=true;document.getElementById('supplier-commodity-gas').checked=false;document.querySelectorAll('.supplier-iso').forEach(cb=>cb.checked=false);document.getElementById('supplier-terms').value='12, 24, 36, 48';supplierProductIndex=0;document.getElementById('supplier-products-list').innerHTML='';addSupplierProductField();document.getElementById('new-supplier-modal').classList.add('active')}
+
+function editSupplier(id){const s=SecureEnergySuppliers.getSupplier(id);if(!s)return;document.getElementById('supplier-edit-id').value=s.id;document.getElementById('supplier-name').value=s.name||'';document.getElementById('supplier-display-name').value=s.displayName||'';document.getElementById('supplier-website').value=s.website||'';document.getElementById('supplier-email').value=s.contactEmail||'';document.getElementById('supplier-commodity-elec').checked=s.commodities?.includes('electric');document.getElementById('supplier-commodity-gas').checked=s.commodities?.includes('gas');document.querySelectorAll('.supplier-iso').forEach(cb=>cb.checked=s.isos?.includes(cb.value));document.getElementById('supplier-terms').value=s.termOptions?.join(', ')||'';supplierProductIndex=0;document.getElementById('supplier-products-list').innerHTML='';(s.products||[]).forEach(p=>addSupplierProductField(p));document.getElementById('new-supplier-modal').classList.add('active')}
+
+function addSupplierProductField(p=null){const c=document.getElementById('supplier-products-list');const i=supplierProductIndex++;const d=document.createElement('div');d.className='form-grid';d.id='supplier-product-'+i;d.innerHTML=`<div class="form-group"><label>Name</label><input type="text" class="prod-name" value="${p?.name||''}"></div><div class="form-group"><label>Code</label><input type="text" class="prod-code" value="${p?.code||''}"></div><div class="form-group"><label>Swing</label><input type="text" class="prod-swing" value="${p?.swingType||''}"></div><div class="form-group" style="align-self:end"><button class="btn btn-sm btn-danger" onclick="document.getElementById('supplier-product-${i}').remove()">X</button></div>`;c.appendChild(d)}
+
+function saveSupplier(){const name=document.getElementById('supplier-name').value.trim();if(!name){showToast('Name required','error');return}const commodities=[];if(document.getElementById('supplier-commodity-elec').checked)commodities.push('electric');if(document.getElementById('supplier-commodity-gas').checked)commodities.push('gas');const isos=[];document.querySelectorAll('.supplier-iso:checked').forEach(cb=>isos.push(cb.value));const terms=document.getElementById('supplier-terms').value.split(',').map(t=>parseInt(t.trim())).filter(t=>!isNaN(t)&&t>0);const products=[];document.querySelectorAll('#supplier-products-list > div').forEach(d=>{const n=d.querySelector('.prod-name')?.value;if(n)products.push({name:n,code:d.querySelector('.prod-code')?.value||n.toUpperCase(),swingType:d.querySelector('.prod-swing')?.value||''})});const data={name,displayName:document.getElementById('supplier-display-name').value||name,website:document.getElementById('supplier-website').value,contactEmail:document.getElementById('supplier-email').value,commodities,isos,termOptions:terms,products};const editId=document.getElementById('supplier-edit-id').value;const r=editId?SecureEnergySuppliers.updateSupplier(editId,data):SecureEnergySuppliers.createSupplier(data);if(r.success){showToast('Saved!','success');closeModal('new-supplier-modal');loadSuppliersTable();populateSupplierDropdowns()}}
+
+function loadBidDropdown(){const bids=SecureEnergyBids?.getAllBids()||[];document.getElementById('select-bid').innerHTML='<option value="">-- Select --</option>'+bids.map(b=>`<option value="${b.id}">${b.id} - ${b.clientName||'N/A'}</option>`).join('')}
+
+function populateSupplierDropdowns(){const suppliers=SecureEnergySuppliers?.getActiveSuppliers()||[];document.getElementById('upload-supplier').innerHTML='<option value="">-- Select --</option>'+suppliers.map(s=>`<option value="${s.id}">${s.displayName||s.name}</option>`).join('')}
+
+function loadBidForSheet(){const id=document.getElementById('select-bid').value;const builder=document.getElementById('bid-sheet-builder');if(!id){builder.style.display='none';currentBid=null;return}currentBid=SecureEnergyBids.getBid(id);if(!currentBid){showToast('Not found','error');return}builder.style.display='block';renderQuotesList();updateGenerateButton()}
+
+function generateManualPricingInputs(){const c=document.getElementById('manual-pricing-inputs');[12,18,24,30,36,48].forEach(t=>c.innerHTML+=`<div class="form-group"><label>${t} mo</label><input type="number" step="0.00001" id="manual-term-${t}" placeholder="0.00000"></div>`)}
+
+function addManualPricing(){if(!currentBid){showToast('Select bid first','error');return}const supplierId=document.getElementById('upload-supplier').value;const supplier=SecureEnergySuppliers?.getSupplier(supplierId);const terms=[];[12,18,24,30,36,48].forEach(t=>{const p=parseFloat(document.getElementById('manual-term-'+t).value);if(!isNaN(p)&&p>0)terms.push({term:t,price:p})});if(!terms.length){showToast('Enter prices','error');return}SecureEnergyBids.addSupplierQuote(currentBid.id,{supplierId,supplierName:supplier?.displayName||supplier?.name||'Unknown',productName:document.getElementById('upload-product').value,swingType:document.getElementById('manual-swing').value,commodity:currentBid.commodityType,terms,unit:currentBid.commodityType==='electric'?'$/kWh':'$/DTH',sourceType:'manual'});currentBid=SecureEnergyBids.getBid(currentBid.id);renderQuotesList();updateGenerateButton();[12,18,24,30,36,48].forEach(t=>document.getElementById('manual-term-'+t).value='');document.getElementById('manual-swing').value='';showToast('Quote added','success')}
+
+function renderQuotesList(){const c=document.getElementById('quotes-list');if(!currentBid?.supplierQuotes?.length){c.innerHTML='<p style="color:#888;text-align:center;padding:20px">No quotes yet.</p>';return}c.innerHTML=currentBid.supplierQuotes.map(q=>{const sel=currentBid.selectedQuotes?.includes(q.id);return`<div class="card quote-card ${sel?'selected':''}"><div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${q.supplierName}</strong> - ${q.productName} ${q.swingType?'<span class="badge badge-info">'+q.swingType+'</span>':''}</div><label class="checkbox-wrapper"><input type="checkbox" ${sel?'checked':''} onchange="toggleQuoteSelection('${q.id}',this.checked)"> Include</label></div><div class="pricing-grid">${q.terms.map(t=>`<div class="pricing-cell"><div class="term">${t.term} mo</div><div class="price">$${t.price.toFixed(5)}</div></div>`).join('')}</div><div style="margin-top:10px;text-align:right"><button class="btn btn-sm btn-danger" onclick="removeQuote('${q.id}')">Remove</button></div></div>`}).join('')}
+
+function toggleQuoteSelection(id,sel){if(sel)SecureEnergyBids.selectQuoteForBidSheet(currentBid.id,id);else SecureEnergyBids.deselectQuoteFromBidSheet(currentBid.id,id);currentBid=SecureEnergyBids.getBid(currentBid.id);updateGenerateButton();renderQuotesList()}
+
+function removeQuote(id){if(confirm('Remove?')){SecureEnergyBids.removeSupplierQuote(currentBid.id,id);currentBid=SecureEnergyBids.getBid(currentBid.id);renderQuotesList();updateGenerateButton()}}
+
+function updateGenerateButton(){document.getElementById('generate-btn').disabled=!(currentBid?.selectedQuotes?.length>0)}
+
+function setupFileUpload(){const z=document.getElementById('pricing-upload-zone');const i=document.getElementById('pricing-file-input');z.addEventListener('click',()=>i.click());z.addEventListener('dragover',e=>{e.preventDefault();z.style.borderColor='var(--primary-light)';z.style.background='#e8f5e9'});z.addEventListener('dragleave',()=>{z.style.borderColor='var(--border)';z.style.background='#fafafa'});z.addEventListener('drop',e=>{e.preventDefault();z.style.borderColor='var(--border)';z.style.background='#fafafa';if(e.dataTransfer.files.length)handlePricingUpload({target:{files:e.dataTransfer.files}})})}
+
+function handlePricingUpload(e){const f=e.target.files[0];if(!f||!currentBid){showToast('Select bid first','error');return}const supplier=SecureEnergySuppliers?.getSupplier(document.getElementById('upload-supplier').value);const reader=new FileReader();if(f.name.endsWith('.csv')){reader.onload=x=>{const parsed=SecureEnergyBids.parsePricingFromCSV(x.target.result,supplier);processParsedPricing(parsed,f.name)};reader.readAsText(f)}else if(f.name.match(/\.xlsx?$/)){reader.onload=x=>{const wb=XLSX.read(new Uint8Array(x.target.result),{type:'array'});const all=[];wb.SheetNames.forEach(n=>{const json=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:''});all.push(...SecureEnergyBids.parsePricingFromExcel(json,supplier))});processParsedPricing(all,f.name)};reader.readAsArrayBuffer(f)}e.target.value=''}
+
+function processParsedPricing(parsed,fn){if(!parsed?.length){showToast('No data found','warning');return}let added=0;parsed.forEach(item=>{if(item.terms?.length){SecureEnergyBids.addSupplierQuote(currentBid.id,{supplierId:document.getElementById('upload-supplier').value,supplierName:item.supplierName||'From File',productName:item.productName||document.getElementById('upload-product').value,commodity:currentBid.commodityType,terms:item.terms,sourceType:'file',sourceFile:fn});added++}});if(added){showToast(`Added ${added} quote(s)`,'success');currentBid=SecureEnergyBids.getBid(currentBid.id);renderQuotesList();updateGenerateButton()}}
+
+function generateBidSheet(){if(!currentBid?.selectedQuotes?.length){showToast('Select quotes','error');return}const data=SecureEnergyBids.prepareBidSheetData(currentBid.id);if(!data.success)return;const d=data.data;const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,createSheet(d,'Aggregated'),'Aggregated Client (all)');d.locations.forEach((l,i)=>XLSX.utils.book_append_sheet(wb,createSheet(d,l.name,l),(l.name||'Location '+(i+1)).substring(0,31)));XLSX.writeFile(wb,`BidSheet_${d.clientName.replace(/[^a-zA-Z0-9]/g,'_')}_${d.bidDate}.xlsx`);showToast('Generated!','success');SecureEnergyBids.updateBid(currentBid.id,{bidSheetGenerated:true})}
+
+function createSheet(d,title,loc=null){const rows=[];for(let i=0;i<11;i++)rows.push(Array(14).fill(''));rows.push(['','','','','','','','','','','','','','1-800-655-9818']);rows.push(['','','','','','','','','','','','','','www.sesenergy.org']);rows.push(['QUOTE FORM']);rows.push([]);rows.push(['Customer Name:  '+d.clientName]);rows.push(['Date Prepared: '+new Date(d.bidDate).toLocaleDateString()]);rows.push([]);rows.push(["Please note: Prices executable until COB today; contracts valid when countersigned."]);rows.push([]);rows.push([]);d.quoteGroups.forEach(q=>{const srow=['Supplier/Product:','','','','','','','',q.supplierName,'',q.productName||'','',q.swingType||'',''];rows.push(srow);const trow=['Term: (months)','','','','','','',''];q.terms.forEach(t=>trow.push(t.term));while(trow.length<14)trow.push('');rows.push(trow);const prow=['Price:','','x',d.commodityType==='electric'?'Elec.($/kWh)':'Gas($/DTH)','','','',''];q.terms.forEach(t=>prow.push(t.price));while(prow.length<14)prow.push('');rows.push(prow);rows.push([])});const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:70},{wch:3},{wch:3},{wch:16},{wch:3},{wch:3},{wch:14},{wch:3},{wch:16},{wch:10},{wch:16},{wch:10},{wch:14},{wch:14}];return ws}
+
+function closeModal(id){document.getElementById(id).classList.remove('active')}
+function showToast(m,t='info'){const el=document.createElement('div');el.className='toast '+t;el.textContent=m;document.body.appendChild(el);setTimeout(()=>el.remove(),3500)}
+function formatDate(d){return d?new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'-'}
+function formatNumber(n){return n?.toLocaleString()||'0'}
+function getStatusBadge(s){return{draft:'secondary',pending:'warning',sent:'info',accepted:'success',expired:'danger'}[s]||'secondary'}
+function downloadFile(c,fn,mt){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:mt}));a.download=fn;a.click()}
+
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('active')}));
+document.addEventListener('click',e=>{if(!e.target.closest('.search-wrapper'))document.querySelectorAll('.search-results').forEach(r=>r.classList.remove('active'))});
+</script>
+</body>
+</html>

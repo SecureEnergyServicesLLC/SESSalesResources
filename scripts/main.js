@@ -1,5 +1,11 @@
 /**
- * Secure Energy Analytics Portal - Main Controller v2.3
+ * Secure Energy Analytics Portal - Main Controller v2.4
+ * 
+ * v2.4 Updates:
+ * - Added Bid Management System widget
+ * - Client store integration (unique Client IDs across widgets)
+ * - Supplier profile management
+ * - Bid processing and Excel bid sheet generation
  * 
  * v2.3 Updates:
  * - Draggable widgets with reorder persistence
@@ -13,6 +19,7 @@ let currentUser = null;
 
 const DEFAULT_WIDGETS = [
     { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, fullWidth: true, embedded: true, defaultHeight: 700, minHeight: 400, maxHeight: 1200 },
+    { id: 'bid-management', name: 'Bid Management', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', src: 'widgets/bid-management-widget.html', fullWidth: true, defaultHeight: 900, minHeight: 500, maxHeight: 1400 },
     { id: 'ai-assistant', name: 'AI Assistant', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 800 },
     { id: 'lmp-analytics', name: 'LMP Analytics Dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>', src: 'widgets/lmp-analytics.html', fullWidth: true, defaultHeight: 800, minHeight: 400, maxHeight: 1200 },
     { id: 'data-manager', name: 'LMP Data Manager', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>', src: 'widgets/lmp-data-manager.html', defaultHeight: 500, minHeight: 300, maxHeight: 900 },
@@ -83,12 +90,27 @@ function loadSavedTheme() { window.setTheme(localStorage.getItem('secureEnergy_t
 // INITIALIZATION
 // =====================================================
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('[Portal] Initializing v2.3...');
+    console.log('[Portal] Initializing v2.4...');
     loadSavedTheme();
     
     await UserStore.init();
     await ActivityLog.init();
     await SecureEnergyData.init();
+    
+    // Initialize Bid Management stores (if available)
+    if (typeof SecureEnergyClients !== 'undefined') {
+        SecureEnergyClients.init();
+        console.log('[Portal] Client store initialized');
+    }
+    if (typeof SecureEnergySuppliers !== 'undefined') {
+        SecureEnergySuppliers.init();
+        console.log('[Portal] Supplier store initialized');
+    }
+    if (typeof SecureEnergyBids !== 'undefined') {
+        SecureEnergyBids.init();
+        console.log('[Portal] Bid store initialized');
+    }
+    
     GitHubSync.pullLatest();
     
     initAuth();
@@ -597,6 +619,7 @@ function getCreateUserPanel() {
         <div class="form-row single"><div class="form-group"><label>Password *</label><input type="password" id="newPassword" placeholder="Password"></div></div>
         <div class="form-row single"><div class="form-group"><label>Role</label><select id="newRole"><option value="user">Standard User</option><option value="admin">Administrator</option></select></div></div>
         <div class="widget-permissions"><h4>Widget Permissions</h4>
+            <div class="widget-permission-item"><span>Bid Management</span><label class="toggle-switch"><input type="checkbox" id="perm-bid-management" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="perm-ai-assistant" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-comparison" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>LMP Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-analytics" checked><span class="toggle-slider"></span></label></div>
@@ -612,7 +635,7 @@ function getManageUsersPanel() { return `<div style="overflow-x:auto;"><table cl
 
 function getActivityLogPanel() {
     return `<div class="activity-stats-grid" id="activityStatsGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;"></div>
-        <div class="activity-filters"><input type="text" id="activitySearch" placeholder="Search..." oninput="renderActivityLog()"><select id="activityWidgetFilter" onchange="renderActivityLog()"><option value="">All Widgets</option><option value="lmp-comparison">LMP Comparison</option><option value="lmp-analytics">LMP Analytics</option><option value="ai-assistant">AI Assistant</option><option value="portal">Portal</option></select></div>
+        <div class="activity-filters"><input type="text" id="activitySearch" placeholder="Search..." oninput="renderActivityLog()"><select id="activityWidgetFilter" onchange="renderActivityLog()"><option value="">All Widgets</option><option value="bid-management">Bid Management</option><option value="lmp-comparison">LMP Comparison</option><option value="lmp-analytics">LMP Analytics</option><option value="ai-assistant">AI Assistant</option><option value="portal">Portal</option></select></div>
         <div id="activityLogContainer" style="max-height:400px;overflow-y:auto;"></div>`;
 }
 
@@ -779,6 +802,7 @@ window.createUser = function() {
     }
     
     const permissions = {
+        'bid-management': document.getElementById('perm-bid-management')?.checked,
         'ai-assistant': document.getElementById('perm-ai-assistant')?.checked,
         'lmp-comparison': document.getElementById('perm-lmp-comparison')?.checked,
         'lmp-analytics': document.getElementById('perm-lmp-analytics')?.checked,
@@ -808,6 +832,10 @@ window.editUser = function(userId) {
     const modal = document.getElementById('editUserModal');
     const content = document.getElementById('editUserContent');
     
+    // Get current permissions (default to true if not set)
+    const perms = user.permissions || {};
+    const getChecked = (widgetId) => perms[widgetId] !== false ? 'checked' : '';
+    
     content.innerHTML = `
         <div class="edit-user-form">
             <div class="form-row">
@@ -817,6 +845,19 @@ window.editUser = function(userId) {
             <div class="form-row single"><div class="form-group"><label>Email</label><input type="email" id="editEmail" value="${escapeHtml(user.email)}"></div></div>
             <div class="form-row single"><div class="form-group"><label>New Password (leave blank to keep current)</label><input type="password" id="editPassword" placeholder="New password"></div></div>
             <div class="form-row single"><div class="form-group"><label>Role</label><select id="editRole"><option value="user" ${user.role === 'user' ? 'selected' : ''}>Standard User</option><option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Administrator</option></select></div></div>
+            
+            <div class="widget-permissions" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border-color);">
+                <h4 style="margin-bottom:12px;color:var(--text-secondary);">Widget Permissions</h4>
+                <div class="widget-permission-item"><span>Bid Management</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-bid-management" ${getChecked('bid-management')}><span class="toggle-slider"></span></label></div>
+                <div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-ai-assistant" ${getChecked('ai-assistant')}><span class="toggle-slider"></span></label></div>
+                <div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-lmp-comparison" ${getChecked('lmp-comparison')}><span class="toggle-slider"></span></label></div>
+                <div class="widget-permission-item"><span>LMP Analytics</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-lmp-analytics" ${getChecked('lmp-analytics')}><span class="toggle-slider"></span></label></div>
+                <div class="widget-permission-item"><span>Peak Demand Analytics</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-peak-demand" ${getChecked('peak-demand')}><span class="toggle-slider"></span></label></div>
+                <div class="widget-permission-item"><span>Analysis History</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-analysis-history" ${getChecked('analysis-history')}><span class="toggle-slider"></span></label></div>
+                <div class="widget-permission-item"><span>Data Manager</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-data-manager" ${getChecked('data-manager')}><span class="toggle-slider"></span></label></div>
+                <div class="widget-permission-item"><span>Arcadia Fetcher</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-arcadia-fetcher" ${getChecked('arcadia-fetcher')}><span class="toggle-slider"></span></label></div>
+            </div>
+            
             <div style="margin-top:20px;display:flex;gap:12px;">
                 <button class="btn-primary" onclick="saveUserEdit('${userId}')">Save Changes</button>
                 <button class="btn-secondary" onclick="closeEditModal()">Cancel</button>
@@ -833,7 +874,17 @@ window.saveUserEdit = function(userId) {
         firstName: document.getElementById('editFirstName')?.value?.trim(),
         lastName: document.getElementById('editLastName')?.value?.trim(),
         email: document.getElementById('editEmail')?.value?.trim(),
-        role: document.getElementById('editRole')?.value
+        role: document.getElementById('editRole')?.value,
+        permissions: {
+            'bid-management': document.getElementById('edit-perm-bid-management')?.checked,
+            'ai-assistant': document.getElementById('edit-perm-ai-assistant')?.checked,
+            'lmp-comparison': document.getElementById('edit-perm-lmp-comparison')?.checked,
+            'lmp-analytics': document.getElementById('edit-perm-lmp-analytics')?.checked,
+            'peak-demand': document.getElementById('edit-perm-peak-demand')?.checked,
+            'analysis-history': document.getElementById('edit-perm-analysis-history')?.checked,
+            'data-manager': document.getElementById('edit-perm-data-manager')?.checked,
+            'arcadia-fetcher': document.getElementById('edit-perm-arcadia-fetcher')?.checked
+        }
     };
     
     const newPassword = document.getElementById('editPassword')?.value;
@@ -844,6 +895,11 @@ window.saveUserEdit = function(userId) {
         showNotification('User updated!', 'success');
         closeEditModal();
         renderUsersTable();
+        // Re-render widgets if editing current user
+        if (currentUser && currentUser.id === userId) {
+            currentUser = UserStore.getById(userId);
+            renderWidgets(currentUser);
+        }
     } else {
         showNotification(result.error || 'Failed to update user', 'error');
     }
@@ -1108,6 +1164,33 @@ function handleWidgetMessage(event) {
     }
     if (event.data?.type === 'WIDGET_ERROR') {
         ErrorLog.log({ type: event.data.errorType || 'widget', widget: event.data.widget || 'unknown', message: event.data.message, source: event.data.source, line: event.data.line, stack: event.data.stack, context: event.data.context });
+    }
+    // Handle bid management widget requests for current user
+    if (event.data?.type === 'GET_CURRENT_USER' && event.source) {
+        event.source.postMessage({ 
+            type: 'CURRENT_USER', 
+            user: currentUser ? {
+                id: currentUser.id,
+                username: currentUser.email,
+                name: `${currentUser.firstName} ${currentUser.lastName}`,
+                firstName: currentUser.firstName,
+                lastName: currentUser.lastName,
+                email: currentUser.email,
+                role: currentUser.role
+            } : null 
+        }, '*');
+    }
+    // Handle bid sheet generation activity logging
+    if (event.data?.type === 'BIDSHEET_GENERATED' && currentUser) {
+        ActivityLog.log({ 
+            userId: currentUser.id, 
+            userEmail: currentUser.email, 
+            userName: `${currentUser.firstName} ${currentUser.lastName}`, 
+            widget: 'bid-management', 
+            action: 'Bid Sheet Generated',
+            details: event.data.data
+        });
+        showNotification('Bid sheet generated!', 'success');
     }
 }
 
