@@ -1,6 +1,6 @@
 {
   "version": "2.2.0",
-  "lastUpdated": "2026-01-28T17:53:51.222Z",
+  "lastUpdated": "2026-01-29T14:28:25.564Z",
   "users": [
     {
       "id": "admin-001",
@@ -116,6 +116,25 @@
         "arcadia-fetcher": false,
         "user-admin": false
       }
+    },
+    {
+      "id": "user-1769696905370",
+      "firstName": "Test",
+      "lastName": "User",
+      "email": "testuser@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "permissions": {
+        "ai-assistant": true,
+        "lmp-comparison": true,
+        "lmp-analytics": true,
+        "analysis-history": true,
+        "data-manager": false,
+        "arcadia-fetcher": false,
+        "user-admin": false
+      },
+      "status": "active",
+      "createdAt": "2026-01-29T14:28:25.370Z"
     }
   ]
 }
