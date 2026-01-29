@@ -1,7 +1,19 @@
 {
-  "version": "2.2.0",
-  "lastUpdated": "2026-01-28T18:33:37.387Z",
+  "version": "2.3.0",
+  "lastUpdated": "2026-01-29T16:16:26.884Z",
   "activities": [
+    {
+      "id": "act-1769703383883-pe710q",
+      "timestamp": "2026-01-29T16:16:23.883Z",
+      "userId": "user-1769525319357",
+      "userEmail": "clemmens@sesenergy.org",
+      "userName": "Chad Lemmens",
+      "widget": "portal",
+      "action": "Logout",
+      "clientName": null,
+      "data": {},
+      "notes": null
+    },
     {
       "id": "act-1769625214276-o1l4hy",
       "timestamp": "2026-01-28T18:33:34.276Z",
