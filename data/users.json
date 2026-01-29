@@ -1,6 +1,6 @@
 {
-  "version": "2.2.0",
-  "lastUpdated": "2026-01-29T14:39:06.883Z",
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-29T16:11:21.298Z",
   "users": [
     {
       "id": "admin-001",
@@ -100,7 +100,8 @@
         "data-manager": false,
         "arcadia-fetcher": false,
         "user-admin": false
-      }
+      },
+      "updatedAt": "2026-01-29T16:11:21.297Z"
     },
     {
       "id": "user-1769608099594",
