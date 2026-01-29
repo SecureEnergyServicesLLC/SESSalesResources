@@ -1,14 +1,15 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2026-01-29T16:36:09.253Z",
+  "lastUpdated": "2026-01-29T16:36:19.488Z",
   "preferences": {
     "user-1769525319357": {
       "widgets": {
         "user-admin": {
-          "fullWidth": true
+          "fullWidth": false,
+          "collapsed": false
         }
       },
-      "lastUpdated": "2026-01-29T16:36:07.197Z"
+      "lastUpdated": "2026-01-29T16:36:17.487Z"
     }
   }
 }
