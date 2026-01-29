@@ -27,53 +27,43 @@ let WIDGETS = JSON.parse(JSON.stringify(DEFAULT_WIDGETS));
 
 // =====================================================
 // WIDGET LAYOUT MANAGEMENT
+// Uses WidgetPreferences from shared-data-store.js
+// This ensures preferences persist per-user and can sync via GitHub
 // =====================================================
 const WidgetLayout = {
-    storageKey: 'secureEnergy_widgetLayout',
-    
-    getLayoutForUser(userId) {
-        try {
-            const all = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
-            return all[userId] || null;
-        } catch { return null; }
-    },
-    
-    saveLayoutForUser(userId, layout) {
-        try {
-            const all = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
-            all[userId] = layout;
-            localStorage.setItem(this.storageKey, JSON.stringify(all));
-        } catch (e) { console.error('[WidgetLayout] Save failed:', e); }
-    },
+    // Wrapper methods that delegate to WidgetPreferences (from shared-data-store.js)
+    // This keeps backward compatibility while using the centralized store
     
     getWidgetConfig(userId, widgetId) {
-        const layout = this.getLayoutForUser(userId);
-        return layout?.widgets?.[widgetId] || null;
+        if (typeof WidgetPreferences !== 'undefined') {
+            return WidgetPreferences.getWidgetConfig(userId, widgetId);
+        }
+        return null;
     },
     
     saveWidgetConfig(userId, widgetId, config) {
-        const layout = this.getLayoutForUser(userId) || { order: [], widgets: {} };
-        layout.widgets[widgetId] = { ...layout.widgets[widgetId], ...config };
-        this.saveLayoutForUser(userId, layout);
+        if (typeof WidgetPreferences !== 'undefined') {
+            WidgetPreferences.saveWidgetConfig(userId, widgetId, config);
+        }
     },
     
     saveOrder(userId, orderArray) {
-        const layout = this.getLayoutForUser(userId) || { order: [], widgets: {} };
-        layout.order = orderArray;
-        this.saveLayoutForUser(userId, layout);
+        if (typeof WidgetPreferences !== 'undefined') {
+            WidgetPreferences.saveOrder(userId, orderArray);
+        }
     },
     
     getOrder(userId) {
-        const layout = this.getLayoutForUser(userId);
-        return layout?.order || [];
+        if (typeof WidgetPreferences !== 'undefined') {
+            return WidgetPreferences.getOrder(userId);
+        }
+        return [];
     },
     
     resetLayout(userId) {
-        try {
-            const all = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
-            delete all[userId];
-            localStorage.setItem(this.storageKey, JSON.stringify(all));
-        } catch {}
+        if (typeof WidgetPreferences !== 'undefined') {
+            WidgetPreferences.resetForUser(userId);
+        }
     }
 };
 

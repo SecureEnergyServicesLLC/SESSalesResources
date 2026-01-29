@@ -1,11 +1,12 @@
 /**
- * Secure Energy Shared Data Store v2.2
- * Centralized data management for LMP data, user authentication, and activity logging
+ * Secure Energy Shared Data Store v2.3
+ * Centralized data management for LMP data, user authentication, activity logging,
+ * and widget layout preferences
  * 
- * v2.2 Updates:
- * - GitHub API sync for cross-user activity persistence
- * - Comprehensive error logging system
- * - Widget error capture via postMessage
+ * v2.3 Updates:
+ * - Widget layout preferences integrated into user profiles
+ * - Layout sync via GitHub for cross-device persistence
+ * - WidgetPreferences module for managing widget states
  */
 
 // =====================================================
@@ -25,7 +26,6 @@ const ErrorLog = {
     },
 
     setupGlobalHandlers() {
-        // Catch unhandled JS errors
         window.onerror = (message, source, lineno, colno, error) => {
             this.log({
                 type: 'javascript',
@@ -39,7 +39,6 @@ const ErrorLog = {
             return false;
         };
 
-        // Catch promise rejections
         window.addEventListener('unhandledrejection', (event) => {
             this.log({
                 type: 'promise',
@@ -49,7 +48,6 @@ const ErrorLog = {
             });
         });
 
-        // Listen for widget errors via postMessage
         window.addEventListener('message', (event) => {
             if (event.data?.type === 'WIDGET_ERROR') {
                 this.log({
@@ -79,9 +77,7 @@ const ErrorLog = {
         try {
             const stored = localStorage.getItem(this.STORAGE_KEY);
             return stored ? JSON.parse(stored) : [];
-        } catch (e) {
-            return [];
-        }
+        } catch (e) { return []; }
     },
 
     saveToStorage() {
@@ -90,9 +86,7 @@ const ErrorLog = {
                 this.errors = this.errors.slice(0, this.MAX_ERRORS);
             }
             localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.errors));
-        } catch (e) {
-            console.error('[ErrorLog] Save failed:', e);
-        }
+        } catch (e) { console.error('[ErrorLog] Save failed:', e); }
     },
 
     log(error) {
@@ -109,7 +103,6 @@ const ErrorLog = {
             context: error.context || null,
             resolved: false
         };
-
         this.errors.unshift(entry);
         this.saveToStorage();
         console.error(`[ErrorLog] ${entry.widget}:`, entry.message);
@@ -120,7 +113,7 @@ const ErrorLog = {
     getRecent(count = 20) { return this.errors.slice(0, count); },
     getByWidget(widget) { return this.errors.filter(e => e.widget === widget); },
     getUnresolved() { return this.errors.filter(e => !e.resolved); },
-
+    
     resolve(errorId) {
         const error = this.errors.find(e => e.id === errorId);
         if (error) {
@@ -130,30 +123,150 @@ const ErrorLog = {
         }
     },
 
-    clearAll() {
-        this.errors = [];
-        this.saveToStorage();
-    },
+    clear() { this.errors = []; this.saveToStorage(); },
+    clearAll() { this.clear(); },
 
     getStats() {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayISO = today.toISOString();
-        
-        const byWidget = {};
-        const byType = {};
+        const byWidget = {}, byType = {};
         this.errors.forEach(e => {
             byWidget[e.widget] = (byWidget[e.widget] || 0) + 1;
             byType[e.type] = (byType[e.type] || 0) + 1;
         });
-
         return {
             total: this.errors.length,
             today: this.errors.filter(e => e.timestamp >= todayISO).length,
             unresolved: this.getUnresolved().length,
-            byWidget,
-            byType
+            byWidget, byType
         };
+    }
+};
+
+
+// =====================================================
+// WIDGET PREFERENCES STORE
+// =====================================================
+const WidgetPreferences = {
+    STORAGE_KEY: 'secureEnergy_widgetPrefs',
+    _cache: {},
+    _syncTimeout: null,
+
+    init() {
+        console.log('[WidgetPreferences] Initializing...');
+        this._cache = this.loadFromStorage();
+        console.log(`[WidgetPreferences] Loaded preferences for ${Object.keys(this._cache).length} users`);
+        return this;
+    },
+
+    loadFromStorage() {
+        try {
+            return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || {};
+        } catch { return {}; }
+    },
+
+    saveToStorage() {
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this._cache));
+        } catch (e) { console.error('[WidgetPreferences] Save failed:', e); }
+    },
+
+    // Get all preferences for a user
+    getForUser(userId) {
+        if (!userId) return null;
+        return this._cache[userId] || null;
+    },
+
+    // Save all preferences for a user
+    saveForUser(userId, prefs) {
+        if (!userId) return;
+        this._cache[userId] = {
+            ...prefs,
+            lastUpdated: new Date().toISOString()
+        };
+        this.saveToStorage();
+        this._scheduleSyncToGitHub(userId);
+    },
+
+    // Get widget order for a user
+    getOrder(userId) {
+        return this._cache[userId]?.order || [];
+    },
+
+    // Save widget order for a user
+    saveOrder(userId, orderArray) {
+        if (!userId) return;
+        if (!this._cache[userId]) this._cache[userId] = {};
+        this._cache[userId].order = orderArray;
+        this._cache[userId].lastUpdated = new Date().toISOString();
+        this.saveToStorage();
+        this._scheduleSyncToGitHub(userId);
+    },
+
+    // Get config for a specific widget
+    getWidgetConfig(userId, widgetId) {
+        return this._cache[userId]?.widgets?.[widgetId] || null;
+    },
+
+    // Save config for a specific widget
+    saveWidgetConfig(userId, widgetId, config) {
+        if (!userId || !widgetId) return;
+        if (!this._cache[userId]) this._cache[userId] = {};
+        if (!this._cache[userId].widgets) this._cache[userId].widgets = {};
+        this._cache[userId].widgets[widgetId] = {
+            ...this._cache[userId].widgets[widgetId],
+            ...config
+        };
+        this._cache[userId].lastUpdated = new Date().toISOString();
+        this.saveToStorage();
+        this._scheduleSyncToGitHub(userId);
+    },
+
+    // Reset all preferences for a user
+    resetForUser(userId) {
+        if (!userId) return;
+        delete this._cache[userId];
+        this.saveToStorage();
+        console.log(`[WidgetPreferences] Reset preferences for user ${userId}`);
+    },
+
+    // Schedule GitHub sync (debounced)
+    _scheduleSyncToGitHub(userId) {
+        if (!GitHubSync.hasToken() || !GitHubSync.autoSyncEnabled) return;
+        clearTimeout(this._syncTimeout);
+        this._syncTimeout = setTimeout(() => {
+            GitHubSync.syncWidgetPreferences().catch(e => {
+                console.warn('[WidgetPreferences] GitHub sync failed:', e.message);
+            });
+        }, 2000);
+    },
+
+    // Merge preferences from GitHub (for cross-device sync)
+    mergeFromGitHub(githubPrefs) {
+        if (!githubPrefs || typeof githubPrefs !== 'object') return;
+        
+        Object.keys(githubPrefs).forEach(userId => {
+            const remote = githubPrefs[userId];
+            const local = this._cache[userId];
+            
+            // If no local or remote is newer, use remote
+            if (!local || (remote.lastUpdated && (!local.lastUpdated || remote.lastUpdated > local.lastUpdated))) {
+                this._cache[userId] = remote;
+                console.log(`[WidgetPreferences] Updated preferences for user ${userId} from GitHub`);
+            }
+        });
+        
+        this.saveToStorage();
+    },
+
+    // Export for GitHub sync
+    exportForGitHub() {
+        return JSON.stringify({
+            version: '1.0.0',
+            lastUpdated: new Date().toISOString(),
+            preferences: this._cache
+        }, null, 2);
     }
 };
 
@@ -167,6 +280,7 @@ const GitHubSync = {
     REPO_NAME: 'SESSalesResources',
     ACTIVITY_PATH: 'data/activity-log.json',
     USERS_PATH: 'data/users.json',
+    WIDGET_PREFS_PATH: 'data/widget-preferences.json',
     
     token: null,
     lastSync: null,
@@ -194,172 +308,138 @@ const GitHubSync = {
     },
 
     hasToken() { return !!this.token; },
-    
-    clearToken() {
-        this.token = null;
-        sessionStorage.removeItem(this.TOKEN_KEY);
-    },
-
-    setAutoSync(enabled) {
-        this.autoSyncEnabled = enabled;
-        localStorage.setItem('secureEnergy_autoSync', String(enabled));
-    },
+    clearToken() { this.token = null; sessionStorage.removeItem(this.TOKEN_KEY); },
+    setAutoSync(enabled) { this.autoSyncEnabled = enabled; localStorage.setItem('secureEnergy_autoSync', String(enabled)); },
 
     async testConnection() {
         if (!this.token) return { success: false, error: 'No token configured' };
-
         try {
             const response = await fetch(`https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}`, {
                 headers: { 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json' }
             });
-
             if (response.ok) {
-                const data = await response.json();
-                return { success: true, repo: data.full_name };
-            } else if (response.status === 401) {
-                return { success: false, error: 'Invalid token' };
-            } else if (response.status === 404) {
-                return { success: false, error: 'Repository not found' };
+                const repo = await response.json();
+                return { success: true, repo: repo.full_name, permissions: repo.permissions };
             }
-            return { success: false, error: `API error: ${response.status}` };
+            return { success: false, error: `HTTP ${response.status}` };
+        } catch (e) { return { success: false, error: e.message }; }
+    },
+
+    async pullLatest() {
+        console.log('[GitHubSync] Pulling latest data...');
+        try {
+            // Pull widget preferences
+            await this.pullWidgetPreferences();
+            console.log('[GitHubSync] Pull complete');
         } catch (e) {
-            ErrorLog.log({ type: 'github', widget: 'github-sync', message: 'Connection test failed: ' + e.message });
-            return { success: false, error: e.message };
+            console.warn('[GitHubSync] Pull failed:', e.message);
         }
     },
 
-    async getFile(path) {
-        if (!this.token) throw new Error('No token');
-
-        const response = await fetch(
-            `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/contents/${path}`,
-            { headers: { 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json' } }
-        );
-
-        if (response.status === 404) return { exists: false, content: null, sha: null };
-        if (!response.ok) throw new Error(`API error: ${response.status}`);
-
-        const data = await response.json();
-        return { exists: true, content: JSON.parse(atob(data.content.replace(/\n/g, ''))), sha: data.sha };
+    async pullWidgetPreferences() {
+        try {
+            const response = await fetch(
+                `https://raw.githubusercontent.com/${this.REPO_OWNER}/${this.REPO_NAME}/main/${this.WIDGET_PREFS_PATH}?t=${Date.now()}`
+            );
+            if (!response.ok) return;
+            const data = await response.json();
+            if (data?.preferences) {
+                WidgetPreferences.mergeFromGitHub(data.preferences);
+            }
+        } catch (e) {
+            console.warn('[GitHubSync] Widget prefs fetch failed:', e.message);
+        }
     },
 
-    async saveFile(path, content, message, sha = null) {
-        if (!this.token) throw new Error('No token');
+    async syncWidgetPreferences() {
+        if (!this.token || this.isSyncing) return { success: false };
+        this.isSyncing = true;
+        
+        try {
+            const content = WidgetPreferences.exportForGitHub();
+            const result = await this._updateFile(this.WIDGET_PREFS_PATH, content, 'Update widget preferences');
+            this.lastSync = new Date().toISOString();
+            localStorage.setItem('secureEnergy_lastSync', this.lastSync);
+            console.log('[GitHubSync] Widget preferences synced');
+            return { success: true };
+        } catch (e) {
+            console.error('[GitHubSync] Widget prefs sync failed:', e);
+            return { success: false, error: e.message };
+        } finally {
+            this.isSyncing = false;
+        }
+    },
+
+    async syncActivityLog() {
+        if (!this.token || this.isSyncing) return { success: false };
+        this.isSyncing = true;
+        try {
+            const content = ActivityLog.exportForGitHub();
+            await this._updateFile(this.ACTIVITY_PATH, content, 'Update activity log');
+            this.lastSync = new Date().toISOString();
+            localStorage.setItem('secureEnergy_lastSync', this.lastSync);
+            return { success: true };
+        } catch (e) {
+            return { success: false, error: e.message };
+        } finally { this.isSyncing = false; }
+    },
+
+    async syncUsers() {
+        if (!this.token || this.isSyncing) return { success: false };
+        this.isSyncing = true;
+        try {
+            const content = UserStore.exportForGitHub();
+            await this._updateFile(this.USERS_PATH, content, 'Update users');
+            return { success: true };
+        } catch (e) {
+            return { success: false, error: e.message };
+        } finally { this.isSyncing = false; }
+    },
+
+    async pushChanges() {
+        if (!this.token) return { success: false, error: 'No token' };
+        const results = {};
+        results.activity = await this.syncActivityLog();
+        results.users = await this.syncUsers();
+        results.widgetPrefs = await this.syncWidgetPreferences();
+        return results;
+    },
+
+    async _updateFile(path, content, message) {
+        // Get current file SHA
+        let sha = null;
+        try {
+            const getRes = await fetch(`https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/contents/${path}`, {
+                headers: { 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json' }
+            });
+            if (getRes.ok) {
+                const data = await getRes.json();
+                sha = data.sha;
+            }
+        } catch {}
 
         const body = {
-            message,
-            content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
+            message: message,
+            content: btoa(unescape(encodeURIComponent(content))),
             branch: 'main'
         };
         if (sha) body.sha = sha;
 
-        const response = await fetch(
-            `https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/contents/${path}`,
-            {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${this.token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            }
-        );
+        const putRes = await fetch(`https://api.github.com/repos/${this.REPO_OWNER}/${this.REPO_NAME}/contents/${path}`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `token ${this.token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
 
-        if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.message || `API error: ${response.status}`);
+        if (!putRes.ok) {
+            const err = await putRes.json();
+            throw new Error(err.message || `HTTP ${putRes.status}`);
         }
-        return { success: true, sha: (await response.json()).content.sha };
-    },
-
-    async syncActivityLog() {
-        if (!this.token || this.isSyncing) {
-            return { success: false, error: this.isSyncing ? 'Sync in progress' : 'No token' };
-        }
-
-        this.isSyncing = true;
-        try {
-            const remote = await this.getFile(this.ACTIVITY_PATH);
-            const local = ActivityLog.getAll();
-            
-            let merged = [...local];
-            if (remote.exists && remote.content?.activities) {
-                const localIds = new Set(local.map(a => a.id));
-                remote.content.activities.forEach(a => {
-                    if (!localIds.has(a.id)) merged.push(a);
-                });
-                merged.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            }
-
-            await this.saveFile(this.ACTIVITY_PATH, {
-                version: '2.2.0',
-                lastUpdated: new Date().toISOString(),
-                activities: merged
-            }, `Sync activity log - ${new Date().toLocaleString()}`, remote.sha);
-
-            ActivityLog.activities = merged;
-            ActivityLog.saveToStorage();
-            this.lastSync = new Date().toISOString();
-            localStorage.setItem('secureEnergy_lastSync', this.lastSync);
-
-            this.isSyncing = false;
-            return { success: true, count: merged.length, lastSync: this.lastSync };
-        } catch (e) {
-            this.isSyncing = false;
-            ErrorLog.log({ type: 'github', widget: 'github-sync', message: 'Activity sync failed: ' + e.message });
-            return { success: false, error: e.message };
-        }
-    },
-
-    async syncUsers() {
-        if (!this.token || this.isSyncing) return { success: false, error: 'Not ready' };
-
-        this.isSyncing = true;
-        try {
-            const remote = await this.getFile(this.USERS_PATH);
-            const local = UserStore.getAll();
-
-            await this.saveFile(this.USERS_PATH, {
-                version: '2.2.0',
-                lastUpdated: new Date().toISOString(),
-                users: local
-            }, `Sync users - ${new Date().toLocaleString()}`, remote.sha);
-
-            this.isSyncing = false;
-            return { success: true, count: local.length };
-        } catch (e) {
-            this.isSyncing = false;
-            ErrorLog.log({ type: 'github', widget: 'github-sync', message: 'User sync failed: ' + e.message });
-            return { success: false, error: e.message };
-        }
-    },
-
-    async pullLatest() {
-        try {
-            const response = await fetch(
-                `https://raw.githubusercontent.com/${this.REPO_OWNER}/${this.REPO_NAME}/main/${this.ACTIVITY_PATH}?t=${Date.now()}`
-            );
-            if (!response.ok) return { success: false };
-
-            const data = await response.json();
-            if (data?.activities) {
-                const localIds = new Set(ActivityLog.activities.map(a => a.id));
-                data.activities.forEach(a => {
-                    if (!localIds.has(a.id)) ActivityLog.activities.push(a);
-                });
-                ActivityLog.activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-                ActivityLog.saveToStorage();
-            }
-            return { success: true };
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
-    },
-
-    getStatus() {
-        return {
-            hasToken: this.hasToken(),
-            autoSyncEnabled: this.autoSyncEnabled,
-            lastSync: this.lastSync,
-            isSyncing: this.isSyncing
-        };
+        return await putRes.json();
     }
 };
 
@@ -368,131 +448,61 @@ const GitHubSync = {
 // LMP DATA STORE
 // =====================================================
 const SecureEnergyData = {
-    STORAGE_KEY: 'secureEnergy_LMP_Data',
-    DATA_URL: 'data/lmp-database.json',
-    GITHUB_RAW_URL: 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json',
-    subscribers: [],
-    data: null,
-    isLoaded: false,
+    STORAGE_KEY: 'secureEnergy_lmpData',
+    DATA_URL: 'data/lmp-data.json',
+    lmpData: [],
+    _subscribers: [],
 
     async init() {
         console.log('[SecureEnergyData] Initializing...');
-        try {
-            const cached = this.loadFromStorage();
-            if (cached?.records?.length > 0) {
-                this.data = cached;
-                this.isLoaded = true;
-            }
-            try { await this.loadFromGitHub(); } catch (e) { console.warn('[SecureEnergyData] GitHub load failed'); }
-            this.notifySubscribers();
-        } catch (e) {
-            ErrorLog.log({ type: 'init', widget: 'data-store', message: 'Init failed: ' + e.message });
+        const cached = this.loadFromStorage();
+        if (cached?.length) {
+            this.lmpData = cached;
+            console.log(`[SecureEnergyData] ${cached.length} records from cache`);
         }
-        return this.data;
+        try { await this.fetchLatest(); } catch (e) { console.warn('[SecureEnergyData] Fetch failed:', e.message); }
+        this.notifySubscribers();
+        return this.lmpData;
     },
 
-    async loadFromGitHub() {
-        for (const url of [this.GITHUB_RAW_URL, this.DATA_URL]) {
-            try {
-                const response = await fetch(url + '?t=' + Date.now());
-                if (!response.ok) continue;
-                const jsonData = await response.json();
-                if (jsonData?.records?.length > 0) {
-                    this.data = { records: jsonData.records, meta: { source: url, loadedAt: new Date().toISOString(), recordCount: jsonData.records.length } };
-                    this.isLoaded = true;
+    async fetchLatest() {
+        try {
+            const response = await fetch(`https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-data.json?t=${Date.now()}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data?.records) {
+                    this.lmpData = data.records;
                     this.saveToStorage();
-                    this.notifySubscribers();
-                    return true;
-                }
-            } catch (e) { /* try next */ }
-        }
-        return false;
-    },
-
-    loadFromStorage() {
-        try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)); } catch { return null; }
-    },
-
-    saveToStorage() {
-        try { if (this.data) localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data)); } catch (e) {
-            ErrorLog.log({ type: 'storage', widget: 'data-store', message: 'Save failed: ' + e.message });
-        }
-    },
-
-    loadFromCSV(csvContent, source = 'CSV Upload') {
-        try {
-            const lines = csvContent.trim().split('\n');
-            if (lines.length < 2) throw new Error('Empty CSV');
-            const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-            const records = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                const values = this.parseCSVLine(lines[i]);
-                if (values.length >= headers.length) {
-                    const record = {};
-                    headers.forEach((h, idx) => record[h] = values[idx]?.trim() || '');
-                    const norm = this.normalizeRecord(record);
-                    if (norm.iso && norm.zone) records.push(norm);
+                    console.log(`[SecureEnergyData] ${this.lmpData.length} records from GitHub`);
                 }
             }
-
-            if (records.length === 0) throw new Error('No valid records');
-            this.data = { records, meta: { source, loadedAt: new Date().toISOString(), recordCount: records.length } };
-            this.isLoaded = true;
-            this.saveToStorage();
-            this.notifySubscribers();
-            return { success: true, count: records.length };
-        } catch (e) {
-            ErrorLog.log({ type: 'parse', widget: 'data-store', message: 'CSV error: ' + e.message });
-            return { success: false, error: e.message };
-        }
+        } catch (e) { console.warn('[SecureEnergyData] GitHub fetch failed'); }
     },
 
-    parseCSVLine(line) {
-        const result = []; let current = ''; let inQuotes = false;
-        for (const char of line) {
-            if (char === '"') inQuotes = !inQuotes;
-            else if (char === ',' && !inQuotes) { result.push(current); current = ''; }
-            else current += char;
-        }
-        result.push(current);
-        return result;
-    },
+    loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
+    saveToStorage() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.lmpData)); },
 
-    normalizeRecord(r) {
+    getAll() { return this.lmpData; },
+    getByISO(iso) { return this.lmpData.filter(r => r.iso === iso); },
+    getByZone(iso, zone) { return this.lmpData.filter(r => r.iso === iso && r.zone === zone); },
+    
+    getStats() {
+        const isos = [...new Set(this.lmpData.map(r => r.iso))];
         return {
-            iso: r.iso || r.isoname || r.iso_name || '',
-            zone: r.zone || r.zonename || r.zone_name || r.pnodename || '',
-            zoneId: r.zoneid || r.zone_id || r.pnodeid || '',
-            year: r.year || '',
-            month: r.month || '',
-            lmp: parseFloat(r.lmp || r.avg_da_lmp || r.avgdalmp || r.da_lmp || r.price || r.averagelmp || 0),
-            energy: parseFloat(r.energy || r.energycomponent || 0),
-            congestion: parseFloat(r.congestion || r.congestioncomponent || 0),
-            loss: parseFloat(r.loss || r.losscomponent || 0)
+            totalRecords: this.lmpData.length,
+            isoCount: isos.length,
+            isos: isos.sort()
         };
     },
 
-    getRecords() { return this.data?.records || []; },
-    getByISO(iso) { return this.getRecords().filter(r => r.iso?.toUpperCase() === iso?.toUpperCase()); },
-    getISOs() { return [...new Set(this.getRecords().map(r => r.iso).filter(Boolean))]; },
-    getZones(iso) { return [...new Set(this.getByISO(iso).map(r => r.zone).filter(Boolean))].sort(); },
-    getYears() { return [...new Set(this.getRecords().map(r => r.year).filter(Boolean))].sort(); },
-    getLMPData(iso, zone, year, month = null) {
-        return this.getRecords().filter(r => r.iso?.toUpperCase() === iso?.toUpperCase() && r.zone === zone && r.year == year && (month ? r.month == month : true));
-    },
-    getAverageLMP(iso, zone, year, month = null) {
-        const data = this.getLMPData(iso, zone, year, month);
-        return data.length ? data.reduce((sum, r) => sum + (r.lmp || 0), 0) / data.length : null;
-    },
-    getStats() {
-        const records = this.getRecords(), isos = this.getISOs(), years = this.getYears();
-        return { totalRecords: records.length, isoCount: isos.length, isos, yearRange: years.length ? [years[0], years[years.length - 1]] : null, lastUpdate: this.data?.meta?.loadedAt };
-    },
-    subscribe(cb) { this.subscribers.push(cb); },
-    notifySubscribers() { this.subscribers.forEach(cb => { try { cb(this.data); } catch {} }); },
-    exportForGitHub() {
-        return JSON.stringify({ version: '1.0.0', lastUpdated: new Date().toISOString(), meta: this.data?.meta || {}, records: this.getRecords() }, null, 2);
+    subscribe(callback) { this._subscribers.push(callback); },
+    notifySubscribers() { this._subscribers.forEach(cb => cb(this.getStats())); },
+
+    bulkUpdate(records) {
+        this.lmpData = records;
+        this.saveToStorage();
+        this.notifySubscribers();
+        window.postMessage({ type: 'LMP_BULK_UPDATE', count: records.length }, '*');
     }
 };
 
@@ -503,72 +513,80 @@ const SecureEnergyData = {
 const UserStore = {
     STORAGE_KEY: 'secureEnergy_users',
     SESSION_KEY: 'secureEnergy_currentUser',
-    USERS_URL: 'data/users.json',
     users: [],
 
     async init() {
         console.log('[UserStore] Initializing...');
-        try {
-            try { await this.loadFromGitHub(); } catch {}
-            const cached = this.loadFromStorage();
-            if (cached?.length) {
-                const emails = new Set(this.users.map(u => u.email.toLowerCase()));
-                cached.forEach(u => { if (!emails.has(u.email.toLowerCase())) this.users.push(u); });
-            }
-            if (!this.users.some(u => u.email === 'admin@sesenergy.org')) {
-                this.users.unshift({
-                    id: 'admin-default', email: 'admin@sesenergy.org', password: 'admin123',
-                    firstName: 'Admin', lastName: 'User', role: 'admin', status: 'active',
-                    createdAt: new Date().toISOString(),
-                    permissions: { 'user-admin': true, 'ai-assistant': true, 'lmp-comparison': true, 'lmp-analytics': true, 'analysis-history': true, 'data-manager': true, 'arcadia-fetcher': true }
-                });
-            }
-            this.saveToStorage();
-        } catch (e) {
-            ErrorLog.log({ type: 'init', widget: 'user-store', message: 'Init failed: ' + e.message });
-        }
+        this.users = this.loadFromStorage();
+        if (!this.users.length) this.createDefaultAdmin();
+        console.log(`[UserStore] ${this.users.length} users loaded`);
         return this.users;
-    },
-
-    async loadFromGitHub() {
-        const response = await fetch(this.USERS_URL + '?t=' + Date.now());
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        if (data?.users) this.users = data.users;
     },
 
     loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
     saveToStorage() { localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.users)); },
+
+    createDefaultAdmin() {
+        this.users.push({
+            id: 'admin-001',
+            email: 'admin@sesenergy.org',
+            password: 'admin123',
+            firstName: 'Admin',
+            lastName: 'User',
+            role: 'admin',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            permissions: {}
+        });
+        this.saveToStorage();
+        console.log('[UserStore] Default admin created');
+    },
+
     getAll() { return this.users; },
+    getById(id) { return this.users.find(u => u.id === id); },
     findByEmail(email) { return this.users.find(u => u.email.toLowerCase() === email.toLowerCase()); },
-    findById(id) { return this.users.find(u => u.id === id); },
 
     create(userData) {
-        if (this.findByEmail(userData.email)) throw new Error('Email exists');
-        const newUser = { id: 'user-' + Date.now(), ...userData, status: 'active', createdAt: new Date().toISOString() };
-        this.users.push(newUser);
+        if (this.findByEmail(userData.email)) return { success: false, error: 'Email already exists' };
+        const user = {
+            id: 'user-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
+            email: userData.email,
+            password: userData.password,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            role: userData.role || 'user',
+            status: 'active',
+            createdAt: new Date().toISOString(),
+            permissions: userData.permissions || {}
+        };
+        this.users.push(user);
         this.saveToStorage();
         if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) GitHubSync.syncUsers().catch(() => {});
-        return newUser;
+        return { success: true, user };
     },
 
     update(id, updates) {
         const idx = this.users.findIndex(u => u.id === id);
-        if (idx === -1) throw new Error('User not found');
-        if (updates.email && updates.email !== this.users[idx].email && this.findByEmail(updates.email)) throw new Error('Email exists');
-        this.users[idx] = { ...this.users[idx], ...updates };
+        if (idx === -1) return { success: false, error: 'User not found' };
+        if (updates.email && updates.email !== this.users[idx].email) {
+            if (this.findByEmail(updates.email)) return { success: false, error: 'Email already exists' };
+        }
+        this.users[idx] = { ...this.users[idx], ...updates, updatedAt: new Date().toISOString() };
         this.saveToStorage();
         if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) GitHubSync.syncUsers().catch(() => {});
-        return this.users[idx];
+        return { success: true, user: this.users[idx] };
     },
 
     delete(id) {
         const idx = this.users.findIndex(u => u.id === id);
-        if (idx === -1) throw new Error('User not found');
-        if (this.users[idx].email === 'admin@sesenergy.org') throw new Error('Cannot delete default admin');
+        if (idx === -1) return { success: false, error: 'User not found' };
+        if (this.users[idx].email === 'admin@sesenergy.org') return { success: false, error: 'Cannot delete default admin' };
         this.users.splice(idx, 1);
         this.saveToStorage();
+        // Also clean up their widget preferences
+        WidgetPreferences.resetForUser(id);
         if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) GitHubSync.syncUsers().catch(() => {});
+        return { success: true };
     },
 
     authenticate(email, password) {
@@ -583,9 +601,21 @@ const UserStore = {
         const s = { ...user }; delete s.password;
         localStorage.setItem(this.SESSION_KEY, JSON.stringify(s));
     },
-    getCurrentUser() { try { return JSON.parse(localStorage.getItem(this.SESSION_KEY)); } catch { return null; } },
+    
+    getCurrentUser() { 
+        try { return JSON.parse(localStorage.getItem(this.SESSION_KEY)); } 
+        catch { return null; } 
+    },
+    
     clearSession() { localStorage.removeItem(this.SESSION_KEY); },
-    exportForGitHub() { return JSON.stringify({ version: '1.0.0', lastUpdated: new Date().toISOString(), users: this.users }, null, 2); }
+    
+    exportForGitHub() { 
+        return JSON.stringify({ 
+            version: '1.0.0', 
+            lastUpdated: new Date().toISOString(), 
+            users: this.users 
+        }, null, 2); 
+    }
 };
 
 
@@ -594,27 +624,17 @@ const UserStore = {
 // =====================================================
 const ActivityLog = {
     STORAGE_KEY: 'secureEnergy_activityLog',
-    LOG_URL: 'data/activity-log.json',
     activities: [],
     _syncTimeout: null,
 
     async init() {
         console.log('[ActivityLog] Initializing...');
-        
-        // Load localStorage FIRST to preserve local data
         const cached = this.loadFromStorage();
         if (cached?.length) {
             this.activities = cached;
-            console.log(`[ActivityLog] ${cached.length} activities loaded from localStorage`);
+            console.log(`[ActivityLog] ${cached.length} activities from localStorage`);
         }
-        
-        // Then pull from GitHub and merge (adds new items, doesn't overwrite)
-        try { 
-            await this.pullFromGitHub(); 
-        } catch (e) {
-            console.warn('[ActivityLog] GitHub pull failed:', e.message);
-        }
-        
+        try { await this.pullFromGitHub(); } catch (e) { console.warn('[ActivityLog] GitHub pull failed:', e.message); }
         this.activities.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         this.saveToStorage();
         console.log(`[ActivityLog] ${this.activities.length} total activities`);
@@ -623,25 +643,18 @@ const ActivityLog = {
 
     async pullFromGitHub() {
         try {
-            const response = await fetch(
-                `https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/activity-log.json?t=${Date.now()}`
-            );
+            const response = await fetch(`https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/activity-log.json?t=${Date.now()}`);
             if (!response.ok) return;
             const data = await response.json();
             if (data?.activities) {
                 const localIds = new Set(this.activities.map(a => a.id));
                 let added = 0;
                 data.activities.forEach(a => {
-                    if (!localIds.has(a.id)) {
-                        this.activities.push(a);
-                        added++;
-                    }
+                    if (!localIds.has(a.id)) { this.activities.push(a); added++; }
                 });
                 if (added > 0) console.log(`[ActivityLog] Added ${added} activities from GitHub`);
             }
-        } catch (e) {
-            console.warn('[ActivityLog] GitHub fetch failed:', e.message);
-        }
+        } catch (e) { console.warn('[ActivityLog] GitHub fetch failed:', e.message); }
     },
 
     loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
@@ -662,8 +675,6 @@ const ActivityLog = {
         };
         this.activities.unshift(entry);
         this.saveToStorage();
-        
-        // Debounced auto-sync
         if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) {
             clearTimeout(this._syncTimeout);
             this._syncTimeout = setTimeout(() => GitHubSync.syncActivityLog().catch(() => {}), 3000);
@@ -743,7 +754,7 @@ const ActivityLog = {
     },
 
     exportForGitHub() {
-        return JSON.stringify({ version: '2.2.0', lastUpdated: new Date().toISOString(), activities: this.activities }, null, 2);
+        return JSON.stringify({ version: '2.3.0', lastUpdated: new Date().toISOString(), activities: this.activities }, null, 2);
     }
 };
 
@@ -757,15 +768,18 @@ if (typeof window !== 'undefined') {
     window.ActivityLog = ActivityLog;
     window.GitHubSync = GitHubSync;
     window.ErrorLog = ErrorLog;
+    window.WidgetPreferences = WidgetPreferences;
     
     ErrorLog.init();
     GitHubSync.init();
+    WidgetPreferences.init();
     
     window.resetUserStore = () => { localStorage.removeItem('secureEnergy_users'); localStorage.removeItem('secureEnergy_currentUser'); location.reload(); };
     window.resetActivityLog = () => { localStorage.removeItem('secureEnergy_activityLog'); location.reload(); };
     window.resetErrorLog = () => { ErrorLog.clearAll(); };
+    window.resetWidgetPrefs = () => { localStorage.removeItem('secureEnergy_widgetPrefs'); location.reload(); };
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { SecureEnergyData, UserStore, ActivityLog, GitHubSync, ErrorLog };
+    module.exports = { SecureEnergyData, UserStore, ActivityLog, GitHubSync, ErrorLog, WidgetPreferences };
 }
