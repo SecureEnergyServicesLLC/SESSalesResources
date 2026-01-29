@@ -234,6 +234,7 @@ function getCreateUserPanel() {
             <div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="perm-ai-assistant" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-comparison" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>LMP Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-analytics" checked><span class="toggle-slider"></span></label></div>
+            <div class="widget-permission-item"><span>Peak Demand Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-peak-demand" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>Analysis History</span><label class="toggle-switch"><input type="checkbox" id="perm-analysis-history" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>Data Manager</span><label class="toggle-switch"><input type="checkbox" id="perm-data-manager"><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>Arcadia Fetcher</span><label class="toggle-switch"><input type="checkbox" id="perm-arcadia-fetcher"><span class="toggle-slider"></span></label></div>
@@ -400,7 +401,7 @@ function createUser() {
     const email = document.getElementById('newEmail').value.trim(), password = document.getElementById('newPassword').value, role = document.getElementById('newRole').value;
     if (!firstName || !lastName || !email || !password) { showNotification('Fill all required fields', 'error'); return; }
     
-    const permissions = { 'ai-assistant': document.getElementById('perm-ai-assistant').checked, 'lmp-comparison': document.getElementById('perm-lmp-comparison').checked, 'lmp-analytics': document.getElementById('perm-lmp-analytics').checked, 'analysis-history': document.getElementById('perm-analysis-history').checked, 'data-manager': document.getElementById('perm-data-manager').checked, 'arcadia-fetcher': document.getElementById('perm-arcadia-fetcher').checked, 'user-admin': role === 'admin' };
+    const permissions = { 'ai-assistant': document.getElementById('perm-ai-assistant').checked, 'lmp-comparison': document.getElementById('perm-lmp-comparison').checked, 'lmp-analytics': document.getElementById('perm-lmp-analytics').checked, 'peak-demand': document.getElementById('perm-peak-demand').checked, 'analysis-history': document.getElementById('perm-analysis-history').checked, 'data-manager': document.getElementById('perm-data-manager').checked, 'arcadia-fetcher': document.getElementById('perm-arcadia-fetcher').checked, 'user-admin': role === 'admin' };
     
     try {
         UserStore.create({ firstName, lastName, email, password, role, permissions });
@@ -424,10 +425,20 @@ function editUser(userId) {
     const user = UserStore.findById(userId);
     if (!user) return;
     const modal = document.getElementById('editUserModal'), content = document.getElementById('editUserContent');
+    const p = user.permissions || {};
     content.innerHTML = `<input type="hidden" id="editUserId" value="${user.id}">
         <div class="form-row"><div class="form-group"><label>First Name</label><input type="text" id="editFirstName" value="${user.firstName}"></div><div class="form-group"><label>Last Name</label><input type="text" id="editLastName" value="${user.lastName}"></div></div>
         <div class="form-row single"><div class="form-group"><label>Email</label><input type="email" id="editEmail" value="${user.email}" ${user.email === 'admin@sesenergy.org' ? 'disabled' : ''}></div></div>
         <div class="form-row single"><div class="form-group"><label>Role</label><select id="editRole" ${user.email === 'admin@sesenergy.org' ? 'disabled' : ''}><option value="user" ${user.role === 'user' ? 'selected' : ''}>User</option><option value="admin" ${user.role === 'admin' ? 'selected' : ''}>Admin</option></select></div></div>
+        <div class="widget-permissions" style="margin-top:20px;"><h4>Widget Permissions</h4>
+            <div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-ai-assistant" ${p['ai-assistant'] !== false ? 'checked' : ''}><span class="toggle-slider"></span></label></div>
+            <div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-lmp-comparison" ${p['lmp-comparison'] !== false ? 'checked' : ''}><span class="toggle-slider"></span></label></div>
+            <div class="widget-permission-item"><span>LMP Analytics</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-lmp-analytics" ${p['lmp-analytics'] !== false ? 'checked' : ''}><span class="toggle-slider"></span></label></div>
+            <div class="widget-permission-item"><span>Peak Demand Analytics</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-peak-demand" ${p['peak-demand'] !== false ? 'checked' : ''}><span class="toggle-slider"></span></label></div>
+            <div class="widget-permission-item"><span>Analysis History</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-analysis-history" ${p['analysis-history'] !== false ? 'checked' : ''}><span class="toggle-slider"></span></label></div>
+            <div class="widget-permission-item"><span>Data Manager</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-data-manager" ${p['data-manager'] === true ? 'checked' : ''}><span class="toggle-slider"></span></label></div>
+            <div class="widget-permission-item"><span>Arcadia Fetcher</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-arcadia-fetcher" ${p['arcadia-fetcher'] === true ? 'checked' : ''}><span class="toggle-slider"></span></label></div>
+        </div>
         <button class="btn-primary" onclick="saveUserEdit()" style="width:100%;margin-top:20px;">Save</button>`;
     document.querySelector('#editUserModal .modal-title').textContent = 'Edit User';
     modal.classList.add('show');
@@ -435,8 +446,24 @@ function editUser(userId) {
 
 function saveUserEdit() {
     const userId = document.getElementById('editUserId').value;
+    const permissions = {
+        'ai-assistant': document.getElementById('edit-perm-ai-assistant').checked,
+        'lmp-comparison': document.getElementById('edit-perm-lmp-comparison').checked,
+        'lmp-analytics': document.getElementById('edit-perm-lmp-analytics').checked,
+        'peak-demand': document.getElementById('edit-perm-peak-demand').checked,
+        'analysis-history': document.getElementById('edit-perm-analysis-history').checked,
+        'data-manager': document.getElementById('edit-perm-data-manager').checked,
+        'arcadia-fetcher': document.getElementById('edit-perm-arcadia-fetcher').checked,
+        'user-admin': document.getElementById('editRole').value === 'admin'
+    };
     try {
-        UserStore.update(userId, { firstName: document.getElementById('editFirstName').value.trim(), lastName: document.getElementById('editLastName').value.trim(), email: document.getElementById('editEmail').value.trim(), role: document.getElementById('editRole').value });
+        UserStore.update(userId, { 
+            firstName: document.getElementById('editFirstName').value.trim(), 
+            lastName: document.getElementById('editLastName').value.trim(), 
+            email: document.getElementById('editEmail').value.trim(), 
+            role: document.getElementById('editRole').value,
+            permissions: permissions
+        });
         showNotification('Updated!', 'success');
         closeEditModal();
         renderUsersTable();
