@@ -1,24 +1,77 @@
 /**
  * Client Store - Centralized Client Management
  * Provides unique client identifiers (CID) across all portal widgets
- * Version: 1.0.0
+ * Supports Salesforce data import and cross-widget client context
+ * Version: 2.0.0
  */
 
 (function() {
     'use strict';
 
     const STORAGE_KEY = 'secureEnergy_clients';
+    const ACTIVE_CLIENT_KEY = 'secureEnergy_activeClient';
     const GITHUB_FILE = 'data/clients.json';
     
     let clients = {};
+    let activeClientId = null;
     let subscribers = [];
+
+    // ========================================
+    // Salesforce Field Mappings (customizable)
+    // ========================================
+    const SALESFORCE_FIELD_MAP = {
+        // Salesforce Field -> Internal Field
+        'Account Name': 'name',
+        'Account ID': 'salesforceId',
+        'AccountId': 'salesforceId',
+        'Id': 'salesforceId',
+        'Name': 'name',
+        'BillingStreet': 'address',
+        'BillingCity': 'city',
+        'BillingState': 'state',
+        'BillingPostalCode': 'zip',
+        'BillingCountry': 'country',
+        'Phone': 'phone',
+        'Website': 'website',
+        'Industry': 'industry',
+        'Type': 'accountType',
+        'Description': 'notes',
+        'OwnerId': 'salesRepId',
+        'Owner.Name': 'salesRepName',
+        'Owner Name': 'salesRepName',
+        'CreatedDate': 'sfCreatedDate',
+        'LastModifiedDate': 'sfModifiedDate',
+        'Annual Revenue': 'annualRevenue',
+        'AnnualRevenue': 'annualRevenue',
+        'NumberOfEmployees': 'employees',
+        'Number of Employees': 'employees',
+        // Energy-specific fields
+        'ISO__c': 'iso',
+        'ISO': 'iso',
+        'Utility__c': 'utility',
+        'Utility': 'utility',
+        'Load Zone__c': 'loadZone',
+        'Load Zone': 'loadZone',
+        'Annual Usage MWh__c': 'annualUsageMWh',
+        'Annual Usage (MWh)': 'annualUsageMWh',
+        'Contract End Date__c': 'contractEndDate',
+        'Contract End Date': 'contractEndDate',
+        'Current Supplier__c': 'currentSupplier',
+        'Current Supplier': 'currentSupplier',
+        'Rate Type__c': 'rateType',
+        'Rate Type': 'rateType'
+    };
 
     // ========================================
     // Initialization
     // ========================================
     function init() {
         loadFromStorage();
+        loadActiveClient();
         console.log('[ClientStore] Initialized with', Object.keys(clients).length, 'clients');
+        if (activeClientId) {
+            console.log('[ClientStore] Active client:', activeClientId);
+        }
         return getStats();
     }
 
@@ -34,6 +87,14 @@
         }
     }
 
+    function loadActiveClient() {
+        try {
+            activeClientId = localStorage.getItem(ACTIVE_CLIENT_KEY) || null;
+        } catch (e) {
+            activeClientId = null;
+        }
+    }
+
     function saveToStorage() {
         try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
@@ -43,11 +104,23 @@
         }
     }
 
+    function saveActiveClient() {
+        try {
+            if (activeClientId) {
+                localStorage.setItem(ACTIVE_CLIENT_KEY, activeClientId);
+            } else {
+                localStorage.removeItem(ACTIVE_CLIENT_KEY);
+            }
+        } catch (e) {
+            console.error('[ClientStore] Save active client error:', e);
+        }
+    }
+
     // ========================================
     // Client ID Generation
     // ========================================
     function generateClientId() {
-        // Format: CID-YYYYMMDD-XXXXX (e.g., CID-20260129-A3B7F)
+        // Format: CID-YYYYMMDD-XXXXX (e.g., CID-20260130-A3B7F)
         const date = new Date();
         const dateStr = date.getFullYear().toString() +
             (date.getMonth() + 1).toString().padStart(2, '0') +
@@ -57,81 +130,159 @@
     }
 
     // ========================================
+    // Active Client Management (Portal-Wide Context)
+    // ========================================
+    function setActiveClient(clientId) {
+        if (clientId && !clients[clientId]) {
+            console.warn('[ClientStore] Client not found:', clientId);
+            return false;
+        }
+        
+        const previousClient = activeClientId;
+        activeClientId = clientId;
+        saveActiveClient();
+        
+        // Notify all widgets of client change
+        notifySubscribers('activeClientChanged', {
+            previous: previousClient,
+            current: clientId,
+            client: clientId ? clients[clientId] : null
+        });
+        
+        // Post message to all iframes (widgets)
+        broadcastToWidgets({
+            type: 'ACTIVE_CLIENT_CHANGED',
+            clientId: clientId,
+            client: clientId ? clients[clientId] : null
+        });
+        
+        console.log('[ClientStore] Active client set to:', clientId);
+        return true;
+    }
+
+    function getActiveClient() {
+        return activeClientId ? clients[activeClientId] : null;
+    }
+
+    function getActiveClientId() {
+        return activeClientId;
+    }
+
+    function clearActiveClient() {
+        setActiveClient(null);
+    }
+
+    function broadcastToWidgets(message) {
+        // Send to all iframes in the portal
+        document.querySelectorAll('iframe').forEach(iframe => {
+            try {
+                iframe.contentWindow.postMessage(message, '*');
+            } catch (e) {
+                // Ignore cross-origin errors
+            }
+        });
+    }
+
+    // ========================================
     // CRUD Operations
     // ========================================
     function createClient(clientData) {
-        const clientId = generateClientId();
-        const timestamp = new Date().toISOString();
+        const id = clientData.id || generateClientId();
+        const now = new Date().toISOString();
         
         const client = {
-            id: clientId,
+            id: id,
+            salesforceId: clientData.salesforceId || '',
             name: clientData.name || '',
-            companyName: clientData.companyName || clientData.name || '',
-            contactName: clientData.contactName || '',
-            contactEmail: clientData.contactEmail || '',
-            contactPhone: clientData.contactPhone || '',
-            address: {
-                street: clientData.street || '',
-                city: clientData.city || '',
-                state: clientData.state || '',
-                zip: clientData.zip || ''
-            },
-            locations: clientData.locations || [],
+            displayName: clientData.displayName || clientData.name || '',
+            
+            // Contact Info
+            address: clientData.address || '',
+            city: clientData.city || '',
+            state: clientData.state || '',
+            zip: clientData.zip || '',
+            country: clientData.country || 'USA',
+            phone: clientData.phone || '',
+            website: clientData.website || '',
+            
+            // Business Info
+            industry: clientData.industry || '',
+            accountType: clientData.accountType || 'Prospect',
+            annualRevenue: clientData.annualRevenue || '',
+            employees: clientData.employees || '',
+            
+            // Energy-Specific
             iso: clientData.iso || '',
             utility: clientData.utility || '',
-            accountNumbers: clientData.accountNumbers || [],
-            annualUsage: clientData.annualUsage || 0,
-            usageUnit: clientData.usageUnit || 'kWh',
-            commodityType: clientData.commodityType || 'electric', // electric, gas, both
-            salesRepId: clientData.salesRepId || null,
+            loadZone: clientData.loadZone || '',
+            annualUsageMWh: clientData.annualUsageMWh || '',
+            contractEndDate: clientData.contractEndDate || '',
+            currentSupplier: clientData.currentSupplier || '',
+            rateType: clientData.rateType || '',
+            
+            // Locations (for multi-site clients)
+            locations: clientData.locations || [],
+            
+            // Sales Info
+            salesRepId: clientData.salesRepId || '',
             salesRepName: clientData.salesRepName || '',
-            notes: clientData.notes || '',
+            salesRepEmail: clientData.salesRepEmail || '',
+            
+            // Status
+            status: clientData.status || 'Active',
+            priority: clientData.priority || 'Normal',
             tags: clientData.tags || [],
-            status: 'active',
-            lmpAnalysisIds: [], // Track linked LMP analyses
-            bidIds: [], // Track linked bids
-            createdAt: timestamp,
-            updatedAt: timestamp,
-            createdBy: clientData.createdBy || 'system'
+            notes: clientData.notes || '',
+            
+            // Linked Data (analyses, bids, etc.)
+            linkedAnalyses: [],
+            linkedBids: [],
+            linkedDocuments: [],
+            
+            // Custom Fields (from Salesforce or user-defined)
+            customFields: clientData.customFields || {},
+            
+            // Metadata
+            source: clientData.source || 'Manual',
+            sfCreatedDate: clientData.sfCreatedDate || '',
+            sfModifiedDate: clientData.sfModifiedDate || '',
+            createdAt: now,
+            updatedAt: now,
+            createdBy: clientData.createdBy || ''
         };
         
-        clients[clientId] = client;
+        clients[id] = client;
         saveToStorage();
         notifySubscribers('create', client);
         
-        return { success: true, client };
+        return client;
     }
 
     function updateClient(clientId, updates) {
         if (!clients[clientId]) {
-            return { success: false, error: 'Client not found' };
+            console.error('[ClientStore] Client not found:', clientId);
+            return null;
         }
         
-        const client = clients[clientId];
+        clients[clientId] = {
+            ...clients[clientId],
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
         
-        // Update allowed fields
-        const allowedFields = [
-            'name', 'companyName', 'contactName', 'contactEmail', 'contactPhone',
-            'address', 'locations', 'iso', 'utility', 'accountNumbers',
-            'annualUsage', 'usageUnit', 'commodityType', 'salesRepId', 'salesRepName',
-            'notes', 'tags', 'status'
-        ];
-        
-        allowedFields.forEach(field => {
-            if (updates[field] !== undefined) {
-                if (field === 'address' && typeof updates[field] === 'object') {
-                    client.address = { ...client.address, ...updates[field] };
-                } else {
-                    client[field] = updates[field];
-                }
-            }
-        });
-        
-        client.updatedAt = new Date().toISOString();
         saveToStorage();
-        notifySubscribers('update', client);
+        notifySubscribers('update', clients[clientId]);
         
-        return { success: true, client };
+        // If this is the active client, broadcast the update
+        if (clientId === activeClientId) {
+            broadcastToWidgets({
+                type: 'ACTIVE_CLIENT_UPDATED',
+                clientId: clientId,
+                client: clients[clientId]
+            });
+        }
+        
+        return clients[clientId];
     }
 
     function getClient(clientId) {
@@ -139,235 +290,460 @@
     }
 
     function getClientByName(name) {
+        const searchName = name.toLowerCase().trim();
         return Object.values(clients).find(c => 
-            c.name.toLowerCase() === name.toLowerCase() ||
-            c.companyName.toLowerCase() === name.toLowerCase()
-        ) || null;
+            c.name.toLowerCase() === searchName ||
+            c.displayName?.toLowerCase() === searchName
+        );
+    }
+
+    function getClientBySalesforceId(sfId) {
+        return Object.values(clients).find(c => c.salesforceId === sfId);
     }
 
     function getAllClients() {
-        return Object.values(clients).filter(c => c.status !== 'deleted');
+        return Object.values(clients).sort((a, b) => 
+            (a.name || '').localeCompare(b.name || '')
+        );
     }
 
     function getActiveClients() {
-        return Object.values(clients).filter(c => c.status === 'active');
+        return Object.values(clients)
+            .filter(c => c.status === 'Active')
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
 
-    function getClientsBySalesRep(salesRepId) {
-        return Object.values(clients).filter(c => 
-            c.salesRepId === salesRepId && c.status === 'active'
-        );
+    function getClientsBySalesRep(salesRepEmail) {
+        return Object.values(clients)
+            .filter(c => c.salesRepEmail === salesRepEmail)
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
 
-    function searchClients(query) {
-        const q = query.toLowerCase();
-        return Object.values(clients).filter(c => 
-            c.status !== 'deleted' && (
-                c.name.toLowerCase().includes(q) ||
-                c.companyName.toLowerCase().includes(q) ||
-                c.contactName.toLowerCase().includes(q) ||
-                c.id.toLowerCase().includes(q)
-            )
-        );
+    function getClientsByISO(iso) {
+        return Object.values(clients)
+            .filter(c => c.iso === iso)
+            .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
     }
 
-    function deleteClient(clientId, permanent = false) {
-        if (!clients[clientId]) {
-            return { success: false, error: 'Client not found' };
+    function searchClients(query, options = {}) {
+        const q = query.toLowerCase().trim();
+        if (!q) return getAllClients();
+        
+        let results = Object.values(clients).filter(c => {
+            const searchFields = [
+                c.name,
+                c.displayName,
+                c.salesforceId,
+                c.city,
+                c.state,
+                c.iso,
+                c.utility,
+                c.salesRepName,
+                ...(c.tags || [])
+            ].filter(Boolean);
+            
+            return searchFields.some(field => 
+                field.toLowerCase().includes(q)
+            );
+        });
+        
+        // Apply filters
+        if (options.status) {
+            results = results.filter(c => c.status === options.status);
+        }
+        if (options.iso) {
+            results = results.filter(c => c.iso === options.iso);
+        }
+        if (options.salesRep) {
+            results = results.filter(c => c.salesRepEmail === options.salesRep);
         }
         
-        if (permanent) {
-            delete clients[clientId];
-        } else {
-            clients[clientId].status = 'deleted';
-            clients[clientId].deletedAt = new Date().toISOString();
+        return results.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    }
+
+    function deleteClient(clientId) {
+        if (!clients[clientId]) return false;
+        
+        const client = clients[clientId];
+        delete clients[clientId];
+        
+        // Clear active client if deleted
+        if (activeClientId === clientId) {
+            clearActiveClient();
         }
         
         saveToStorage();
-        notifySubscribers('delete', { id: clientId, permanent });
+        notifySubscribers('delete', client);
         
-        return { success: true };
+        return true;
     }
 
     // ========================================
-    // Location Management
+    // Location Management (Multi-Site Clients)
     // ========================================
     function addLocation(clientId, location) {
-        const client = clients[clientId];
-        if (!client) {
-            return { success: false, error: 'Client not found' };
-        }
+        if (!clients[clientId]) return null;
         
-        const locationId = `LOC-${Date.now().toString(36).toUpperCase()}`;
-        const newLocation = {
-            id: locationId,
-            name: location.name || `Location ${client.locations.length + 1}`,
+        const loc = {
+            id: `LOC-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+            name: location.name || 'Location',
             address: location.address || '',
             city: location.city || '',
             state: location.state || '',
             zip: location.zip || '',
-            iso: location.iso || client.iso,
-            zone: location.zone || '',
-            utility: location.utility || client.utility,
+            iso: location.iso || clients[clientId].iso || '',
+            utility: location.utility || clients[clientId].utility || '',
+            loadZone: location.loadZone || '',
+            annualUsageMWh: location.annualUsageMWh || '',
             accountNumber: location.accountNumber || '',
             meterNumber: location.meterNumber || '',
-            annualUsage: location.annualUsage || 0,
-            usageUnit: location.usageUnit || 'kWh',
             rateClass: location.rateClass || '',
-            loadProfile: location.loadProfile || '',
-            peakDemand: location.peakDemand || 0,
             notes: location.notes || '',
             createdAt: new Date().toISOString()
         };
         
-        client.locations.push(newLocation);
-        client.updatedAt = new Date().toISOString();
+        clients[clientId].locations.push(loc);
+        clients[clientId].updatedAt = new Date().toISOString();
         saveToStorage();
-        notifySubscribers('locationAdd', { clientId, location: newLocation });
         
-        return { success: true, location: newLocation };
+        return loc;
     }
 
     function updateLocation(clientId, locationId, updates) {
-        const client = clients[clientId];
-        if (!client) {
-            return { success: false, error: 'Client not found' };
-        }
+        if (!clients[clientId]) return null;
         
-        const locationIndex = client.locations.findIndex(l => l.id === locationId);
-        if (locationIndex === -1) {
-            return { success: false, error: 'Location not found' };
-        }
+        const locIndex = clients[clientId].locations.findIndex(l => l.id === locationId);
+        if (locIndex === -1) return null;
         
-        client.locations[locationIndex] = { ...client.locations[locationIndex], ...updates };
-        client.updatedAt = new Date().toISOString();
+        clients[clientId].locations[locIndex] = {
+            ...clients[clientId].locations[locIndex],
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        
+        clients[clientId].updatedAt = new Date().toISOString();
         saveToStorage();
         
-        return { success: true, location: client.locations[locationIndex] };
+        return clients[clientId].locations[locIndex];
     }
 
     function removeLocation(clientId, locationId) {
-        const client = clients[clientId];
-        if (!client) {
-            return { success: false, error: 'Client not found' };
-        }
+        if (!clients[clientId]) return false;
         
-        client.locations = client.locations.filter(l => l.id !== locationId);
-        client.updatedAt = new Date().toISOString();
+        const locIndex = clients[clientId].locations.findIndex(l => l.id === locationId);
+        if (locIndex === -1) return false;
+        
+        clients[clientId].locations.splice(locIndex, 1);
+        clients[clientId].updatedAt = new Date().toISOString();
         saveToStorage();
         
-        return { success: true };
+        return true;
     }
 
     // ========================================
-    // Link Management (for LMP & Bids)
+    // Link Analyses and Bids to Clients
     // ========================================
-    function linkLMPAnalysis(clientId, analysisId) {
-        const client = clients[clientId];
-        if (!client) return { success: false, error: 'Client not found' };
+    function linkAnalysis(clientId, analysis) {
+        if (!clients[clientId]) return false;
         
-        if (!client.lmpAnalysisIds.includes(analysisId)) {
-            client.lmpAnalysisIds.push(analysisId);
-            client.updatedAt = new Date().toISOString();
-            saveToStorage();
-        }
-        return { success: true };
+        const linkedAnalysis = {
+            id: analysis.id || `ANA-${Date.now()}`,
+            type: analysis.type || 'LMP Comparison',
+            iso: analysis.iso || '',
+            zone: analysis.zone || '',
+            years: analysis.years || [],
+            fixedRate: analysis.fixedRate || '',
+            usage: analysis.usage || '',
+            results: analysis.results || {},
+            timestamp: analysis.timestamp || new Date().toISOString(),
+            createdBy: analysis.createdBy || ''
+        };
+        
+        clients[clientId].linkedAnalyses.push(linkedAnalysis);
+        clients[clientId].updatedAt = new Date().toISOString();
+        saveToStorage();
+        
+        notifySubscribers('analysisLinked', { clientId, analysis: linkedAnalysis });
+        
+        return linkedAnalysis;
     }
 
-    function linkBid(clientId, bidId) {
-        const client = clients[clientId];
-        if (!client) return { success: false, error: 'Client not found' };
+    function linkBid(clientId, bid) {
+        if (!clients[clientId]) return false;
         
-        if (!client.bidIds.includes(bidId)) {
-            client.bidIds.push(bidId);
-            client.updatedAt = new Date().toISOString();
-            saveToStorage();
+        const linkedBid = {
+            id: bid.id || `BID-${Date.now()}`,
+            suppliers: bid.suppliers || [],
+            locations: bid.locations || [],
+            status: bid.status || 'Draft',
+            selectedRate: bid.selectedRate || null,
+            timestamp: bid.timestamp || new Date().toISOString(),
+            createdBy: bid.createdBy || ''
+        };
+        
+        clients[clientId].linkedBids.push(linkedBid);
+        clients[clientId].updatedAt = new Date().toISOString();
+        saveToStorage();
+        
+        notifySubscribers('bidLinked', { clientId, bid: linkedBid });
+        
+        return linkedBid;
+    }
+
+    function getClientAnalyses(clientId) {
+        return clients[clientId]?.linkedAnalyses || [];
+    }
+
+    function getClientBids(clientId) {
+        return clients[clientId]?.linkedBids || [];
+    }
+
+    // ========================================
+    // Salesforce Import
+    // ========================================
+    function importFromSalesforce(data, options = {}) {
+        const results = {
+            imported: 0,
+            updated: 0,
+            skipped: 0,
+            errors: []
+        };
+        
+        let records = [];
+        
+        // Parse input data
+        if (typeof data === 'string') {
+            // CSV format
+            records = parseCSV(data);
+        } else if (Array.isArray(data)) {
+            records = data;
+        } else if (data && typeof data === 'object') {
+            // Single record
+            records = [data];
         }
-        return { success: true };
+        
+        const currentUser = window.UserStore?.getCurrentUser?.();
+        
+        records.forEach((record, index) => {
+            try {
+                // Map Salesforce fields to internal fields
+                const mappedData = mapSalesforceFields(record);
+                
+                if (!mappedData.name) {
+                    results.skipped++;
+                    results.errors.push(`Row ${index + 1}: Missing required field 'Name'`);
+                    return;
+                }
+                
+                // Check if client already exists (by Salesforce ID or name)
+                let existingClient = null;
+                if (mappedData.salesforceId) {
+                    existingClient = getClientBySalesforceId(mappedData.salesforceId);
+                }
+                if (!existingClient && options.matchByName) {
+                    existingClient = getClientByName(mappedData.name);
+                }
+                
+                if (existingClient) {
+                    if (options.updateExisting) {
+                        // Update existing client
+                        updateClient(existingClient.id, {
+                            ...mappedData,
+                            source: 'Salesforce',
+                            updatedBy: currentUser?.email || ''
+                        });
+                        results.updated++;
+                    } else {
+                        results.skipped++;
+                    }
+                } else {
+                    // Create new client
+                    createClient({
+                        ...mappedData,
+                        source: 'Salesforce',
+                        createdBy: currentUser?.email || ''
+                    });
+                    results.imported++;
+                }
+            } catch (e) {
+                results.errors.push(`Row ${index + 1}: ${e.message}`);
+            }
+        });
+        
+        console.log('[ClientStore] Salesforce import results:', results);
+        notifySubscribers('import', results);
+        
+        return results;
+    }
+
+    function mapSalesforceFields(record) {
+        const mapped = {};
+        
+        Object.entries(record).forEach(([key, value]) => {
+            // Check if we have a mapping for this field
+            const internalField = SALESFORCE_FIELD_MAP[key];
+            if (internalField) {
+                mapped[internalField] = value;
+            } else if (key.endsWith('__c')) {
+                // Custom field - store in customFields
+                if (!mapped.customFields) mapped.customFields = {};
+                mapped.customFields[key] = value;
+            }
+        });
+        
+        return mapped;
+    }
+
+    function parseCSV(csvString) {
+        const lines = csvString.split('\n');
+        if (lines.length < 2) return [];
+        
+        // Parse header
+        const headers = parseCSVLine(lines[0]);
+        
+        // Parse data rows
+        const records = [];
+        for (let i = 1; i < lines.length; i++) {
+            if (!lines[i].trim()) continue;
+            
+            const values = parseCSVLine(lines[i]);
+            const record = {};
+            
+            headers.forEach((header, index) => {
+                record[header.trim()] = values[index]?.trim() || '';
+            });
+            
+            records.push(record);
+        }
+        
+        return records;
+    }
+
+    function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current);
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current);
+        
+        return result.map(v => v.replace(/^"|"$/g, ''));
+    }
+
+    // ========================================
+    // Export
+    // ========================================
+    function exportClients(format = 'json') {
+        const allClients = getAllClients();
+        
+        if (format === 'json') {
+            return JSON.stringify(allClients, null, 2);
+        } else if (format === 'csv') {
+            return exportToCSV(allClients);
+        }
+        
+        return allClients;
+    }
+
+    function exportToCSV(clientList) {
+        if (!clientList.length) return '';
+        
+        const headers = [
+            'ID', 'Salesforce ID', 'Name', 'Address', 'City', 'State', 'ZIP',
+            'Phone', 'Website', 'Industry', 'ISO', 'Utility', 'Load Zone',
+            'Annual Usage (MWh)', 'Contract End Date', 'Current Supplier',
+            'Sales Rep', 'Status', 'Tags', 'Notes', 'Created', 'Updated'
+        ];
+        
+        const rows = clientList.map(c => [
+            c.id,
+            c.salesforceId,
+            c.name,
+            c.address,
+            c.city,
+            c.state,
+            c.zip,
+            c.phone,
+            c.website,
+            c.industry,
+            c.iso,
+            c.utility,
+            c.loadZone,
+            c.annualUsageMWh,
+            c.contractEndDate,
+            c.currentSupplier,
+            c.salesRepName,
+            c.status,
+            (c.tags || []).join('; '),
+            c.notes,
+            c.createdAt,
+            c.updatedAt
+        ].map(v => `"${(v || '').toString().replace(/"/g, '""')}"`).join(','));
+        
+        return [headers.join(','), ...rows].join('\n');
     }
 
     // ========================================
     // GitHub Sync
     // ========================================
-    async function syncToGitHub(token, repo) {
-        if (!token || !repo) return { success: false, error: 'Missing token or repo' };
+    async function syncToGitHub() {
+        if (typeof GitHubSync === 'undefined') {
+            console.warn('[ClientStore] GitHubSync not available');
+            return false;
+        }
         
         try {
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(clients, null, 2))));
-            const apiUrl = `https://api.github.com/repos/${repo}/contents/${GITHUB_FILE}`;
-            
-            // Get current file SHA if exists
-            let sha = null;
-            try {
-                const getResp = await fetch(apiUrl, {
-                    headers: { 'Authorization': `token ${token}` }
-                });
-                if (getResp.ok) {
-                    const data = await getResp.json();
-                    sha = data.sha;
-                }
-            } catch (e) {}
-            
-            const body = {
-                message: `Update clients - ${new Date().toISOString()}`,
-                content: content
-            };
-            if (sha) body.sha = sha;
-            
-            const resp = await fetch(apiUrl, {
-                method: 'PUT',
-                headers: {
-                    'Authorization': `token ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(body)
-            });
-            
-            if (!resp.ok) throw new Error(`GitHub API error: ${resp.status}`);
-            
-            return { success: true };
+            await GitHubSync.saveFile(GITHUB_FILE, JSON.stringify(clients, null, 2));
+            console.log('[ClientStore] Synced to GitHub');
+            return true;
         } catch (e) {
             console.error('[ClientStore] GitHub sync error:', e);
-            return { success: false, error: e.message };
+            return false;
         }
     }
 
-    async function loadFromGitHub(token, repo) {
-        if (!token || !repo) return { success: false, error: 'Missing token or repo' };
+    async function loadFromGitHub() {
+        if (typeof GitHubSync === 'undefined') {
+            console.warn('[ClientStore] GitHubSync not available');
+            return false;
+        }
         
         try {
-            const apiUrl = `https://api.github.com/repos/${repo}/contents/${GITHUB_FILE}`;
-            const resp = await fetch(apiUrl, {
-                headers: { 'Authorization': `token ${token}` }
-            });
-            
-            if (!resp.ok) {
-                if (resp.status === 404) return { success: true, clients: {} };
-                throw new Error(`GitHub API error: ${resp.status}`);
+            const data = await GitHubSync.loadFile(GITHUB_FILE);
+            if (data) {
+                const loaded = JSON.parse(data);
+                // Merge with existing (GitHub wins for conflicts)
+                Object.entries(loaded).forEach(([id, client]) => {
+                    if (!clients[id] || new Date(client.updatedAt) > new Date(clients[id]?.updatedAt)) {
+                        clients[id] = client;
+                    }
+                });
+                saveToStorage();
+                console.log('[ClientStore] Loaded from GitHub');
+                return true;
             }
-            
-            const data = await resp.json();
-            const content = decodeURIComponent(escape(atob(data.content)));
-            const loaded = JSON.parse(content);
-            
-            // Merge with local (GitHub takes precedence for conflicts)
-            clients = { ...clients, ...loaded };
-            saveToStorage();
-            
-            return { success: true, clients };
         } catch (e) {
             console.error('[ClientStore] GitHub load error:', e);
-            return { success: false, error: e.message };
         }
+        return false;
     }
 
     // ========================================
-    // Subscriptions
+    // Subscribers (for reactive updates)
     // ========================================
     function subscribe(callback) {
-        if (typeof callback === 'function') {
-            subscribers.push(callback);
-        }
+        subscribers.push(callback);
         return () => {
             subscribers = subscribers.filter(cb => cb !== callback);
         };
@@ -384,72 +760,48 @@
     }
 
     // ========================================
-    // Stats & Export
+    // Statistics
     // ========================================
     function getStats() {
         const all = Object.values(clients);
+        const byStatus = {};
+        const byISO = {};
+        const bySalesRep = {};
+        
+        all.forEach(c => {
+            byStatus[c.status] = (byStatus[c.status] || 0) + 1;
+            if (c.iso) byISO[c.iso] = (byISO[c.iso] || 0) + 1;
+            if (c.salesRepEmail) bySalesRep[c.salesRepEmail] = (bySalesRep[c.salesRepEmail] || 0) + 1;
+        });
+        
         return {
             total: all.length,
-            active: all.filter(c => c.status === 'active').length,
-            totalLocations: all.reduce((sum, c) => sum + (c.locations?.length || 0), 0),
-            totalUsage: all.reduce((sum, c) => sum + (parseFloat(c.annualUsage) || 0), 0),
-            byISO: all.reduce((acc, c) => {
-                if (c.iso) acc[c.iso] = (acc[c.iso] || 0) + 1;
-                return acc;
-            }, {}),
-            byCommodity: all.reduce((acc, c) => {
-                if (c.commodityType) acc[c.commodityType] = (acc[c.commodityType] || 0) + 1;
-                return acc;
-            }, {})
+            active: all.filter(c => c.status === 'Active').length,
+            withAnalyses: all.filter(c => c.linkedAnalyses?.length > 0).length,
+            withBids: all.filter(c => c.linkedBids?.length > 0).length,
+            byStatus,
+            byISO,
+            bySalesRep,
+            activeClientId
         };
     }
 
-    function exportClients(format = 'json') {
-        if (format === 'csv') {
-            const headers = ['ID', 'Company Name', 'Contact Name', 'Email', 'Phone', 'City', 'State', 'ISO', 'Annual Usage', 'Sales Rep', 'Status', 'Created'];
-            const rows = Object.values(clients).map(c => [
-                c.id, c.companyName, c.contactName, c.contactEmail, c.contactPhone,
-                c.address?.city, c.address?.state, c.iso, c.annualUsage, c.salesRepName,
-                c.status, c.createdAt
-            ]);
-            return [headers, ...rows].map(r => r.map(v => `"${v || ''}"`).join(',')).join('\n');
+    // ========================================
+    // Dropdown Helper (for widget integration)
+    // ========================================
+    function getClientDropdownOptions(options = {}) {
+        let clientList = options.activeOnly ? getActiveClients() : getAllClients();
+        
+        if (options.salesRep) {
+            clientList = clientList.filter(c => c.salesRepEmail === options.salesRep);
         }
-        return JSON.stringify(clients, null, 2);
-    }
-
-    function importClients(data, format = 'json') {
-        try {
-            let imported;
-            if (format === 'json') {
-                imported = typeof data === 'string' ? JSON.parse(data) : data;
-            } else {
-                // CSV import
-                const lines = data.split('\n');
-                const headers = lines[0].split(',').map(h => h.replace(/"/g, '').trim());
-                imported = {};
-                for (let i = 1; i < lines.length; i++) {
-                    if (!lines[i].trim()) continue;
-                    const values = lines[i].match(/(".*?"|[^",]+)/g)?.map(v => v.replace(/"/g, '').trim()) || [];
-                    const client = {};
-                    headers.forEach((h, j) => client[h] = values[j] || '');
-                    if (client.ID) imported[client.ID] = client;
-                }
-            }
-            
-            // Merge imported
-            let count = 0;
-            Object.entries(imported).forEach(([id, client]) => {
-                if (!clients[id] || new Date(client.updatedAt) > new Date(clients[id]?.updatedAt)) {
-                    clients[id] = client;
-                    count++;
-                }
-            });
-            
-            saveToStorage();
-            return { success: true, imported: count };
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
+        
+        return clientList.map(c => ({
+            value: c.id,
+            label: c.name,
+            subLabel: c.iso ? `${c.city || ''}, ${c.state || ''} (${c.iso})` : `${c.city || ''}, ${c.state || ''}`,
+            client: c
+        }));
     }
 
     // ========================================
@@ -457,27 +809,53 @@
     // ========================================
     window.SecureEnergyClients = {
         init,
+        
+        // Active Client (Portal-Wide Context)
+        setActiveClient,
+        getActiveClient,
+        getActiveClientId,
+        clearActiveClient,
+        
+        // CRUD
         generateClientId,
         createClient,
         updateClient,
         getClient,
         getClientByName,
+        getClientBySalesforceId,
         getAllClients,
         getActiveClients,
         getClientsBySalesRep,
+        getClientsByISO,
         searchClients,
         deleteClient,
+        
+        // Locations
         addLocation,
         updateLocation,
         removeLocation,
-        linkLMPAnalysis,
+        
+        // Links
+        linkAnalysis,
         linkBid,
+        getClientAnalyses,
+        getClientBids,
+        
+        // Import/Export
+        importFromSalesforce,
+        exportClients,
+        
+        // GitHub Sync
         syncToGitHub,
         loadFromGitHub,
+        
+        // Utilities
         subscribe,
         getStats,
-        exportClients,
-        importClients
+        getClientDropdownOptions,
+        
+        // Field mappings (for customization)
+        SALESFORCE_FIELD_MAP
     };
 
 })();

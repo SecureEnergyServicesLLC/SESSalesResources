@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Lookup</title>
+    <style>
+        :root {
+            --primary: #003366;
+            --accent: #FF6B35;
+            --success: #28a745;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-input: #0f1629;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border: #2d3748;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            padding: 12px;
+        }
+        .widget-container {
+            background: var(--bg-card);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .widget-header {
+            background: linear-gradient(135deg, var(--primary) 0%, #004080 100%);
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .widget-title {
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .widget-body { padding: 14px; }
+        .active-client-display {
+            background: linear-gradient(135deg, rgba(40,167,69,0.15) 0%, rgba(40,167,69,0.05) 100%);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 12px 14px;
+            margin-bottom: 14px;
+        }
+        .active-label {
+            font-size: 0.7rem;
+            color: var(--success);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .active-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .active-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .no-client {
+            background: var(--bg-input);
+            border: 1px dashed var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        .search-container {
+            position: relative;
+            margin-bottom: 12px;
+        }
+        .search-input {
+            width: 100%;
+            padding: 10px 12px 10px 36px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .search-input:focus { outline: none; border-color: var(--accent); }
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+        }
+        .dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-top: 4px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+        .dropdown-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.15s;
+        }
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: rgba(255,107,53,0.1); }
+        .dropdown-item.selected { background: rgba(40,167,69,0.15); }
+        .dropdown-item-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+            margin-bottom: 2px;
+        }
+        .dropdown-item-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .btn {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-clear {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid var(--border);
+        }
+        .btn-clear:hover { background: var(--bg-input); color: var(--text-primary); }
+        .client-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-left: 6px;
+            background: rgba(0,51,102,0.3);
+            color: #4da6ff;
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-input); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div class="widget-header">
+            <div class="widget-title">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                Client Lookup
+            </div>
+        </div>
+        <div class="widget-body">
+            <div id="activeClientDisplay"></div>
+            <div class="search-container">
+                <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" class="search-input" id="searchInput" placeholder="Search for a client..." autocomplete="off">
+                <div class="dropdown" id="dropdown" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ClientStore = null;
+        let allClients = [];
+        
+        function initStore() {
+            if (window.parent?.SecureEnergyClients) ClientStore = window.parent.SecureEnergyClients;
+            else if (window.SecureEnergyClients) ClientStore = window.SecureEnergyClients;
+            return !!ClientStore;
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (initStore()) {
+                    allClients = ClientStore.getAllClients();
+                    updateActiveDisplay();
+                    ClientStore.subscribe(() => {
+                        allClients = ClientStore.getAllClients();
+                        updateActiveDisplay();
+                    });
+                }
+                initSearch();
+            }, 100);
+        });
+        
+        window.addEventListener('message', function(e) {
+            if (e.data?.type === 'ACTIVE_CLIENT_CHANGED') updateActiveDisplay();
+        });
+        
+        function updateActiveDisplay() {
+            const container = document.getElementById('activeClientDisplay');
+            const client = ClientStore?.getActiveClient();
+            
+            if (client) {
+                container.innerHTML = `
+                    <div class="active-client-display">
+                        <div class="active-label">Active Client</div>
+                        <div class="active-name">
+                            ${client.name}
+                            ${client.iso ? `<span class="client-badge">${client.iso}</span>` : ''}
+                        </div>
+                        <div class="active-meta">
+                            ${client.city ? `${client.city}, ${client.state}` : ''}
+                            ${client.annualUsageMWh ? ` • ${Number(client.annualUsageMWh).toLocaleString()} MWh/yr` : ''}
+                        </div>
+                        <button class="btn btn-clear" style="margin-top: 8px;" onclick="clearClient()">Clear Selection</button>
+                    </div>
+                `;
+            } else {
+                container.innerHTML = `
+                    <div class="no-client">
+                        <p>No client selected</p>
+                        <p style="font-size: 0.75rem; margin-top: 4px;">Search below to select a client for analysis</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function initSearch() {
+            const input = document.getElementById('searchInput');
+            const dropdown = document.getElementById('dropdown');
+            let debounceTimer;
+            
+            input.addEventListener('focus', () => showDropdown());
+            input.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => showDropdown(input.value), 150);
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-container')) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+        
+        function showDropdown(query = '') {
+            const dropdown = document.getElementById('dropdown');
+            const activeId = ClientStore?.getActiveClientId();
+            
+            let filtered = allClients;
+            if (query) {
+                const q = query.toLowerCase();
+                filtered = allClients.filter(c => 
+                    c.name.toLowerCase().includes(q) ||
+                    c.city?.toLowerCase().includes(q) ||
+                    c.iso?.toLowerCase().includes(q)
+                );
+            }
+            
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div class="dropdown-item" style="color: var(--text-secondary); cursor: default;">No clients found</div>';
+            } else {
+                dropdown.innerHTML = filtered.slice(0, 15).map(c => `
+                    <div class="dropdown-item ${c.id === activeId ? 'selected' : ''}" onclick="selectClient('${c.id}')">
+                        <div class="dropdown-item-name">
+                            ${c.name}
+                            ${c.iso ? `<span class="client-badge">${c.iso}</span>` : ''}
+                        </div>
+                        <div class="dropdown-item-meta">
+                            ${c.city ? `${c.city}, ${c.state}` : ''}
+                            ${c.annualUsageMWh ? ` • ${Number(c.annualUsageMWh).toLocaleString()} MWh/yr` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            dropdown.style.display = 'block';
+        }
+        
+        function selectClient(id) {
+            if (ClientStore) {
+                ClientStore.setActiveClient(id);
+                document.getElementById('searchInput').value = '';
+                document.getElementById('dropdown').style.display = 'none';
+            }
+        }
+        
+        function clearClient() {
+            if (ClientStore) {
+                ClientStore.clearActiveClient();
+            }
+        }
+    </script>
+</body>
+</html>

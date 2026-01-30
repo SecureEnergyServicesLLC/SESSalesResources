@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Administration</title>
+    <style>
+        :root {
+            --primary: #003366;
+            --primary-light: #004080;
+            --accent: #FF6B35;
+            --accent-hover: #e85a28;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-input: #0f1629;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border: #2d3748;
+            --shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 12px;
+        }
+        .widget-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            height: calc(100vh - 24px);
+            display: flex;
+            flex-direction: column;
+        }
+        .widget-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            padding: 14px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+        }
+        .widget-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .header-stats {
+            display: flex;
+            gap: 16px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .stat-item { display: flex; align-items: center; gap: 4px; }
+        .stat-value { color: var(--accent); font-weight: 600; }
+        .tab-container {
+            display: flex;
+            background: var(--bg-input);
+            border-bottom: 1px solid var(--border);
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 14px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+        .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(255,107,53,0.1); }
+        .tab-content { display: none; flex: 1; overflow: hidden; }
+        .tab-content.active { display: flex; flex-direction: column; }
+        .split-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1px;
+            background: var(--border);
+            flex: 1;
+            overflow: hidden;
+        }
+        .panel { background: var(--bg-card); display: flex; flex-direction: column; overflow: hidden; }
+        .panel-header {
+            padding: 10px 14px;
+            background: var(--bg-input);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-title { font-size: 0.9rem; font-weight: 600; color: var(--text-secondary); }
+        .panel-body { flex: 1; overflow-y: auto; padding: 12px; }
+        .btn {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-sm { padding: 4px 8px; font-size: 0.75rem; }
+        .form-group { margin-bottom: 12px; }
+        .form-label { display: block; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 3px; }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+            transition: border-color 0.2s;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--accent); }
+        .form-textarea { resize: vertical; min-height: 60px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .form-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+        .search-container { position: relative; margin-bottom: 10px; }
+        .search-input {
+            width: 100%;
+            padding: 8px 10px 8px 32px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+        .search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .client-list { display: flex; flex-direction: column; gap: 6px; }
+        .client-card {
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border-radius: 6px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .client-card:hover { border-color: var(--border); background: rgba(255,255,255,0.03); }
+        .client-card.selected { border-color: var(--accent); background: rgba(255,107,53,0.1); }
+        .client-card.active-client { border-color: var(--success); background: rgba(40,167,69,0.1); }
+        .client-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 3px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+        .client-meta { font-size: 0.75rem; color: var(--text-secondary); display: flex; gap: 10px; flex-wrap: wrap; }
+        .client-badge { padding: 2px 6px; border-radius: 3px; font-size: 0.65rem; font-weight: 600; text-transform: uppercase; }
+        .badge-active { background: rgba(40,167,69,0.2); color: var(--success); }
+        .badge-prospect { background: rgba(255,193,7,0.2); color: var(--warning); }
+        .badge-inactive { background: rgba(108,117,125,0.2); color: #6c757d; }
+        .badge-iso { background: rgba(0,51,102,0.3); color: #4da6ff; }
+        .set-active-badge { font-size: 0.6rem; padding: 2px 5px; background: var(--success); color: white; border-radius: 3px; }
+        .import-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 14px;
+        }
+        .import-zone:hover, .import-zone.dragover { border-color: var(--accent); background: rgba(255,107,53,0.05); }
+        .import-zone p { color: var(--text-secondary); margin-bottom: 6px; font-size: 0.85rem; }
+        .import-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 14px;
+            padding: 10px;
+            background: var(--bg-input);
+            border-radius: 6px;
+            font-size: 0.8rem;
+        }
+        .import-option { display: flex; align-items: center; gap: 5px; }
+        .detail-section { margin-bottom: 16px; }
+        .detail-section-title {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .detail-item { padding: 6px 8px; background: var(--bg-input); border-radius: 5px; }
+        .detail-label { font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 1px; }
+        .detail-value { font-size: 0.85rem; word-break: break-word; }
+        .detail-value.empty { color: var(--text-secondary); font-style: italic; }
+        .active-client-banner {
+            background: linear-gradient(135deg, rgba(40,167,69,0.2) 0%, rgba(40,167,69,0.1) 100%);
+            border: 1px solid var(--success);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .active-client-info { display: flex; align-items: center; gap: 10px; }
+        .active-client-info svg { color: var(--success); }
+        .active-client-name { font-weight: 600; font-size: 1rem; }
+        .active-client-meta { font-size: 0.8rem; color: var(--text-secondary); }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            font-size: 0.85rem;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.info { background: var(--primary); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .empty-state { text-align: center; padding: 30px 16px; color: var(--text-secondary); }
+        .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5; }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .modal {
+            background: var(--bg-card);
+            border-radius: 12px;
+            max-width: 550px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            padding: 14px 18px;
+            background: var(--bg-input);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title { font-size: 1rem; font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; }
+        .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 14px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-input); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4a5568; }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div class="widget-header">
+            <div class="widget-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Client Administration
+            </div>
+            <div class="header-stats">
+                <div class="stat-item"><span>Total:</span><span class="stat-value" id="statTotal">0</span></div>
+                <div class="stat-item"><span>Active:</span><span class="stat-value" id="statActive">0</span></div>
+            </div>
+        </div>
+        
+        <div class="tab-container">
+            <button class="tab-btn active" data-tab="clients">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                </svg>
+                Clients
+            </button>
+            <button class="tab-btn" data-tab="import">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Import
+            </button>
+            <button class="tab-btn" data-tab="create">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+                Add Client
+            </button>
+            <button class="tab-btn" data-tab="export">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Export
+            </button>
+        </div>
+        
+        <div class="tab-content active" id="tab-clients">
+            <div id="activeClientBanner" class="active-client-banner" style="display:none;margin:12px 12px 0;">
+                <div class="active-client-info">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <div>
+                        <div class="active-client-name" id="activeClientName">-</div>
+                        <div class="active-client-meta" id="activeClientMeta">Active for all widgets</div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="clearActiveClient()">Clear</button>
+            </div>
+            <div class="split-layout">
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Client List</span>
+                        <span id="clientCount" style="font-size:0.75rem;color:var(--text-secondary);">0 clients</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="search-container">
+                            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                            </svg>
+                            <input type="text" class="search-input" id="clientSearch" placeholder="Search clients...">
+                        </div>
+                        <div id="clientList" class="client-list"></div>
+                    </div>
+                </div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <span class="panel-title">Client Details</span>
+                        <div id="detailActions" style="display:none;gap:6px;">
+                            <button class="btn btn-success btn-sm" id="btnSetActive" onclick="setSelectedAsActive()">Set Active</button>
+                            <button class="btn btn-secondary btn-sm" onclick="editSelectedClient()">Edit</button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteSelectedClient()">Delete</button>
+                        </div>
+                    </div>
+                    <div class="panel-body" id="clientDetails">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                            </svg>
+                            <p>Select a client to view details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="tab-import">
+            <div class="panel-body" style="max-width:700px;margin:0 auto;">
+                <h3 style="margin-bottom:12px;font-size:1.1rem;">Import Salesforce Data</h3>
+                <p style="color:var(--text-secondary);margin-bottom:16px;font-size:0.85rem;">
+                    Upload a CSV or JSON export from Salesforce to bulk import client records.
+                </p>
+                <div class="import-zone" id="importZone" onclick="document.getElementById('importFile').click()">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-secondary);margin-bottom:8px;">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p><strong>Click to upload</strong> or drag and drop</p>
+                    <p style="font-size:0.8rem;">CSV or JSON files from Salesforce</p>
+                    <input type="file" id="importFile" accept=".csv,.json" style="display:none;" onchange="handleFileSelect(event)">
+                </div>
+                <div class="import-options">
+                    <label class="import-option"><input type="checkbox" id="optUpdateExisting" checked> Update existing</label>
+                    <label class="import-option"><input type="checkbox" id="optMatchByName"> Match by name</label>
+                </div>
+                <div id="importPreview" style="display:none;margin-top:16px;"></div>
+                <div id="importResults" style="display:none;margin-top:16px;"></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="tab-create">
+            <div class="panel-body" style="max-width:700px;margin:0 auto;">
+                <h3 style="margin-bottom:12px;font-size:1.1rem;">Add New Client</h3>
+                <form id="createClientForm" onsubmit="handleCreateClient(event)">
+                    <div class="detail-section">
+                        <div class="detail-section-title">Basic Information</div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">Client Name *</label><input type="text" class="form-input" name="name" required></div>
+                            <div class="form-group"><label class="form-label">Salesforce ID</label><input type="text" class="form-input" name="salesforceId"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Account Type</label>
+                                <select class="form-select" name="accountType">
+                                    <option value="Prospect">Prospect</option>
+                                    <option value="Customer">Customer</option>
+                                    <option value="Former Customer">Former Customer</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Status</label>
+                                <select class="form-select" name="status">
+                                    <option value="Active">Active</option>
+                                    <option value="Inactive">Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-section-title">Contact</div>
+                        <div class="form-group"><label class="form-label">Address</label><input type="text" class="form-input" name="address"></div>
+                        <div class="form-row form-row-3">
+                            <div class="form-group"><label class="form-label">City</label><input type="text" class="form-input" name="city"></div>
+                            <div class="form-group"><label class="form-label">State</label><input type="text" class="form-input" name="state"></div>
+                            <div class="form-group"><label class="form-label">ZIP</label><input type="text" class="form-input" name="zip"></div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" name="phone"></div>
+                            <div class="form-group"><label class="form-label">Website</label><input type="url" class="form-input" name="website"></div>
+                        </div>
+                    </div>
+                    <div class="detail-section">
+                        <div class="detail-section-title">Energy</div>
+                        <div class="form-row form-row-3">
+                            <div class="form-group">
+                                <label class="form-label">ISO</label>
+                                <select class="form-select" name="iso">
+                                    <option value="">Select...</option>
+                                    <option value="PJM">PJM</option>
+                                    <option value="ISO-NE">ISO-NE</option>
+                                    <option value="NYISO">NYISO</option>
+                                    <option value="ERCOT">ERCOT</option>
+                                    <option value="MISO">MISO</option>
+                                    <option value="CAISO">CAISO</option>
+                                </select>
+                            </div>
+                            <div class="form-group"><label class="form-label">Utility</label><input type="text" class="form-input" name="utility"></div>
+                            <div class="form-group"><label class="form-label">Load Zone</label><input type="text" class="form-input" name="loadZone"></div>
+                        </div>
+                        <div class="form-row form-row-3">
+                            <div class="form-group"><label class="form-label">Annual Usage (MWh)</label><input type="number" class="form-input" name="annualUsageMWh" step="0.01"></div>
+                            <div class="form-group"><label class="form-label">Contract End Date</label><input type="date" class="form-input" name="contractEndDate"></div>
+                            <div class="form-group"><label class="form-label">Current Supplier</label><input type="text" class="form-input" name="currentSupplier"></div>
+                        </div>
+                    </div>
+                    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" name="notes"></textarea></div>
+                    <div style="display:flex;gap:8px;">
+                        <button type="submit" class="btn btn-primary">Create Client</button>
+                        <button type="reset" class="btn btn-secondary">Clear</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="tab-export">
+            <div class="panel-body" style="max-width:500px;margin:0 auto;text-align:center;">
+                <h3 style="margin-bottom:12px;font-size:1.1rem;">Export Client Data</h3>
+                <p style="color:var(--text-secondary);margin-bottom:24px;font-size:0.85rem;">Export all client data for backup or external use.</p>
+                <div style="display:flex;flex-direction:column;gap:12px;max-width:280px;margin:0 auto;">
+                    <button class="btn btn-primary" onclick="exportClients('json')" style="padding:14px;">Export as JSON</button>
+                    <button class="btn btn-secondary" onclick="exportClients('csv')" style="padding:14px;">Export as CSV</button>
+                    <button class="btn btn-secondary" onclick="syncToGitHub()" style="padding:14px;">Sync to GitHub</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal-overlay" id="editModal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Client</span>
+                <button class="modal-close" onclick="closeEditModal()">×</button>
+            </div>
+            <div class="modal-body" id="editModalBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveEditedClient()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ClientStore = null;
+        let selectedClientId = null;
+        let pendingImportData = null;
+        
+        function initStores() {
+            if (window.parent?.SecureEnergyClients) ClientStore = window.parent.SecureEnergyClients;
+            else if (window.SecureEnergyClients) ClientStore = window.SecureEnergyClients;
+            return !!ClientStore;
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (initStores()) {
+                    loadClients();
+                    updateStats();
+                    updateActiveClientBanner();
+                    ClientStore.subscribe((e) => { loadClients(); updateStats(); updateActiveClientBanner(); });
+                }
+                initTabs();
+                initSearch();
+                initDragDrop();
+            }, 100);
+        });
+        
+        window.addEventListener('message', function(e) {
+            if (e.data?.type === 'ACTIVE_CLIENT_CHANGED') { updateActiveClientBanner(); loadClients(); }
+        });
+        
+        function initTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                };
+            });
+        }
+        
+        function initSearch() {
+            const s = document.getElementById('clientSearch');
+            let t;
+            s.oninput = () => { clearTimeout(t); t = setTimeout(() => loadClients(s.value), 200); };
+        }
+        
+        function initDragDrop() {
+            const z = document.getElementById('importZone');
+            ['dragenter','dragover'].forEach(e => z.addEventListener(e, ev => { ev.preventDefault(); z.classList.add('dragover'); }));
+            ['dragleave','drop'].forEach(e => z.addEventListener(e, ev => { ev.preventDefault(); z.classList.remove('dragover'); }));
+            z.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handleFile(ev.dataTransfer.files[0]); });
+        }
+        
+        function loadClients(q = '') {
+            if (!ClientStore) return;
+            const clients = q ? ClientStore.searchClients(q) : ClientStore.getAllClients();
+            const activeId = ClientStore.getActiveClientId();
+            const list = document.getElementById('clientList');
+            document.getElementById('clientCount').textContent = clients.length + ' clients';
+            
+            if (!clients.length) {
+                list.innerHTML = '<div class="empty-state"><p>' + (q ? 'No matches' : 'No clients yet') + '</p></div>';
+                return;
+            }
+            
+            list.innerHTML = clients.map(c => {
+                const sel = c.id === selectedClientId;
+                const act = c.id === activeId;
+                return '<div class="client-card ' + (sel ? 'selected ' : '') + (act ? 'active-client' : '') + '" onclick="selectClient(\'' + c.id + '\')" ondblclick="setClientActive(\'' + c.id + '\')">' +
+                    '<div class="client-name">' + c.name +
+                    ' <span class="client-badge badge-' + (c.status?.toLowerCase() || 'active') + '">' + (c.status || 'Active') + '</span>' +
+                    (c.iso ? ' <span class="client-badge badge-iso">' + c.iso + '</span>' : '') +
+                    (act ? ' <span class="set-active-badge">ACTIVE</span>' : '') +
+                    '</div><div class="client-meta">' +
+                    (c.city ? '<span>' + c.city + ', ' + c.state + '</span>' : '') +
+                    (c.annualUsageMWh ? '<span>' + Number(c.annualUsageMWh).toLocaleString() + ' MWh/yr</span>' : '') +
+                    '</div></div>';
+            }).join('');
+        }
+        
+        function selectClient(id) {
+            selectedClientId = id;
+            loadClients(document.getElementById('clientSearch').value);
+            showClientDetails(id);
+            document.getElementById('detailActions').style.display = 'flex';
+        }
+        
+        function showClientDetails(id) {
+            const c = ClientStore?.getClient(id);
+            if (!c) return;
+            const d = document.getElementById('clientDetails');
+            d.innerHTML = '<div class="detail-section"><div class="detail-section-title">Basic Info</div>' +
+                '<div class="detail-grid">' +
+                '<div class="detail-item"><div class="detail-label">ID</div><div class="detail-value">' + c.id + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Salesforce ID</div><div class="detail-value ' + (!c.salesforceId ? 'empty' : '') + '">' + (c.salesforceId || 'Not linked') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Type</div><div class="detail-value">' + (c.accountType || 'Prospect') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Industry</div><div class="detail-value ' + (!c.industry ? 'empty' : '') + '">' + (c.industry || 'N/A') + '</div></div>' +
+                '</div></div>' +
+                '<div class="detail-section"><div class="detail-section-title">Contact</div>' +
+                '<div class="detail-grid">' +
+                '<div class="detail-item" style="grid-column:span 2"><div class="detail-label">Address</div><div class="detail-value">' + (c.address || '') + (c.city ? '<br>' + c.city + ', ' + c.state + ' ' + c.zip : '') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Phone</div><div class="detail-value ' + (!c.phone ? 'empty' : '') + '">' + (c.phone || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Website</div><div class="detail-value ' + (!c.website ? 'empty' : '') + '">' + (c.website || 'N/A') + '</div></div>' +
+                '</div></div>' +
+                '<div class="detail-section"><div class="detail-section-title">Energy</div>' +
+                '<div class="detail-grid">' +
+                '<div class="detail-item"><div class="detail-label">ISO</div><div class="detail-value">' + (c.iso || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Utility</div><div class="detail-value">' + (c.utility || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Load Zone</div><div class="detail-value">' + (c.loadZone || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Annual Usage</div><div class="detail-value">' + (c.annualUsageMWh ? Number(c.annualUsageMWh).toLocaleString() + ' MWh' : 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Contract End</div><div class="detail-value">' + (c.contractEndDate || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Current Supplier</div><div class="detail-value">' + (c.currentSupplier || 'N/A') + '</div></div>' +
+                '</div></div>' +
+                (c.notes ? '<div class="detail-section"><div class="detail-section-title">Notes</div><div style="padding:8px;background:var(--bg-input);border-radius:5px;font-size:0.85rem;">' + c.notes + '</div></div>' : '') +
+                '<div style="font-size:0.7rem;color:var(--text-secondary);margin-top:12px;">Created: ' + new Date(c.createdAt).toLocaleDateString() + ' | Updated: ' + new Date(c.updatedAt).toLocaleDateString() + '</div>';
+        }
+        
+        function updateStats() {
+            if (!ClientStore) return;
+            const s = ClientStore.getStats();
+            document.getElementById('statTotal').textContent = s.total;
+            document.getElementById('statActive').textContent = s.active;
+        }
+        
+        function updateActiveClientBanner() {
+            if (!ClientStore) return;
+            const c = ClientStore.getActiveClient();
+            const b = document.getElementById('activeClientBanner');
+            if (c) {
+                document.getElementById('activeClientName').textContent = c.name;
+                document.getElementById('activeClientMeta').textContent = (c.iso || '') + ' ' + (c.city ? '• ' + c.city + ', ' + c.state : '') + ' • Active for all widgets';
+                b.style.display = 'flex';
+            } else {
+                b.style.display = 'none';
+            }
+        }
+        
+        function setSelectedAsActive() {
+            if (selectedClientId && ClientStore) {
+                ClientStore.setActiveClient(selectedClientId);
+                showToast('Client set as active', 'success');
+            }
+        }
+        
+        function setClientActive(id) {
+            if (ClientStore) {
+                ClientStore.setActiveClient(id);
+                showToast('Client set as active', 'success');
+            }
+        }
+        
+        function clearActiveClient() {
+            if (ClientStore) {
+                ClientStore.clearActiveClient();
+                showToast('Active client cleared', 'info');
+            }
+        }
+        
+        function editSelectedClient() {
+            if (!selectedClientId || !ClientStore) return;
+            const c = ClientStore.getClient(selectedClientId);
+            if (!c) return;
+            const m = document.getElementById('editModalBody');
+            m.innerHTML = '<form id="editForm">' +
+                '<input type="hidden" name="id" value="' + c.id + '">' +
+                '<div class="form-row"><div class="form-group"><label class="form-label">Name</label><input class="form-input" name="name" value="' + (c.name || '') + '"></div>' +
+                '<div class="form-group"><label class="form-label">Salesforce ID</label><input class="form-input" name="salesforceId" value="' + (c.salesforceId || '') + '"></div></div>' +
+                '<div class="form-row"><div class="form-group"><label class="form-label">City</label><input class="form-input" name="city" value="' + (c.city || '') + '"></div>' +
+                '<div class="form-group"><label class="form-label">State</label><input class="form-input" name="state" value="' + (c.state || '') + '"></div></div>' +
+                '<div class="form-row"><div class="form-group"><label class="form-label">ISO</label><input class="form-input" name="iso" value="' + (c.iso || '') + '"></div>' +
+                '<div class="form-group"><label class="form-label">Annual Usage (MWh)</label><input class="form-input" name="annualUsageMWh" value="' + (c.annualUsageMWh || '') + '"></div></div>' +
+                '<div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" name="notes">' + (c.notes || '') + '</textarea></div>' +
+                '</form>';
+            document.getElementById('editModal').style.display = 'flex';
+        }
+        
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+        
+        function saveEditedClient() {
+            const f = document.getElementById('editForm');
+            const d = new FormData(f);
+            const u = {};
+            d.forEach((v, k) => { if (k !== 'id') u[k] = v; });
+            ClientStore.updateClient(d.get('id'), u);
+            closeEditModal();
+            selectClient(d.get('id'));
+            showToast('Client updated', 'success');
+        }
+        
+        function deleteSelectedClient() {
+            if (!selectedClientId || !ClientStore) return;
+            if (confirm('Delete this client?')) {
+                ClientStore.deleteClient(selectedClientId);
+                selectedClientId = null;
+                document.getElementById('detailActions').style.display = 'none';
+                document.getElementById('clientDetails').innerHTML = '<div class="empty-state"><p>Select a client</p></div>';
+                showToast('Client deleted', 'info');
+            }
+        }
+        
+        function handleCreateClient(e) {
+            e.preventDefault();
+            const f = new FormData(e.target);
+            const d = {};
+            f.forEach((v, k) => d[k] = v);
+            const c = ClientStore.createClient(d);
+            e.target.reset();
+            document.querySelector('[data-tab="clients"]').click();
+            selectClient(c.id);
+            showToast('Client created', 'success');
+        }
+        
+        function handleFileSelect(e) { if (e.target.files.length) handleFile(e.target.files[0]); }
+        
+        function handleFile(file) {
+            const r = new FileReader();
+            r.onload = (e) => {
+                try {
+                    let data;
+                    if (file.name.endsWith('.json')) {
+                        data = JSON.parse(e.target.result);
+                    } else {
+                        data = e.target.result;
+                    }
+                    pendingImportData = data;
+                    const count = Array.isArray(data) ? data.length : (typeof data === 'string' ? data.split('\n').length - 1 : 1);
+                    document.getElementById('importPreview').innerHTML = '<div style="padding:12px;background:var(--bg-input);border-radius:6px;">' +
+                        '<strong>Ready to import:</strong> ' + count + ' records<br>' +
+                        '<button class="btn btn-primary" style="margin-top:10px;" onclick="executeImport()">Import Now</button> ' +
+                        '<button class="btn btn-secondary" style="margin-top:10px;" onclick="cancelImport()">Cancel</button></div>';
+                    document.getElementById('importPreview').style.display = 'block';
+                } catch (err) {
+                    showToast('Error parsing file', 'error');
+                }
+            };
+            r.readAsText(file);
+        }
+        
+        function executeImport() {
+            if (!pendingImportData || !ClientStore) return;
+            const opts = {
+                updateExisting: document.getElementById('optUpdateExisting').checked,
+                matchByName: document.getElementById('optMatchByName').checked
+            };
+            const r = ClientStore.importFromSalesforce(pendingImportData, opts);
+            document.getElementById('importResults').innerHTML = '<div style="padding:12px;background:var(--bg-input);border-radius:6px;">' +
+                '<strong>Import Complete</strong><br>Imported: ' + r.imported + '<br>Updated: ' + r.updated + '<br>Skipped: ' + r.skipped +
+                (r.errors.length ? '<br>Errors: ' + r.errors.length : '') + '</div>';
+            document.getElementById('importResults').style.display = 'block';
+            document.getElementById('importPreview').style.display = 'none';
+            pendingImportData = null;
+            document.getElementById('importFile').value = '';
+        }
+        
+        function cancelImport() {
+            pendingImportData = null;
+            document.getElementById('importPreview').style.display = 'none';
+            document.getElementById('importFile').value = '';
+        }
+        
+        function exportClients(fmt) {
+            if (!ClientStore) return;
+            const data = ClientStore.exportClients(fmt);
+            const blob = new Blob([data], { type: fmt === 'json' ? 'application/json' : 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'clients.' + fmt;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Export complete', 'success');
+        }
+        
+        function syncToGitHub() {
+            if (ClientStore?.syncToGitHub) {
+                ClientStore.syncToGitHub().then(ok => showToast(ok ? 'Synced to GitHub' : 'Sync failed', ok ? 'success' : 'error'));
+            } else {
+                showToast('GitHub sync not available', 'error');
+            }
+        }
+        
+        function showToast(msg, type) {
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
