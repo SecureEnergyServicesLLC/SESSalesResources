@@ -568,14 +568,22 @@
             list.innerHTML = clients.map(c => {
                 const sel = c.id === selectedClientId;
                 const act = c.id === activeId;
+                // Format usage
+                let usageStr = '';
+                if (c.annualUsageMWh) {
+                    usageStr = Number(c.annualUsageMWh).toLocaleString() + ' MWh/yr';
+                } else if (c.annualUsageKwh) {
+                    usageStr = Number(c.annualUsageKwh).toLocaleString() + ' kWh/yr';
+                }
                 return '<div class="client-card ' + (sel ? 'selected ' : '') + (act ? 'active-client' : '') + '" onclick="selectClient(\'' + c.id + '\')" ondblclick="setClientActive(\'' + c.id + '\')">' +
                     '<div class="client-name">' + c.name +
-                    ' <span class="client-badge badge-' + (c.status?.toLowerCase() || 'active') + '">' + (c.status || 'Active') + '</span>' +
-                    (c.iso ? ' <span class="client-badge badge-iso">' + c.iso + '</span>' : '') +
+                    ' <span class="client-badge badge-' + ((c.contractStatus || c.status || 'active').toLowerCase().replace(/\s+/g, '-')) + '">' + (c.contractStatus || c.status || 'Active') + '</span>' +
+                    (c.productCategory ? ' <span class="client-badge badge-iso">' + c.productCategory + '</span>' : '') +
                     (act ? ' <span class="set-active-badge">ACTIVE</span>' : '') +
                     '</div><div class="client-meta">' +
-                    (c.city ? '<span>' + c.city + ', ' + c.state + '</span>' : '') +
-                    (c.annualUsageMWh ? '<span>' + Number(c.annualUsageMWh).toLocaleString() + ' MWh/yr</span>' : '') +
+                    (c.currentSupplier ? '<span>Supplier: ' + c.currentSupplier + '</span>' : '') +
+                    (usageStr ? '<span>' + usageStr + '</span>' : '') +
+                    (c.contractEndDate ? '<span>Ends: ' + c.contractEndDate + '</span>' : '') +
                     '</div></div>';
             }).join('');
         }
@@ -591,28 +599,55 @@
             const c = ClientStore?.getClient(id);
             if (!c) return;
             const d = document.getElementById('clientDetails');
-            d.innerHTML = '<div class="detail-section"><div class="detail-section-title">Basic Info</div>' +
+            
+            // Format annual usage - convert kWh to MWh if needed
+            let usageDisplay = 'N/A';
+            if (c.annualUsageMWh) {
+                usageDisplay = Number(c.annualUsageMWh).toLocaleString() + ' MWh';
+            } else if (c.annualUsageKwh) {
+                usageDisplay = Number(c.annualUsageKwh).toLocaleString() + ' kWh';
+            }
+            
+            d.innerHTML = '<div class="detail-section"><div class="detail-section-title">Account Info</div>' +
                 '<div class="detail-grid">' +
-                '<div class="detail-item"><div class="detail-label">ID</div><div class="detail-value">' + c.id + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Client ID</div><div class="detail-value">' + c.id + '</div></div>' +
                 '<div class="detail-item"><div class="detail-label">Salesforce ID</div><div class="detail-value ' + (!c.salesforceId ? 'empty' : '') + '">' + (c.salesforceId || 'Not linked') + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">Type</div><div class="detail-value">' + (c.accountType || 'Prospect') + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">Industry</div><div class="detail-value ' + (!c.industry ? 'empty' : '') + '">' + (c.industry || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Parent Account</div><div class="detail-value">' + (c.parentAccountCustomer || c.name || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">' + (c.contractStatus || c.status || 'Active') + '</div></div>' +
                 '</div></div>' +
-                '<div class="detail-section"><div class="detail-section-title">Contact</div>' +
+                
+                '<div class="detail-section"><div class="detail-section-title">Contract Details</div>' +
                 '<div class="detail-grid">' +
-                '<div class="detail-item" style="grid-column:span 2"><div class="detail-label">Address</div><div class="detail-value">' + (c.address || '') + (c.city ? '<br>' + c.city + ', ' + c.state + ' ' + c.zip : '') + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">Phone</div><div class="detail-value ' + (!c.phone ? 'empty' : '') + '">' + (c.phone || 'N/A') + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">Website</div><div class="detail-value ' + (!c.website ? 'empty' : '') + '">' + (c.website || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Contract Name</div><div class="detail-value">' + (c.contractName || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Product Category</div><div class="detail-value">' + (c.productCategory || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Contract Start</div><div class="detail-value">' + (c.contractStartDate || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Contract End</div><div class="detail-value">' + (c.contractEndDate || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Sign Date</div><div class="detail-value">' + (c.signDate || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Current Supplier</div><div class="detail-value">' + (c.currentSupplier || 'N/A') + '</div></div>' +
                 '</div></div>' +
-                '<div class="detail-section"><div class="detail-section-title">Energy</div>' +
+                
+                '<div class="detail-section"><div class="detail-section-title">Usage & Meters</div>' +
+                '<div class="detail-grid">' +
+                '<div class="detail-item"><div class="detail-label">Annual Usage</div><div class="detail-value">' + usageDisplay + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label"># of Meters</div><div class="detail-value">' + (c.numberOfMeters || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Active Meter Count</div><div class="detail-value">' + (c.activeMeterCount || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Contract Margin</div><div class="detail-value">' + (c.contractMargin ? '$' + Number(c.contractMargin).toLocaleString() : 'N/A') + '</div></div>' +
+                '</div></div>' +
+                
+                '<div class="detail-section"><div class="detail-section-title">Energy Details</div>' +
                 '<div class="detail-grid">' +
                 '<div class="detail-item"><div class="detail-label">ISO</div><div class="detail-value">' + (c.iso || 'N/A') + '</div></div>' +
                 '<div class="detail-item"><div class="detail-label">Utility</div><div class="detail-value">' + (c.utility || 'N/A') + '</div></div>' +
                 '<div class="detail-item"><div class="detail-label">Load Zone</div><div class="detail-value">' + (c.loadZone || 'N/A') + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">Annual Usage</div><div class="detail-value">' + (c.annualUsageMWh ? Number(c.annualUsageMWh).toLocaleString() + ' MWh' : 'N/A') + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">Contract End</div><div class="detail-value">' + (c.contractEndDate || 'N/A') + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">Current Supplier</div><div class="detail-value">' + (c.currentSupplier || 'N/A') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Assigned Group</div><div class="detail-value">' + (c.assignedGroup || 'N/A') + '</div></div>' +
                 '</div></div>' +
+                
+                (c.budaEligible || c.budaNotes ? '<div class="detail-section"><div class="detail-section-title">BUDA Info</div>' +
+                '<div class="detail-grid">' +
+                '<div class="detail-item"><div class="detail-label">BUDA Eligible</div><div class="detail-value">' + (c.budaEligible || 'N/A') + '</div></div>' +
+                '<div class="detail-item" style="grid-column:span 2"><div class="detail-label">BUDA Notes</div><div class="detail-value">' + (c.budaNotes || 'N/A') + '</div></div>' +
+                '</div></div>' : '') +
+                
                 (c.notes ? '<div class="detail-section"><div class="detail-section-title">Notes</div><div style="padding:8px;background:var(--bg-input);border-radius:5px;font-size:0.85rem;">' + c.notes + '</div></div>' : '') +
                 '<div style="font-size:0.7rem;color:var(--text-secondary);margin-top:12px;">Created: ' + new Date(c.createdAt).toLocaleDateString() + ' | Updated: ' + new Date(c.updatedAt).toLocaleDateString() + '</div>';
         }

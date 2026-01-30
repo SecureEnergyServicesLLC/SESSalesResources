@@ -28,6 +28,7 @@ const DEFAULT_WIDGETS = [
     { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, fullWidth: true, embedded: true, defaultHeight: 700, minHeight: 400, maxHeight: 1200, doubleHeight: true },
     { id: 'client-admin', name: 'Client Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', src: 'widgets/client-admin-widget.html', adminOnly: true, fullWidth: true, defaultHeight: 700, minHeight: 500, maxHeight: 1200, doubleHeight: true },
     { id: 'client-lookup', name: 'Client Lookup', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>', src: 'widgets/client-lookup-widget.html', fullWidth: false, defaultHeight: 220, minHeight: 180, maxHeight: 350 },
+    { id: 'energy-utilization', name: 'Energy Utilization', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/energy-utilization-widget.html', fullWidth: false, defaultHeight: 650, minHeight: 500, maxHeight: 900 },
     { id: 'bid-management', name: 'Bid Management', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', src: 'widgets/bid-management-widget.html', fullWidth: true, defaultHeight: 900, minHeight: 500, maxHeight: 1400 },
     { id: 'ai-assistant', name: 'AI Assistant', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 800 },
     { id: 'lmp-analytics', name: 'LMP Analytics Dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>', src: 'widgets/lmp-analytics.html', fullWidth: true, defaultHeight: 800, minHeight: 400, maxHeight: 1200 },
@@ -639,6 +640,8 @@ function getCreateUserPanel() {
         <div class="form-row single"><div class="form-group"><label>Password *</label><input type="password" id="newPassword" placeholder="Password"></div></div>
         <div class="form-row single"><div class="form-group"><label>Role</label><select id="newRole"><option value="user">Standard User</option><option value="admin">Administrator</option></select></div></div>
         <div class="widget-permissions"><h4>Widget Permissions</h4>
+            <div class="widget-permission-item"><span>Client Lookup</span><label class="toggle-switch"><input type="checkbox" id="perm-client-lookup" checked><span class="toggle-slider"></span></label></div>
+            <div class="widget-permission-item"><span>Energy Utilization</span><label class="toggle-switch"><input type="checkbox" id="perm-energy-utilization" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>Bid Management</span><label class="toggle-switch"><input type="checkbox" id="perm-bid-management" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="perm-ai-assistant" checked><span class="toggle-slider"></span></label></div>
             <div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-comparison" checked><span class="toggle-slider"></span></label></div>
@@ -822,6 +825,8 @@ window.createUser = function() {
     }
     
     const permissions = {
+        'client-lookup': document.getElementById('perm-client-lookup')?.checked,
+        'energy-utilization': document.getElementById('perm-energy-utilization')?.checked,
         'bid-management': document.getElementById('perm-bid-management')?.checked,
         'ai-assistant': document.getElementById('perm-ai-assistant')?.checked,
         'lmp-comparison': document.getElementById('perm-lmp-comparison')?.checked,
@@ -868,6 +873,8 @@ window.editUser = function(userId) {
             
             <div class="widget-permissions" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border-color);">
                 <h4 style="margin-bottom:12px;color:var(--text-secondary);">Widget Permissions</h4>
+                <div class="widget-permission-item"><span>Client Lookup</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-client-lookup" ${getChecked('client-lookup')}><span class="toggle-slider"></span></label></div>
+                <div class="widget-permission-item"><span>Energy Utilization</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-energy-utilization" ${getChecked('energy-utilization')}><span class="toggle-slider"></span></label></div>
                 <div class="widget-permission-item"><span>Bid Management</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-bid-management" ${getChecked('bid-management')}><span class="toggle-slider"></span></label></div>
                 <div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-ai-assistant" ${getChecked('ai-assistant')}><span class="toggle-slider"></span></label></div>
                 <div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-lmp-comparison" ${getChecked('lmp-comparison')}><span class="toggle-slider"></span></label></div>
@@ -896,6 +903,8 @@ window.saveUserEdit = function(userId) {
         email: document.getElementById('editEmail')?.value?.trim(),
         role: document.getElementById('editRole')?.value,
         permissions: {
+            'client-lookup': document.getElementById('edit-perm-client-lookup')?.checked,
+            'energy-utilization': document.getElementById('edit-perm-energy-utilization')?.checked,
             'bid-management': document.getElementById('edit-perm-bid-management')?.checked,
             'ai-assistant': document.getElementById('edit-perm-ai-assistant')?.checked,
             'lmp-comparison': document.getElementById('edit-perm-lmp-comparison')?.checked,

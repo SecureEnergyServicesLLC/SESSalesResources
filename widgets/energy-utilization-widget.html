@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Energy Utilization</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #003366;
+            --primary-light: #004080;
+            --accent: #FF6B35;
+            --accent-hover: #e85a28;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --bg-dark: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-input: #0f1629;
+            --text-primary: #ffffff;
+            --text-secondary: #a0aec0;
+            --border: #2d3748;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 16px;
+        }
+        .widget-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        .widget-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .widget-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .client-indicator {
+            background: rgba(40,167,69,0.2);
+            border: 1px solid var(--success);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .client-indicator.no-client {
+            background: rgba(255,193,7,0.2);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+        .widget-body { padding: 20px; }
+        .tabs {
+            display: flex;
+            gap: 4px;
+            background: var(--bg-input);
+            padding: 4px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 16px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .tab-btn:hover { background: rgba(255,255,255,0.05); }
+        .tab-btn.active { background: var(--accent); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .usage-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .usage-item {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        .usage-item label {
+            display: block;
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+        .usage-item input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            text-align: center;
+            font-weight: 600;
+        }
+        .usage-item input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .usage-item input.gas {
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+        .usage-item input.gas:focus {
+            border-color: #3b82f6;
+        }
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .summary-card {
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+        .summary-card.electric { border-left: 4px solid var(--accent); }
+        .summary-card.gas { border-left: 4px solid #3b82f6; }
+        .summary-card.total { border-left: 4px solid var(--success); }
+        .summary-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .summary-unit {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+        .chart-container {
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 20px;
+            height: 280px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary { background: var(--accent); color: white; }
+        .btn-primary:hover { background: var(--accent-hover); }
+        .btn-secondary { background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+        .btn-group { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+        .import-zone {
+            border: 2px dashed var(--border);
+            border-radius: 8px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 16px;
+        }
+        .import-zone:hover { border-color: var(--accent); background: rgba(255,107,53,0.05); }
+        .import-zone p { color: var(--text-secondary); font-size: 0.85rem; }
+        .history-list { max-height: 300px; overflow-y: auto; }
+        .history-item {
+            background: var(--bg-input);
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .history-item-info {
+            flex: 1;
+        }
+        .history-item-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        .history-item-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.warning { background: var(--warning); color: #333; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
+            background: var(--bg-card);
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+        }
+        .modal-header {
+            padding: 16px 20px;
+            background: var(--bg-input);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title { font-size: 1rem; font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 1.5rem; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 16px 20px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        .form-group { margin-bottom: 14px; }
+        .form-label { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 4px; }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-secondary);
+        }
+        .empty-state svg { width: 48px; height: 48px; margin-bottom: 12px; opacity: 0.5; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-input); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <div class="widget-container">
+        <div class="widget-header">
+            <div class="widget-title">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                Client Energy Utilization
+            </div>
+            <div class="client-indicator no-client" id="clientIndicator">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <span id="clientName">No client selected</span>
+            </div>
+        </div>
+        
+        <div class="widget-body">
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="electric">⚡ Electric (kWh)</button>
+                <button class="tab-btn" data-tab="gas">🔥 Gas (Therms)</button>
+                <button class="tab-btn" data-tab="history">📋 Saved Profiles</button>
+            </div>
+            
+            <!-- Electric Usage Tab -->
+            <div class="tab-content active" id="tab-electric">
+                <div class="summary-row">
+                    <div class="summary-card electric">
+                        <div class="summary-label">Annual Electric</div>
+                        <div class="summary-value" id="totalElectric">0</div>
+                        <div class="summary-unit">kWh</div>
+                    </div>
+                    <div class="summary-card electric">
+                        <div class="summary-label">Monthly Average</div>
+                        <div class="summary-value" id="avgElectric">0</div>
+                        <div class="summary-unit">kWh</div>
+                    </div>
+                    <div class="summary-card electric">
+                        <div class="summary-label">Peak Month</div>
+                        <div class="summary-value" id="peakElectric">-</div>
+                        <div class="summary-unit" id="peakElectricValue"></div>
+                    </div>
+                </div>
+                
+                <div class="usage-grid" id="electricGrid">
+                    <!-- Generated by JS -->
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="electricChart"></canvas>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveToClient()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Save to Client
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportUsage()">Export Excel</button>
+                    <button class="btn btn-secondary" onclick="showImportModal()">Import</button>
+                    <button class="btn btn-secondary" onclick="clearUsage('electric')">Clear</button>
+                </div>
+            </div>
+            
+            <!-- Gas Usage Tab -->
+            <div class="tab-content" id="tab-gas">
+                <div class="summary-row">
+                    <div class="summary-card gas">
+                        <div class="summary-label">Annual Gas</div>
+                        <div class="summary-value" id="totalGas">0</div>
+                        <div class="summary-unit">Therms</div>
+                    </div>
+                    <div class="summary-card gas">
+                        <div class="summary-label">Monthly Average</div>
+                        <div class="summary-value" id="avgGas">0</div>
+                        <div class="summary-unit">Therms</div>
+                    </div>
+                    <div class="summary-card gas">
+                        <div class="summary-label">Peak Month</div>
+                        <div class="summary-value" id="peakGas">-</div>
+                        <div class="summary-unit" id="peakGasValue"></div>
+                    </div>
+                </div>
+                
+                <div class="usage-grid" id="gasGrid">
+                    <!-- Generated by JS -->
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="gasChart"></canvas>
+                </div>
+                
+                <div class="btn-group">
+                    <button class="btn btn-primary" onclick="saveToClient()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+                        </svg>
+                        Save to Client
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportUsage()">Export Excel</button>
+                    <button class="btn btn-secondary" onclick="showImportModal()">Import</button>
+                    <button class="btn btn-secondary" onclick="clearUsage('gas')">Clear</button>
+                </div>
+            </div>
+            
+            <!-- History Tab -->
+            <div class="tab-content" id="tab-history">
+                <div id="historyList" class="history-list">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Import Modal -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Import Usage Data</span>
+                <button class="modal-close" onclick="closeImportModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="import-zone" onclick="document.getElementById('importFile').click()">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-bottom:8px;color:var(--text-secondary);">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <p><strong>Click to upload</strong> or drag and drop</p>
+                    <p style="font-size:0.75rem;">Excel or CSV with monthly usage data</p>
+                    <input type="file" id="importFile" accept=".xlsx,.xls,.csv" style="display:none;" onchange="handleImport(event)">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Import Type</label>
+                    <select class="form-select" id="importType">
+                        <option value="electric">Electric (kWh)</option>
+                        <option value="gas">Gas (Therms)</option>
+                        <option value="both">Both (Electric & Gas)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeImportModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- No Usage Prompt Modal -->
+    <div class="modal-overlay" id="noUsageModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">⚡ Usage Data Required</span>
+                <button class="modal-close" onclick="closeNoUsageModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <p style="margin-bottom:16px;">
+                    <strong id="noUsageClientName">This client</strong> doesn't have any energy utilization data on file.
+                </p>
+                <p style="color:var(--text-secondary);font-size:0.9rem;">
+                    Would you like to add their 12-month usage profile now? This data will be saved to the client record and can be used for LMP analysis.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeNoUsageModal()">Later</button>
+                <button class="btn btn-primary" onclick="startAddingUsage()">Add Usage Data</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const FULL_MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        
+        let electricData = Array(12).fill(0);
+        let gasData = Array(12).fill(0);
+        let activeClient = null;
+        let electricChart = null;
+        let gasChart = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initTabs();
+            initGrids();
+            initCharts();
+            initClientContext();
+        });
+        
+        // Tabs
+        function initTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                    
+                    if (btn.dataset.tab === 'history') loadHistory();
+                };
+            });
+        }
+        
+        // Usage Grids
+        function initGrids() {
+            const electricGrid = document.getElementById('electricGrid');
+            const gasGrid = document.getElementById('gasGrid');
+            
+            MONTHS.forEach((month, i) => {
+                electricGrid.innerHTML += `
+                    <div class="usage-item">
+                        <label>${month}</label>
+                        <input type="number" id="electric-${i}" value="0" min="0" 
+                               onchange="updateElectric(${i}, this.value)" 
+                               onkeyup="updateElectric(${i}, this.value)">
+                    </div>
+                `;
+                
+                gasGrid.innerHTML += `
+                    <div class="usage-item">
+                        <label>${month}</label>
+                        <input type="number" class="gas" id="gas-${i}" value="0" min="0" 
+                               onchange="updateGas(${i}, this.value)"
+                               onkeyup="updateGas(${i}, this.value)">
+                    </div>
+                `;
+            });
+        }
+        
+        function updateElectric(index, value) {
+            electricData[index] = parseFloat(value) || 0;
+            updateSummary('electric');
+            updateChart('electric');
+        }
+        
+        function updateGas(index, value) {
+            gasData[index] = parseFloat(value) || 0;
+            updateSummary('gas');
+            updateChart('gas');
+        }
+        
+        function updateSummary(type) {
+            const data = type === 'electric' ? electricData : gasData;
+            const total = data.reduce((a, b) => a + b, 0);
+            const avg = total / 12;
+            const max = Math.max(...data);
+            const maxIndex = data.indexOf(max);
+            
+            document.getElementById(`total${type.charAt(0).toUpperCase() + type.slice(1)}`).textContent = 
+                total.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            document.getElementById(`avg${type.charAt(0).toUpperCase() + type.slice(1)}`).textContent = 
+                avg.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            document.getElementById(`peak${type.charAt(0).toUpperCase() + type.slice(1)}`).textContent = 
+                max > 0 ? MONTHS[maxIndex] : '-';
+            document.getElementById(`peak${type.charAt(0).toUpperCase() + type.slice(1)}Value`).textContent = 
+                max > 0 ? max.toLocaleString() + (type === 'electric' ? ' kWh' : ' Therms') : '';
+        }
+        
+        // Charts
+        function initCharts() {
+            const electricCtx = document.getElementById('electricChart').getContext('2d');
+            const gasCtx = document.getElementById('gasChart').getContext('2d');
+            
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#a0aec0' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#a0aec0' }
+                    }
+                }
+            };
+            
+            electricChart = new Chart(electricCtx, {
+                type: 'bar',
+                data: {
+                    labels: MONTHS,
+                    datasets: [{
+                        data: electricData,
+                        backgroundColor: 'rgba(255, 107, 53, 0.7)',
+                        borderColor: '#FF6B35',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: chartOptions
+            });
+            
+            gasChart = new Chart(gasCtx, {
+                type: 'bar',
+                data: {
+                    labels: MONTHS,
+                    datasets: [{
+                        data: gasData,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: '#3b82f6',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: chartOptions
+            });
+        }
+        
+        function updateChart(type) {
+            const chart = type === 'electric' ? electricChart : gasChart;
+            const data = type === 'electric' ? electricData : gasData;
+            chart.data.datasets[0].data = [...data];
+            chart.update();
+        }
+        
+        // Client Context
+        function initClientContext() {
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'REQUEST_ACTIVE_CLIENT' }, '*');
+            }
+            window.addEventListener('message', handleMessage);
+        }
+        
+        function handleMessage(event) {
+            const data = event.data;
+            if (!data) return;
+            
+            if (data.type === 'ACTIVE_CLIENT_CHANGED' || data.type === 'ACTIVE_CLIENT_RESPONSE') {
+                const prevClient = activeClient;
+                activeClient = data.client;
+                updateClientIndicator();
+                
+                // Load client's usage data if they have it
+                if (activeClient) {
+                    loadClientUsage(activeClient.id);
+                    
+                    // Check if client has usage data - if not, prompt
+                    if (!activeClient.usageProfile && prevClient?.id !== activeClient.id) {
+                        checkAndPromptForUsage();
+                    }
+                }
+            }
+            
+            // Request from LMP Comparison Portal for usage data
+            if (data.type === 'REQUEST_CLIENT_USAGE' && event.source) {
+                event.source.postMessage({
+                    type: 'CLIENT_USAGE_RESPONSE',
+                    clientId: activeClient?.id,
+                    electric: electricData,
+                    gas: gasData,
+                    hasData: electricData.some(v => v > 0) || gasData.some(v => v > 0)
+                }, '*');
+            }
+        }
+        
+        function updateClientIndicator() {
+            const indicator = document.getElementById('clientIndicator');
+            const nameEl = document.getElementById('clientName');
+            
+            if (activeClient) {
+                indicator.classList.remove('no-client');
+                indicator.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                        <polyline points="22 4 12 14.01 9 11.01"/>
+                    </svg>
+                    <span>${activeClient.name}</span>
+                `;
+            } else {
+                indicator.classList.add('no-client');
+                indicator.innerHTML = `
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <span>No client selected</span>
+                `;
+            }
+        }
+        
+        function loadClientUsage(clientId) {
+            // Try to get from parent's client store
+            if (window.parent?.SecureEnergyClients) {
+                const client = window.parent.SecureEnergyClients.getClient(clientId);
+                if (client?.usageProfile) {
+                    electricData = client.usageProfile.electric || Array(12).fill(0);
+                    gasData = client.usageProfile.gas || Array(12).fill(0);
+                    populateGrids();
+                    updateSummary('electric');
+                    updateSummary('gas');
+                    updateChart('electric');
+                    updateChart('gas');
+                    return;
+                }
+            }
+            
+            // Also check localStorage
+            const stored = localStorage.getItem(`usage_${clientId}`);
+            if (stored) {
+                const profile = JSON.parse(stored);
+                electricData = profile.electric || Array(12).fill(0);
+                gasData = profile.gas || Array(12).fill(0);
+                populateGrids();
+                updateSummary('electric');
+                updateSummary('gas');
+                updateChart('electric');
+                updateChart('gas');
+            } else {
+                // Reset to zeros for new client
+                electricData = Array(12).fill(0);
+                gasData = Array(12).fill(0);
+                populateGrids();
+                updateSummary('electric');
+                updateSummary('gas');
+                updateChart('electric');
+                updateChart('gas');
+            }
+        }
+        
+        function populateGrids() {
+            MONTHS.forEach((_, i) => {
+                document.getElementById(`electric-${i}`).value = electricData[i] || 0;
+                document.getElementById(`gas-${i}`).value = gasData[i] || 0;
+            });
+        }
+        
+        function checkAndPromptForUsage() {
+            const hasElectric = electricData.some(v => v > 0);
+            const hasGas = gasData.some(v => v > 0);
+            
+            if (!hasElectric && !hasGas && activeClient) {
+                document.getElementById('noUsageClientName').textContent = activeClient.name;
+                document.getElementById('noUsageModal').classList.add('show');
+            }
+        }
+        
+        function closeNoUsageModal() {
+            document.getElementById('noUsageModal').classList.remove('show');
+        }
+        
+        function startAddingUsage() {
+            closeNoUsageModal();
+            // Switch to electric tab and focus first input
+            document.querySelector('[data-tab="electric"]').click();
+            setTimeout(() => document.getElementById('electric-0').focus(), 100);
+        }
+        
+        // Save to Client
+        function saveToClient() {
+            if (!activeClient) {
+                showToast('Please select a client first', 'warning');
+                return;
+            }
+            
+            const profile = {
+                electric: [...electricData],
+                gas: [...gasData],
+                totalElectric: electricData.reduce((a, b) => a + b, 0),
+                totalGas: gasData.reduce((a, b) => a + b, 0),
+                updatedAt: new Date().toISOString()
+            };
+            
+            // Save to parent's client store
+            if (window.parent?.SecureEnergyClients) {
+                window.parent.SecureEnergyClients.updateClient(activeClient.id, {
+                    usageProfile: profile,
+                    annualUsageMWh: profile.totalElectric / 1000 // Convert kWh to MWh
+                });
+            }
+            
+            // Also save to localStorage as backup
+            localStorage.setItem(`usage_${activeClient.id}`, JSON.stringify(profile));
+            
+            // Notify other widgets
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'CLIENT_USAGE_UPDATED',
+                    clientId: activeClient.id,
+                    profile: profile
+                }, '*');
+            }
+            
+            showToast(`Usage saved for ${activeClient.name}`, 'success');
+        }
+        
+        // Clear Usage
+        function clearUsage(type) {
+            if (type === 'electric') {
+                electricData = Array(12).fill(0);
+                MONTHS.forEach((_, i) => document.getElementById(`electric-${i}`).value = 0);
+                updateSummary('electric');
+                updateChart('electric');
+            } else {
+                gasData = Array(12).fill(0);
+                MONTHS.forEach((_, i) => document.getElementById(`gas-${i}`).value = 0);
+                updateSummary('gas');
+                updateChart('gas');
+            }
+        }
+        
+        // Export
+        function exportUsage() {
+            const wb = XLSX.utils.book_new();
+            const data = [
+                ['Month', 'Electric (kWh)', 'Gas (Therms)'],
+                ...FULL_MONTHS.map((m, i) => [m, electricData[i], gasData[i]]),
+                ['', '', ''],
+                ['Total', electricData.reduce((a, b) => a + b, 0), gasData.reduce((a, b) => a + b, 0)]
+            ];
+            
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            ws['!cols'] = [{ wch: 12 }, { wch: 15 }, { wch: 15 }];
+            
+            XLSX.utils.book_append_sheet(wb, ws, 'Usage Profile');
+            
+            const filename = activeClient 
+                ? `${activeClient.name.replace(/[^a-z0-9]/gi, '_')}_Usage_Profile.xlsx`
+                : 'Energy_Usage_Profile.xlsx';
+            
+            XLSX.writeFile(wb, filename);
+            showToast('Usage profile exported', 'success');
+        }
+        
+        // Import
+        function showImportModal() {
+            document.getElementById('importModal').classList.add('show');
+        }
+        
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('show');
+            document.getElementById('importFile').value = '';
+        }
+        
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    const json = XLSX.utils.sheet_to_json(ws, { header: 1 });
+                    
+                    const importType = document.getElementById('importType').value;
+                    
+                    // Try to parse - expect Month, Electric, Gas columns or just Month, Value
+                    json.forEach((row, i) => {
+                        if (i === 0) return; // Skip header
+                        if (i > 12) return; // Only 12 months
+                        
+                        const monthIndex = i - 1;
+                        
+                        if (importType === 'electric' || importType === 'both') {
+                            const elecVal = parseFloat(row[1]) || 0;
+                            electricData[monthIndex] = elecVal;
+                            document.getElementById(`electric-${monthIndex}`).value = elecVal;
+                        }
+                        
+                        if (importType === 'gas' || importType === 'both') {
+                            const gasVal = parseFloat(importType === 'both' ? row[2] : row[1]) || 0;
+                            gasData[monthIndex] = gasVal;
+                            document.getElementById(`gas-${monthIndex}`).value = gasVal;
+                        }
+                    });
+                    
+                    updateSummary('electric');
+                    updateSummary('gas');
+                    updateChart('electric');
+                    updateChart('gas');
+                    
+                    closeImportModal();
+                    showToast('Usage data imported', 'success');
+                } catch (err) {
+                    showToast('Failed to parse file', 'error');
+                    console.error(err);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // History
+        function loadHistory() {
+            const list = document.getElementById('historyList');
+            
+            // Get all saved profiles from localStorage
+            const profiles = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.startsWith('usage_')) {
+                    try {
+                        const profile = JSON.parse(localStorage.getItem(key));
+                        const clientId = key.replace('usage_', '');
+                        let clientName = clientId;
+                        
+                        // Try to get client name from store
+                        if (window.parent?.SecureEnergyClients) {
+                            const client = window.parent.SecureEnergyClients.getClient(clientId);
+                            if (client) clientName = client.name;
+                        }
+                        
+                        profiles.push({
+                            clientId,
+                            clientName,
+                            ...profile
+                        });
+                    } catch {}
+                }
+            }
+            
+            if (profiles.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        <p>No saved usage profiles yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = profiles.map(p => `
+                <div class="history-item">
+                    <div class="history-item-info">
+                        <div class="history-item-title">${p.clientName}</div>
+                        <div class="history-item-meta">
+                            ${p.totalElectric?.toLocaleString() || 0} kWh | ${p.totalGas?.toLocaleString() || 0} Therms
+                            ${p.updatedAt ? ' | Updated: ' + new Date(p.updatedAt).toLocaleDateString() : ''}
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="loadProfile('${p.clientId}')">Load</button>
+                </div>
+            `).join('');
+        }
+        
+        function loadProfile(clientId) {
+            loadClientUsage(clientId);
+            document.querySelector('[data-tab="electric"]').click();
+            showToast('Profile loaded', 'success');
+        }
+        
+        // Toast
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>

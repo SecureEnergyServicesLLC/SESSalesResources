@@ -18,9 +18,29 @@
 
     // ========================================
     // Salesforce Field Mappings (customizable)
+    // Maps Salesforce export column headers to internal fields
     // ========================================
     const SALESFORCE_FIELD_MAP = {
-        // Salesforce Field -> Internal Field
+        // === YOUR SALESFORCE REPORT FIELDS ===
+        'Parent Account: Customer': 'parentAccountCustomer',
+        'Account Contract Name': 'contractName',
+        'Assigned To: Contract Assignment Group Name': 'assignedGroup',
+        'Status': 'contractStatus',
+        'Number Of Meters': 'numberOfMeters',
+        '# Active MC': 'activeMeterCount',
+        'Sign Date': 'signDate',
+        'Contract Start Date': 'contractStartDate',
+        'Contract End Date': 'contractEndDate',
+        'Supplier: Account Name': 'currentSupplier',
+        'Product Category': 'productCategory',
+        'Estimated Annual Usage (Kwh/Dth)': 'annualUsageKwh',
+        'Estimated Contract Margin': 'contractMargin',
+        'Parent Account: BUDA Eligible?': 'budaEligible',
+        'Parent Account: BUDA Notes': 'budaNotes',
+        'Parent Account: Account ID Unique': 'salesforceId',
+        'Parent Account: Account Name': 'name',
+        
+        // === STANDARD SALESFORCE ACCOUNT FIELDS ===
         'Account Name': 'name',
         'Account ID': 'salesforceId',
         'AccountId': 'salesforceId',
@@ -45,7 +65,8 @@
         'AnnualRevenue': 'annualRevenue',
         'NumberOfEmployees': 'employees',
         'Number of Employees': 'employees',
-        // Energy-specific fields
+        
+        // === ENERGY-SPECIFIC CUSTOM FIELDS ===
         'ISO__c': 'iso',
         'ISO': 'iso',
         'Utility__c': 'utility',
@@ -55,7 +76,6 @@
         'Annual Usage MWh__c': 'annualUsageMWh',
         'Annual Usage (MWh)': 'annualUsageMWh',
         'Contract End Date__c': 'contractEndDate',
-        'Contract End Date': 'contractEndDate',
         'Current Supplier__c': 'currentSupplier',
         'Current Supplier': 'currentSupplier',
         'Rate Type__c': 'rateType',

@@ -7,6 +7,54 @@
     <link rel="icon" type="image/x-icon" href="https://www.sesenergy.org/assets/images/logo-2.jpg">
     <link rel="stylesheet" href="styles/main.css">
     <link rel="stylesheet" href="styles/help-system.css">
+    <style>
+        /* Double-Height Widgets (2x2 size) */
+        .widget.double-height {
+            grid-row: span 2;
+            min-height: 700px;
+        }
+        
+        .widget.double-height .widget-content {
+            min-height: 680px;
+        }
+        
+        .widget.double-height iframe {
+            min-height: 680px;
+        }
+        
+        /* Global Client Indicator (optional - for header) */
+        .global-client-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: rgba(40, 167, 69, 0.1);
+            border: 1px solid rgba(40, 167, 69, 0.3);
+            border-radius: 6px;
+            margin-right: 12px;
+        }
+        
+        .global-client-indicator.no-client {
+            background: rgba(255, 193, 7, 0.1);
+            border-color: rgba(255, 193, 7, 0.3);
+        }
+        
+        .global-client-indicator .label {
+            font-size: 0.65rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+        }
+        
+        .global-client-indicator .client-name {
+            font-weight: 600;
+            color: #28a745;
+            font-size: 0.85rem;
+        }
+        
+        .global-client-indicator.no-client .client-name {
+            color: #d4a200;
+        }
+    </style>
 </head>
 <body>
     <!-- Login Overlay -->
