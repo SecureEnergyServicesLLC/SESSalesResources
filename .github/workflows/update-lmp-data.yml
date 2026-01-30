@@ -1,11 +1,15 @@
+Here's the clean file. To fix it in GitHub:
+Go to your repo → .github/workflows/update-lmp-data.yml
+Click the pencil icon (Edit this file)
+Select all (Ctrl+A) and delete everything
+Download the file I just provided and copy its contents, OR copy from here:
+yaml
 name: Update LMP Data Monthly
 
 on:
-  # Scheduled to run on the 3rd of every month at 6:00 AM UTC
   schedule:
     - cron: '0 6 3 * *'
   
-  # Allow manual trigger from GitHub Actions UI
   workflow_dispatch:
     inputs:
       start_date:
@@ -51,7 +55,6 @@ jobs:
             echo "start_date=${{ github.event.inputs.start_date }}" >> $GITHUB_OUTPUT
             echo "end_date=${{ github.event.inputs.end_date }}" >> $GITHUB_OUTPUT
           else
-            # Default: fetch previous month's data
             PREV_MONTH=$(date -d "$(date +%Y-%m-01) -1 month" +%Y-%m-01)
             LAST_DAY=$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m-%d)
             echo "start_date=$PREV_MONTH" >> $GITHUB_OUTPUT
@@ -75,15 +78,13 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          
-          # Check if there are changes to commit
           if git diff --quiet data/lmp-database.json; then
             echo "No changes to LMP database"
           else
             git add data/lmp-database.json
-            git commit -m "📊 Auto-update LMP data for $(date -d "${{ steps.dates.outputs.start_date }}" +%B\ %Y)"
+            git commit -m "Auto-update LMP data"
             git push
-            echo "✅ LMP database updated successfully"
+            echo "LMP database updated successfully"
           fi
       
       - name: Summary
@@ -93,36 +94,3 @@ jobs:
           echo "- **Date Range:** ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Markets:** ${{ github.event.inputs.iso_markets || 'all' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** Completed" >> $GITHUB_STEP_SUMMARY
-```
-
-### Step 4: Commit the File
-
-1. Scroll down to "Commit new file"
-2. Add commit message: `Add LMP data automation workflow`
-3. Keep "Commit directly to the main branch" selected
-4. Click **"Commit new file"**
-
----
-
-## Verify It Worked
-
-1. Go to your repo's **Actions** tab
-2. You should see "Update LMP Data Monthly" in the left sidebar
-3. You can click "Run workflow" to test it manually
-
----
-
-## Also Needed: The Scripts
-
-Make sure you also have these files in your repo (from the zip):
-```
-scripts/
-├── package.json
-├── fetch-lmp-data.js
-└── update-lmp-database.js
-```
-
-And your data file at:
-```
-data/
-└── lmp-database.json
