@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2026-01-30T16:42:05.727Z",
+  "lastUpdated": "2026-01-30T16:42:11.231Z",
   "users": [
     {
       "id": "admin-001",
@@ -65,7 +65,7 @@
       "status": "active",
       "createdAt": "2026-01-27T15:32:32.869Z",
       "permissions": {
-        "client-lookup": true,
+        "client-lookup": false,
         "energy-utilization": false,
         "bid-management": false,
         "ai-assistant": false,
@@ -76,7 +76,7 @@
         "data-manager": false,
         "arcadia-fetcher": false
       },
-      "updatedAt": "2026-01-30T16:41:59.715Z"
+      "updatedAt": "2026-01-30T16:42:11.230Z"
     },
     {
       "id": "user-1769527973957",
