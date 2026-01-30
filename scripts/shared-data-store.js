@@ -1,7 +1,10 @@
 /**
- * Secure Energy Shared Data Store v2.5
+ * Secure Energy Shared Data Store v2.6
  * Centralized data management for LMP data, user authentication, activity logging,
  * and widget layout preferences
+ * 
+ * v2.6 Updates:
+ * - ActivityLog.log() dispatches 'activityLogged' event for UI auto-refresh
  * 
  * v2.5 Updates:
  * - Smart merge: compares updatedAt timestamps to keep most recent user data
@@ -874,6 +877,12 @@ const ActivityLog = {
         };
         this.activities.unshift(entry);
         this.saveToStorage();
+        
+        // Dispatch event so Activity Log UI can auto-refresh
+        try {
+            window.dispatchEvent(new CustomEvent('activityLogged', { detail: entry }));
+        } catch (e) { /* ignore if CustomEvent not supported */ }
+        
         if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) {
             clearTimeout(this._syncTimeout);
             this._syncTimeout = setTimeout(() => GitHubSync.syncActivityLog().catch(() => {}), 3000);
