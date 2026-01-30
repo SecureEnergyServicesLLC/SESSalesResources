@@ -520,6 +520,129 @@ function initAdminWidget() {
     });
 }
 
+function initAIAssistantWidget() {
+    const content = document.getElementById('aiAssistantContent');
+    if (!content) return;
+    content.innerHTML = '<div class="ai-assistant-container" style="height:100%;display:flex;flex-direction:column;">' +
+        '<div class="ai-chat-messages" id="aiChatMessages" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">' +
+        '<div class="ai-welcome" style="text-align:center;padding:40px 20px;color:var(--text-tertiary);">' +
+        '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:16px;opacity:0.5;"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>' +
+        '<h3 style="margin:0 0 8px;font-size:16px;color:var(--text-secondary);">AI Assistant</h3>' +
+        '<p style="margin:0;font-size:13px;">Ask questions about LMP data, energy markets, or get help with analysis.</p>' +
+        '</div></div>' +
+        '<div class="ai-chat-input-area" style="padding:16px;border-top:1px solid var(--border-color);display:flex;gap:12px;">' +
+        '<input type="text" id="aiChatInput" placeholder="Ask a question..." style="flex:1;padding:12px 16px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-tertiary);color:var(--text-primary);font-size:14px;">' +
+        '<button onclick="sendAIMessage()" style="padding:12px 20px;background:var(--accent-primary);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:500;">Send</button>' +
+        '</div></div>';
+    
+    const input = document.getElementById('aiChatInput');
+    if (input) {
+        input.addEventListener('keypress', e => {
+            if (e.key === 'Enter') sendAIMessage();
+        });
+    }
+}
+
+window.sendAIMessage = function() {
+    const input = document.getElementById('aiChatInput');
+    const messagesContainer = document.getElementById('aiChatMessages');
+    if (!input || !messagesContainer) return;
+    
+    const query = input.value.trim();
+    if (!query) return;
+    
+    // Remove welcome message if present
+    const welcome = messagesContainer.querySelector('.ai-welcome');
+    if (welcome) welcome.remove();
+    
+    // Add user message
+    const userMsg = document.createElement('div');
+    userMsg.className = 'ai-message user';
+    userMsg.style.cssText = 'align-self:flex-end;background:var(--accent-primary);color:white;padding:12px 16px;border-radius:16px 16px 4px 16px;max-width:80%;font-size:14px;';
+    userMsg.textContent = query;
+    messagesContainer.appendChild(userMsg);
+    
+    // Add assistant response placeholder
+    const assistantMsg = document.createElement('div');
+    assistantMsg.className = 'ai-message assistant';
+    assistantMsg.style.cssText = 'align-self:flex-start;background:var(--bg-tertiary);color:var(--text-primary);padding:12px 16px;border-radius:16px 16px 16px 4px;max-width:80%;font-size:14px;';
+    assistantMsg.innerHTML = '<em style="color:var(--text-tertiary);">Thinking...</em>';
+    messagesContainer.appendChild(assistantMsg);
+    
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    input.value = '';
+    
+    // Generate response based on query
+    setTimeout(() => {
+        const response = generateAIResponse(query);
+        assistantMsg.textContent = response;
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        if (currentUser) {
+            logWidgetAction('AI Query', 'ai-assistant', { query: query.substring(0, 100) });
+        }
+    }, 500);
+};
+
+function generateAIResponse(query) {
+    const q = query.toLowerCase();
+    const stats = SecureEnergyData.getStats();
+    
+    if (q.includes('lmp') && (q.includes('data') || q.includes('record'))) {
+        return 'The portal currently has ' + (stats.totalRecords || 0).toLocaleString() + ' LMP records loaded across ' + (stats.isoCount || 0) + ' ISOs: ' + (stats.isos?.join(', ') || 'none') + '. Use the LMP Analytics or LMP Comparison widgets to analyze this data.';
+    }
+    if (q.includes('iso') || q.includes('market')) {
+        return 'The portal supports data from major ISOs including PJM, ISO-NE, NYISO, CAISO, ERCOT, and MISO. Each ISO has different pricing zones and market structures. Use the LMP Comparison widget to analyze prices across different regions.';
+    }
+    if (q.includes('bid') || q.includes('proposal')) {
+        return 'Use the Bid Management widget to create client proposals. You can select a client, choose suppliers, and generate Excel bid sheets that match the company template format.';
+    }
+    if (q.includes('client')) {
+        return 'Client information is managed through the Client Lookup and Client Administration widgets. You can search for existing clients, view their details, and manage their accounts.';
+    }
+    if (q.includes('help') || q.includes('how')) {
+        return 'I can help you with: LMP data analysis, understanding energy markets, creating bids, managing clients, and navigating the portal. What would you like to know more about?';
+    }
+    return 'I can help you with LMP data analysis, energy market insights, bid management, and portal navigation. Currently there are ' + (stats.totalRecords || 0).toLocaleString() + ' records loaded. What specific information are you looking for?';
+}
+
+function initAnalysisHistoryWidget() {
+    const content = document.getElementById('analysisHistoryContent');
+    if (!content) return;
+    renderAnalysisHistory();
+}
+
+function renderAnalysisHistory() {
+    const content = document.getElementById('analysisHistoryContent');
+    if (!content) return;
+    
+    let analyses = [];
+    if (currentUser) {
+        // Get analysis records from activity log
+        const userLogs = currentUser.role === 'admin' 
+            ? ActivityLog.getAll().filter(l => l.action === 'LMP Analysis')
+            : ActivityLog.getByUser(currentUser.id).filter(l => l.action === 'LMP Analysis');
+        analyses = userLogs.slice(0, 50); // Limit to 50 most recent
+    }
+    
+    if (analyses.length === 0) {
+        content.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-tertiary);">' +
+            '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom:16px;opacity:0.5;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' +
+            '<h3 style="margin:0 0 8px;font-size:16px;color:var(--text-secondary);">No Analysis History</h3>' +
+            '<p style="margin:0;font-size:13px;">Your LMP analyses will appear here after you run them in the LMP Comparison widget.</p>' +
+            '</div>';
+        return;
+    }
+    
+    const header = '<div style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">' +
+        '<span style="font-weight:600;color:var(--text-secondary);">' + analyses.length + ' Analysis Record' + (analyses.length !== 1 ? 's' : '') + '</span>' +
+        (currentUser?.role === 'admin' ? '<span style="font-size:11px;color:var(--accent-primary);">Showing all users</span>' : '') +
+        '</div>';
+    
+    const cards = analyses.map(a => createAnalysisCard(a)).join('');
+    
+    content.innerHTML = header + '<div style="padding:16px;display:flex;flex-direction:column;gap:12px;">' + cards + '</div>';
+}
+
 function getCreateUserPanel() {
     return '<div class="create-user-form"><h3 style="margin-bottom:20px;font-size:16px;">Create New User</h3><div class="form-row"><div class="form-group"><label>First Name *</label><input type="text" id="newFirstName" placeholder="First name"></div><div class="form-group"><label>Last Name *</label><input type="text" id="newLastName" placeholder="Last name"></div></div><div class="form-row single"><div class="form-group"><label>Email *</label><input type="email" id="newEmail" placeholder="Email"></div></div><div class="form-row single"><div class="form-group"><label>Password *</label><input type="password" id="newPassword" placeholder="Password"></div></div><div class="form-row single"><div class="form-group"><label>Role</label><select id="newRole"><option value="user">Standard User</option><option value="admin">Administrator</option></select></div></div><div class="widget-permissions"><h4>Widget Permissions</h4><div class="widget-permission-item"><span>Client Lookup</span><label class="toggle-switch"><input type="checkbox" id="perm-client-lookup" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Client Administration</span><label class="toggle-switch"><input type="checkbox" id="perm-client-admin" checked><span class="toggle-slider"></span></label><span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:6px;">(Admin only)</span></div><div class="widget-permission-item"><span>Energy Utilization</span><label class="toggle-switch"><input type="checkbox" id="perm-energy-utilization" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Bid Management</span><label class="toggle-switch"><input type="checkbox" id="perm-bid-management" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="perm-ai-assistant" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>AE Intelligence (BUDA)</span><label class="toggle-switch"><input type="checkbox" id="perm-aei-intelligence" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-comparison" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>LMP Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-analytics" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Peak Demand Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-peak-demand" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Analysis History</span><label class="toggle-switch"><input type="checkbox" id="perm-analysis-history" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Data Manager</span><label class="toggle-switch"><input type="checkbox" id="perm-data-manager"><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Arcadia Fetcher</span><label class="toggle-switch"><input type="checkbox" id="perm-arcadia-fetcher"><span class="toggle-slider"></span></label></div></div><button class="btn-primary" onclick="createUser()" style="margin-top:20px;">Create User</button></div>';
 }
