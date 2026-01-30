@@ -229,7 +229,9 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
         // This ensures users can log in from ANY device, not just where they were created
         const result = await UserStore.authenticate(email, password);
         
-        if (result.success) {
+        console.log('[Login] Auth result:', result);
+        
+        if (result && result.success) {
             currentUser = result.user;
             UserStore.setCurrentUser(result.user);
             showPortal(result.user);
@@ -242,13 +244,19 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
                 action: 'Login' 
             });
         } else {
-            errorEl.textContent = result.error;
-            errorEl.classList.add('show');
+            const errorMsg = result?.error || 'Login failed';
+            console.warn('[Login] Failed:', errorMsg);
+            if (errorEl) {
+                errorEl.textContent = errorMsg;
+                errorEl.classList.add('show');
+            }
         }
     } catch (err) {
         console.error('[Login] Error:', err);
-        errorEl.textContent = 'Login error. Please try again.';
-        errorEl.classList.add('show');
+        if (errorEl) {
+            errorEl.textContent = 'Login error: ' + (err.message || 'Please try again.');
+            errorEl.classList.add('show');
+        }
     } finally {
         // Reset button state
         if (submitBtn) {
