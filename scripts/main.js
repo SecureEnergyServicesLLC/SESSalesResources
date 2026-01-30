@@ -1,5 +1,9 @@
 /**
- * Secure Energy Analytics Portal - Main Controller v2.6
+ * Secure Energy Analytics Portal - Main Controller v2.7
+ * 
+ * v2.7 Updates:
+ * - Added AE Intelligence (BUDA) widget integration via iframe
+ * - AE Intelligence permission controls added to User Administration
  * 
  * v2.6 Updates:
  * - User Admin and Client Admin widgets now extra-wide (admin-wide class)
@@ -19,6 +23,7 @@ const DEFAULT_WIDGETS = [
     { id: 'energy-utilization', name: 'Energy Utilization', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/energy-utilization-widget.html', fullWidth: false, defaultHeight: 650, minHeight: 500, maxHeight: 900 },
     { id: 'bid-management', name: 'Bid Management', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', src: 'widgets/bid-management-widget.html', fullWidth: true, defaultHeight: 900, minHeight: 500, maxHeight: 1400 },
     { id: 'ai-assistant', name: 'AI Assistant', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 800 },
+    { id: 'aei-intelligence', name: 'AE Intelligence (BUDA)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', src: 'widgets/aei-widget.html', fullWidth: true, defaultHeight: 700, minHeight: 400, maxHeight: 1200 },
     { id: 'lmp-analytics', name: 'LMP Analytics Dashboard', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>', src: 'widgets/lmp-analytics.html', fullWidth: true, defaultHeight: 800, minHeight: 400, maxHeight: 1200 },
     { id: 'data-manager', name: 'LMP Data Manager', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>', src: 'widgets/lmp-data-manager.html', defaultHeight: 500, minHeight: 300, maxHeight: 900 },
     { id: 'arcadia-fetcher', name: 'Arcadia LMP Data Fetcher', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/arcadia-lmp-fetcher.html', defaultHeight: 500, minHeight: 300, maxHeight: 800 },
@@ -516,13 +521,13 @@ function initAdminWidget() {
 }
 
 function getCreateUserPanel() {
-    return '<div class="create-user-form"><h3 style="margin-bottom:20px;font-size:16px;">Create New User</h3><div class="form-row"><div class="form-group"><label>First Name *</label><input type="text" id="newFirstName" placeholder="First name"></div><div class="form-group"><label>Last Name *</label><input type="text" id="newLastName" placeholder="Last name"></div></div><div class="form-row single"><div class="form-group"><label>Email *</label><input type="email" id="newEmail" placeholder="Email"></div></div><div class="form-row single"><div class="form-group"><label>Password *</label><input type="password" id="newPassword" placeholder="Password"></div></div><div class="form-row single"><div class="form-group"><label>Role</label><select id="newRole"><option value="user">Standard User</option><option value="admin">Administrator</option></select></div></div><div class="widget-permissions"><h4>Widget Permissions</h4><div class="widget-permission-item"><span>Client Lookup</span><label class="toggle-switch"><input type="checkbox" id="perm-client-lookup" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Client Administration</span><label class="toggle-switch"><input type="checkbox" id="perm-client-admin" checked><span class="toggle-slider"></span></label><span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:6px;">(Admin only)</span></div><div class="widget-permission-item"><span>Energy Utilization</span><label class="toggle-switch"><input type="checkbox" id="perm-energy-utilization" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Bid Management</span><label class="toggle-switch"><input type="checkbox" id="perm-bid-management" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="perm-ai-assistant" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-comparison" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>LMP Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-analytics" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Peak Demand Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-peak-demand" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Analysis History</span><label class="toggle-switch"><input type="checkbox" id="perm-analysis-history" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Data Manager</span><label class="toggle-switch"><input type="checkbox" id="perm-data-manager"><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Arcadia Fetcher</span><label class="toggle-switch"><input type="checkbox" id="perm-arcadia-fetcher"><span class="toggle-slider"></span></label></div></div><button class="btn-primary" onclick="createUser()" style="margin-top:20px;">Create User</button></div>';
+    return '<div class="create-user-form"><h3 style="margin-bottom:20px;font-size:16px;">Create New User</h3><div class="form-row"><div class="form-group"><label>First Name *</label><input type="text" id="newFirstName" placeholder="First name"></div><div class="form-group"><label>Last Name *</label><input type="text" id="newLastName" placeholder="Last name"></div></div><div class="form-row single"><div class="form-group"><label>Email *</label><input type="email" id="newEmail" placeholder="Email"></div></div><div class="form-row single"><div class="form-group"><label>Password *</label><input type="password" id="newPassword" placeholder="Password"></div></div><div class="form-row single"><div class="form-group"><label>Role</label><select id="newRole"><option value="user">Standard User</option><option value="admin">Administrator</option></select></div></div><div class="widget-permissions"><h4>Widget Permissions</h4><div class="widget-permission-item"><span>Client Lookup</span><label class="toggle-switch"><input type="checkbox" id="perm-client-lookup" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Client Administration</span><label class="toggle-switch"><input type="checkbox" id="perm-client-admin" checked><span class="toggle-slider"></span></label><span style="font-size:0.7rem;color:var(--text-tertiary);margin-left:6px;">(Admin only)</span></div><div class="widget-permission-item"><span>Energy Utilization</span><label class="toggle-switch"><input type="checkbox" id="perm-energy-utilization" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Bid Management</span><label class="toggle-switch"><input type="checkbox" id="perm-bid-management" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="perm-ai-assistant" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>AE Intelligence (BUDA)</span><label class="toggle-switch"><input type="checkbox" id="perm-aei-intelligence" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-comparison" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>LMP Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-lmp-analytics" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Peak Demand Analytics</span><label class="toggle-switch"><input type="checkbox" id="perm-peak-demand" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Analysis History</span><label class="toggle-switch"><input type="checkbox" id="perm-analysis-history" checked><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Data Manager</span><label class="toggle-switch"><input type="checkbox" id="perm-data-manager"><span class="toggle-slider"></span></label></div><div class="widget-permission-item"><span>Arcadia Fetcher</span><label class="toggle-switch"><input type="checkbox" id="perm-arcadia-fetcher"><span class="toggle-slider"></span></label></div></div><button class="btn-primary" onclick="createUser()" style="margin-top:20px;">Create User</button></div>';
 }
 
 function getManageUsersPanel() { return '<div style="overflow-x:auto;"><table class="users-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody id="usersTableBody"></tbody></table></div>'; }
 
 function getActivityLogPanel() {
-    return '<div class="activity-stats-grid" id="activityStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:12px;margin-bottom:20px;"></div><div class="activity-filters" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><input type="text" id="activitySearch" placeholder="Search..." style="flex:1;min-width:150px;" oninput="renderActivityLog()"><select id="activityWidgetFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Widgets</option><option value="portal">Portal</option><option value="user-admin">User Admin</option><option value="client-admin">Client Admin</option><option value="bid-management">Bid Management</option><option value="lmp-comparison">LMP Comparison</option><option value="lmp-analytics">LMP Analytics</option><option value="energy-utilization">Energy Utilization</option><option value="ai-assistant">AI Assistant</option><option value="data-manager">Data Manager</option></select><select id="activityActionFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Actions</option><option value="Login">Login</option><option value="Logout">Logout</option><option value="LMP Analysis">LMP Analysis</option><option value="Bid Sheet Generated">Bid Sheet</option><option value="Client Create">Client Create</option><option value="Client Update">Client Update</option><option value="Widget Expand">Widget Expand</option><option value="Widget Resize">Widget Resize</option></select></div><div id="activityLogContainer" style="max-height:400px;overflow-y:auto;"></div>';
+    return '<div class="activity-stats-grid" id="activityStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:12px;margin-bottom:20px;"></div><div class="activity-filters" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><input type="text" id="activitySearch" placeholder="Search..." style="flex:1;min-width:150px;" oninput="renderActivityLog()"><select id="activityWidgetFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Widgets</option><option value="portal">Portal</option><option value="user-admin">User Admin</option><option value="client-admin">Client Admin</option><option value="bid-management">Bid Management</option><option value="lmp-comparison">LMP Comparison</option><option value="lmp-analytics">LMP Analytics</option><option value="energy-utilization">Energy Utilization</option><option value="ai-assistant">AI Assistant</option><option value="aei-intelligence">AE Intelligence</option><option value="data-manager">Data Manager</option></select><select id="activityActionFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Actions</option><option value="Login">Login</option><option value="Logout">Logout</option><option value="LMP Analysis">LMP Analysis</option><option value="Bid Sheet Generated">Bid Sheet</option><option value="Client Create">Client Create</option><option value="Client Update">Client Update</option><option value="Widget Expand">Widget Expand</option><option value="Widget Resize">Widget Resize</option></select></div><div id="activityLogContainer" style="max-height:400px;overflow-y:auto;"></div>';
 }
 
 function getGitHubSyncPanel() {
@@ -701,6 +706,218 @@ function updateDataStatus() {
     const indicator = document.getElementById('dataStatusIndicator'), title = document.getElementById('dataStatusTitle'), desc = document.getElementById('dataStatusDesc');
     if (stats.totalRecords > 0) { indicator.style.background = 'var(--accent-success)'; title.textContent = 'Data Loaded'; desc.textContent = stats.isos?.join(', ') || (stats.totalRecords + ' records'); }
     else { indicator.style.background = 'var(--accent-warning)'; title.textContent = 'No Data'; desc.textContent = 'Use Data Manager to load'; }
+}
+
+// =====================================================
+// USER MANAGEMENT FUNCTIONS
+// =====================================================
+window.createUser = function() {
+    const firstName = document.getElementById('newFirstName')?.value?.trim();
+    const lastName = document.getElementById('newLastName')?.value?.trim();
+    const email = document.getElementById('newEmail')?.value?.trim();
+    const password = document.getElementById('newPassword')?.value;
+    const role = document.getElementById('newRole')?.value || 'user';
+    
+    if (!firstName || !lastName || !email || !password) {
+        showNotification('Please fill in all required fields', 'error');
+        return;
+    }
+    
+    const permissions = {
+        'client-lookup': document.getElementById('perm-client-lookup')?.checked ?? true,
+        'client-admin': document.getElementById('perm-client-admin')?.checked ?? true,
+        'energy-utilization': document.getElementById('perm-energy-utilization')?.checked ?? true,
+        'bid-management': document.getElementById('perm-bid-management')?.checked ?? true,
+        'ai-assistant': document.getElementById('perm-ai-assistant')?.checked ?? true,
+        'aei-intelligence': document.getElementById('perm-aei-intelligence')?.checked ?? true,
+        'lmp-comparison': document.getElementById('perm-lmp-comparison')?.checked ?? true,
+        'lmp-analytics': document.getElementById('perm-lmp-analytics')?.checked ?? true,
+        'peak-demand': document.getElementById('perm-peak-demand')?.checked ?? true,
+        'analysis-history': document.getElementById('perm-analysis-history')?.checked ?? true,
+        'data-manager': document.getElementById('perm-data-manager')?.checked ?? false,
+        'arcadia-fetcher': document.getElementById('perm-arcadia-fetcher')?.checked ?? false
+    };
+    
+    const result = UserStore.create({ firstName, lastName, email, password, role, permissions });
+    if (result.success) {
+        showNotification('User ' + firstName + ' ' + lastName + ' created!', 'success');
+        logWidgetAction('User Created', 'user-admin', { email, role });
+        // Clear form
+        ['newFirstName', 'newLastName', 'newEmail', 'newPassword'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = '';
+        });
+        document.getElementById('newRole').value = 'user';
+        // Reset permission checkboxes to defaults
+        document.querySelectorAll('.widget-permissions input[type="checkbox"]').forEach(cb => {
+            cb.checked = !cb.id.includes('data-manager') && !cb.id.includes('arcadia-fetcher');
+        });
+    } else {
+        showNotification(result.error || 'Failed to create user', 'error');
+    }
+};
+
+window.editUser = function(userId) {
+    const user = UserStore.getById(userId);
+    if (!user) { showNotification('User not found', 'error'); return; }
+    
+    const modal = document.getElementById('editUserModal');
+    const content = document.getElementById('editUserContent');
+    const perms = user.permissions || {};
+    const getChecked = (widgetId) => perms[widgetId] !== false ? 'checked' : '';
+    
+    content.innerHTML = '<div class="edit-user-form">' +
+        '<div class="form-row"><div class="form-group"><label>First Name</label><input type="text" id="editFirstName" value="' + escapeHtml(user.firstName) + '"></div>' +
+        '<div class="form-group"><label>Last Name</label><input type="text" id="editLastName" value="' + escapeHtml(user.lastName) + '"></div></div>' +
+        '<div class="form-row single"><div class="form-group"><label>Email</label><input type="email" id="editEmail" value="' + escapeHtml(user.email) + '"></div></div>' +
+        '<div class="form-row single"><div class="form-group"><label>New Password (leave blank to keep current)</label><input type="password" id="editPassword" placeholder="New password"></div></div>' +
+        '<div class="form-row single"><div class="form-group"><label>Role</label><select id="editRole"><option value="user"' + (user.role === 'user' ? ' selected' : '') + '>Standard User</option><option value="admin"' + (user.role === 'admin' ? ' selected' : '') + '>Administrator</option></select></div></div>' +
+        '<div class="widget-permissions" style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border-color);">' +
+        '<h4 style="margin-bottom:12px;color:var(--text-secondary);">Widget Permissions</h4>' +
+        '<div class="widget-permission-item"><span>Client Lookup</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-client-lookup" ' + getChecked('client-lookup') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>Client Administration</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-client-admin" ' + getChecked('client-admin') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>Energy Utilization</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-energy-utilization" ' + getChecked('energy-utilization') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>Bid Management</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-bid-management" ' + getChecked('bid-management') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>AI Assistant</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-ai-assistant" ' + getChecked('ai-assistant') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>AE Intelligence (BUDA)</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-aei-intelligence" ' + getChecked('aei-intelligence') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>LMP Comparison</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-lmp-comparison" ' + getChecked('lmp-comparison') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>LMP Analytics</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-lmp-analytics" ' + getChecked('lmp-analytics') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>Peak Demand Analytics</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-peak-demand" ' + getChecked('peak-demand') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>Analysis History</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-analysis-history" ' + getChecked('analysis-history') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>Data Manager</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-data-manager" ' + getChecked('data-manager') + '><span class="toggle-slider"></span></label></div>' +
+        '<div class="widget-permission-item"><span>Arcadia Fetcher</span><label class="toggle-switch"><input type="checkbox" id="edit-perm-arcadia-fetcher" ' + getChecked('arcadia-fetcher') + '><span class="toggle-slider"></span></label></div>' +
+        '</div>' +
+        '<div style="margin-top:20px;display:flex;gap:12px;">' +
+        '<button class="btn-primary" onclick="saveUserEdit(\'' + userId + '\')">Save Changes</button>' +
+        '<button class="btn-secondary" onclick="closeEditModal()">Cancel</button>' +
+        '</div></div>';
+    
+    document.querySelector('#editUserModal .modal-title').textContent = 'Edit User';
+    modal.classList.add('show');
+};
+
+window.saveUserEdit = async function(userId) {
+    const saveBtn = document.querySelector('#editUserModal .btn-primary');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+    
+    const updates = {
+        firstName: document.getElementById('editFirstName')?.value?.trim(),
+        lastName: document.getElementById('editLastName')?.value?.trim(),
+        email: document.getElementById('editEmail')?.value?.trim(),
+        role: document.getElementById('editRole')?.value,
+        permissions: {
+            'client-lookup': document.getElementById('edit-perm-client-lookup')?.checked,
+            'client-admin': document.getElementById('edit-perm-client-admin')?.checked,
+            'energy-utilization': document.getElementById('edit-perm-energy-utilization')?.checked,
+            'bid-management': document.getElementById('edit-perm-bid-management')?.checked,
+            'ai-assistant': document.getElementById('edit-perm-ai-assistant')?.checked,
+            'aei-intelligence': document.getElementById('edit-perm-aei-intelligence')?.checked,
+            'lmp-comparison': document.getElementById('edit-perm-lmp-comparison')?.checked,
+            'lmp-analytics': document.getElementById('edit-perm-lmp-analytics')?.checked,
+            'peak-demand': document.getElementById('edit-perm-peak-demand')?.checked,
+            'analysis-history': document.getElementById('edit-perm-analysis-history')?.checked,
+            'data-manager': document.getElementById('edit-perm-data-manager')?.checked,
+            'arcadia-fetcher': document.getElementById('edit-perm-arcadia-fetcher')?.checked
+        }
+    };
+    
+    const newPassword = document.getElementById('editPassword')?.value;
+    if (newPassword) updates.password = newPassword;
+    
+    try {
+        const result = await UserStore.update(userId, updates);
+        if (result.success) {
+            showNotification('User updated successfully', 'success');
+            logWidgetAction('User Updated', 'user-admin', { userId, email: updates.email });
+            closeEditModal();
+            renderUsersTable();
+        } else {
+            showNotification(result.error || 'Failed to update user', 'error');
+        }
+    } catch (e) {
+        showNotification('Error updating user: ' + e.message, 'error');
+    } finally {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'Save Changes'; }
+    }
+};
+
+window.deleteUser = function(userId) {
+    const user = UserStore.getById(userId);
+    if (!user) { showNotification('User not found', 'error'); return; }
+    
+    if (confirm('Are you sure you want to delete ' + user.firstName + ' ' + user.lastName + '?')) {
+        const result = UserStore.delete(userId);
+        if (result.success) {
+            showNotification('User deleted', 'success');
+            logWidgetAction('User Deleted', 'user-admin', { userId, email: user.email });
+            renderUsersTable();
+        } else {
+            showNotification(result.error || 'Failed to delete user', 'error');
+        }
+    }
+};
+
+window.closeEditModal = function() {
+    const modal = document.getElementById('editUserModal');
+    if (modal) modal.classList.remove('show');
+};
+
+// Export functions
+window.exportAllUsers = function() {
+    const users = UserStore.getAll().map(u => ({ ...u, password: '***' }));
+    const csv = 'First Name,Last Name,Email,Role,Status,Created\n' + 
+        users.map(u => [u.firstName, u.lastName, u.email, u.role, u.status || 'active', u.createdAt].join(',')).join('\n');
+    downloadFile(csv, 'users-export.csv', 'text/csv');
+    logWidgetAction('Export Users', 'user-admin', { count: users.length });
+    showNotification('Users exported', 'success');
+};
+
+window.exportActivityLog = function() {
+    const logs = ActivityLog.getAll();
+    const csv = 'Timestamp,User,Action,Widget,Client,Details\n' +
+        logs.map(l => [l.timestamp, l.userName || '', l.action, l.widget, l.clientName || '', JSON.stringify(l.data || {})].join(',')).join('\n');
+    downloadFile(csv, 'activity-log-export.csv', 'text/csv');
+    logWidgetAction('Export Activity', 'user-admin', { count: logs.length });
+    showNotification('Activity log exported', 'success');
+};
+
+window.exportLMPData = function() {
+    const data = SecureEnergyData.getAll();
+    const json = JSON.stringify(data, null, 2);
+    downloadFile(json, 'lmp-data-export.json', 'application/json');
+    logWidgetAction('Export LMP Data', 'user-admin', { recordCount: Object.keys(data).length });
+    showNotification('LMP data exported', 'success');
+};
+
+window.exportMyAnalysisRecords = function() {
+    if (!currentUser) return;
+    const logs = ActivityLog.getByUser(currentUser.id).filter(l => l.action === 'LMP Analysis');
+    const csv = 'Date,Client,ISO,Zone,Term,Fixed Rate,Usage,Index Cost,Fixed Cost,Savings\n' +
+        logs.map(l => {
+            const d = l.data || {};
+            const r = d.results || {};
+            return [new Date(l.timestamp).toLocaleDateString(), d.clientName || '', d.iso || '', d.zone || '', d.termMonths || '', d.fixedPrice || '', d.totalAnnualUsage || '', r.totalIndexCost || '', r.totalFixedCost || '', r.savingsVsFixed || ''].join(',');
+        }).join('\n');
+    downloadFile(csv, 'my-analysis-history.csv', 'text/csv');
+    logWidgetAction('History Export', 'analysis-history', { count: logs.length });
+    showNotification('Analysis history exported', 'success');
+};
+
+window.refreshAnalysisHistory = function() {
+    renderAnalysisHistory();
+    showNotification('Analysis history refreshed', 'info');
+};
+
+function downloadFile(content, filename, mimeType) {
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEditModal(); });
