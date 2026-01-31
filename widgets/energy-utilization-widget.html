@@ -59,11 +59,37 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            max-width: 350px;
         }
         .client-indicator.no-client {
             background: rgba(255,193,7,0.2);
             border-color: var(--warning);
             color: var(--warning);
+        }
+        .client-indicator.has-account {
+            background: rgba(59,130,246,0.2);
+            border-color: #3b82f6;
+        }
+        .context-display {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            line-height: 1.2;
+        }
+        .context-client {
+            font-weight: 600;
+            font-size: 0.8rem;
+        }
+        .context-account {
+            font-size: 0.7rem;
+            color: #3b82f6;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .context-account::before {
+            content: "└";
+            color: var(--text-secondary);
         }
         .widget-body { padding: 20px; }
         .tabs {
@@ -599,7 +625,7 @@
         const ExportMetadata = {
             // Widget identification
             widgetName: 'Energy Utilization',
-            widgetVersion: '1.0',
+            widgetVersion: '1.1',
             
             // Get current user info from parent or localStorage
             getCurrentUser: function() {
@@ -640,10 +666,34 @@
                 return { name: 'No Client Selected', id: '', iso: '', accountNumber: '' };
             },
             
+            // Get active account info (child under client)
+            getActiveAccount: function() {
+                if (activeAccount) {
+                    return {
+                        name: activeAccount.accountName || 'Unknown Account',
+                        id: activeAccount.id || '',
+                        accountNumber: activeAccount.accountNumber || '',
+                        serviceZip: activeAccount.serviceZip || ''
+                    };
+                }
+                return null;
+            },
+            
+            // Get full context display name
+            getContextDisplayName: function() {
+                const client = this.getActiveClient();
+                const account = this.getActiveAccount();
+                if (account && client.name !== 'No Client Selected') {
+                    return `${client.name} → ${account.name}`;
+                }
+                return client.name;
+            },
+            
             // Generate standardized metadata header rows for Excel export
             generateMetadataRows: function(additionalInfo = {}) {
                 const user = this.getCurrentUser();
                 const client = this.getActiveClient();
+                const account = this.getActiveAccount();
                 const now = new Date();
                 
                 const metadata = [
@@ -659,13 +709,24 @@
                     ['Client Name:', client.name],
                     ['Client ID:', client.id || 'N/A'],
                     ['ISO/RTO:', client.iso || 'N/A'],
-                    ['Account Number:', client.accountNumber || 'N/A'],
-                    [''],
-                    ['Widget Information'],
-                    ['Widget:', this.widgetName],
-                    ['Version:', this.widgetVersion],
-                    ['']
+                    ['Account Number:', client.accountNumber || 'N/A']
                 ];
+                
+                // Add account info if available
+                if (account) {
+                    metadata.push(['']);
+                    metadata.push(['Account Information']);
+                    metadata.push(['Account Name:', account.name]);
+                    metadata.push(['Account ID:', account.id || 'N/A']);
+                    metadata.push(['Account Number:', account.accountNumber || 'N/A']);
+                    metadata.push(['Service ZIP:', account.serviceZip || 'N/A']);
+                }
+                
+                metadata.push(['']);
+                metadata.push(['Widget Information']);
+                metadata.push(['Widget:', this.widgetName]);
+                metadata.push(['Version:', this.widgetVersion]);
+                metadata.push(['']);
                 
                 // Add any additional custom info
                 if (Object.keys(additionalInfo).length > 0) {
@@ -694,14 +755,21 @@
                 return ws;
             },
             
-            // Generate filename with timestamp
+            // Generate filename with timestamp (includes account if present)
             generateFilename: function(baseName, extension = 'xlsx') {
                 const client = this.getActiveClient();
+                const account = this.getActiveAccount();
                 const timestamp = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-                const clientPart = client.name !== 'No Client Selected' 
-                    ? client.name.replace(/[^a-z0-9]/gi, '_') + '_'
-                    : '';
-                return `${clientPart}${baseName}_${timestamp}.${extension}`;
+                
+                let namePart = '';
+                if (client.name !== 'No Client Selected') {
+                    namePart = client.name.replace(/[^a-z0-9]/gi, '_');
+                    if (account) {
+                        namePart += '_' + account.name.replace(/[^a-z0-9]/gi, '_');
+                    }
+                    namePart += '_';
+                }
+                return `${namePart}${baseName}_${timestamp}.${extension}`;
             }
         };
         
@@ -782,6 +850,17 @@
         let electricChart = null;
         let gasChart = null;
         let activeClient = null;
+        let activeAccount = null;  // Track active account (child) under active client
+        
+        // Helper to get storage key for current context (parent or parent+child)
+        function getContextKey() {
+            if (activeAccount && activeClient) {
+                return `${activeClient.id}_${activeAccount.id}`;
+            } else if (activeClient) {
+                return activeClient.id;
+            }
+            return null;
+        }
         
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
@@ -917,27 +996,68 @@
             if (!data || !data.type) return;
             
             if (data.type === 'ACTIVE_CLIENT_CHANGED' || data.type === 'ACTIVE_CLIENT_RESPONSE') {
-                setActiveClient(data.client);
+                setActiveClient(data.client, data.account || null);
+            }
+            
+            if (data.type === 'ACTIVE_ACCOUNT_CHANGED') {
+                // Account changed under same client
+                setActiveAccount(data.account, data.client);
             }
         }
         
-        function setActiveClient(client) {
+        function setActiveClient(client, account = null) {
             activeClient = client;
-            const indicator = document.getElementById('clientIndicator');
-            const nameEl = document.getElementById('clientName');
+            activeAccount = account;
+            updateContextIndicator();
             
             if (client) {
+                loadContextUsage();
+            }
+        }
+        
+        function setActiveAccount(account, client = null) {
+            // If client provided and different, update it
+            if (client && (!activeClient || activeClient.id !== client.id)) {
+                activeClient = client;
+            }
+            activeAccount = account;
+            updateContextIndicator();
+            loadContextUsage();
+        }
+        
+        function updateContextIndicator() {
+            const indicator = document.getElementById('clientIndicator');
+            
+            if (activeClient) {
                 indicator.classList.remove('no-client');
-                indicator.innerHTML = `
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                        <polyline points="22 4 12 14.01 9 11.01"/>
-                    </svg>
-                    <span id="clientName">${client.name}</span>
-                `;
-                loadClientUsage(client.id);
+                
+                if (activeAccount) {
+                    // Has both client and account
+                    indicator.classList.add('has-account');
+                    indicator.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <div class="context-display">
+                            <span class="context-client">${activeClient.name}</span>
+                            <span class="context-account">${activeAccount.accountName || activeAccount.id}</span>
+                        </div>
+                    `;
+                } else {
+                    // Client only, no account
+                    indicator.classList.remove('has-account');
+                    indicator.innerHTML = `
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span id="clientName">${activeClient.name}</span>
+                    `;
+                }
             } else {
                 indicator.classList.add('no-client');
+                indicator.classList.remove('has-account');
                 indicator.innerHTML = `
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -947,30 +1067,87 @@
             }
         }
         
-        function loadClientUsage(clientId) {
-            // Try localStorage first
-            const stored = localStorage.getItem(`usage_${clientId}`);
+        function loadContextUsage() {
+            const contextKey = getContextKey();
+            if (!contextKey) return;
+            
+            // Clear current data first
+            electricData = Array(12).fill(0);
+            gasData = Array(12).fill(0);
+            
+            // Try localStorage with context key first
+            const stored = localStorage.getItem(`usage_${contextKey}`);
             if (stored) {
                 try {
                     const profile = JSON.parse(stored);
                     if (profile.electric) {
                         electricData = [...profile.electric];
-                        electricData.forEach((v, i) => document.getElementById(`electric-${i}`).value = v);
                     }
                     if (profile.gas) {
                         gasData = [...profile.gas];
-                        gasData.forEach((v, i) => document.getElementById(`gas-${i}`).value = v);
                     }
-                    updateSummary('electric');
-                    updateSummary('gas');
-                    updateChart('electric');
-                    updateChart('gas');
+                    updateUIFromData();
                     return;
                 } catch {}
             }
             
+            // Fallback: try client-only key if we have account but no account-specific data
+            if (activeAccount && activeClient) {
+                const clientOnlyKey = `usage_${activeClient.id}`;
+                const clientStored = localStorage.getItem(clientOnlyKey);
+                if (clientStored) {
+                    try {
+                        const profile = JSON.parse(clientStored);
+                        if (profile.electric) {
+                            electricData = [...profile.electric];
+                        }
+                        if (profile.gas) {
+                            gasData = [...profile.gas];
+                        }
+                        updateUIFromData();
+                        // Show toast that we're using parent-level data
+                        showToast('Loaded parent-level usage (no account-specific data yet)', 'info');
+                        return;
+                    } catch {}
+                }
+            }
+            
             // Check if client has usage in store
-            if (window.parent?.SecureEnergyClients) {
+            if (window.parent?.SecureEnergyClients && activeClient) {
+                const client = window.parent.SecureEnergyClients.getClient(activeClient.id);
+                if (client?.usageProfile) {
+                    electricData = [...(client.usageProfile.electric || Array(12).fill(0))];
+                    gasData = [...(client.usageProfile.gas || Array(12).fill(0))];
+                    updateUIFromData();
+                    return;
+                }
+            }
+            
+            // No usage found - update UI with zeros and prompt
+            updateUIFromData();
+            
+            if (activeClient) {
+                const displayName = activeAccount 
+                    ? `${activeClient.name} → ${activeAccount.accountName || 'Account'}` 
+                    : activeClient.name;
+                document.getElementById('noUsageClientName').textContent = displayName;
+                document.getElementById('noUsageModal').classList.add('show');
+            }
+        }
+        
+        function updateUIFromData() {
+            electricData.forEach((v, i) => document.getElementById(`electric-${i}`).value = v);
+            gasData.forEach((v, i) => document.getElementById(`gas-${i}`).value = v);
+            updateSummary('electric');
+            updateSummary('gas');
+            updateChart('electric');
+            updateChart('gas');
+        }
+        
+        // Legacy function for backward compatibility
+        function loadClientUsage(clientId) {
+            loadContextUsage();
+        }
                 const client = window.parent.SecureEnergyClients.getClient(clientId);
                 if (client?.usageProfile) {
                     electricData = [...(client.usageProfile.electric || Array(12).fill(0))];
@@ -1010,15 +1187,24 @@
                 return;
             }
             
+            const contextKey = getContextKey();
+            const displayName = activeAccount 
+                ? `${activeClient.name} → ${activeAccount.accountName || 'Account'}` 
+                : activeClient.name;
+            
             const profile = {
                 electric: [...electricData],
                 gas: [...gasData],
                 totalElectric: electricData.reduce((a, b) => a + b, 0),
                 totalGas: gasData.reduce((a, b) => a + b, 0),
+                clientId: activeClient.id,
+                clientName: activeClient.name,
+                accountId: activeAccount?.id || null,
+                accountName: activeAccount?.accountName || null,
                 updatedAt: new Date().toISOString()
             };
             
-            // Save to parent's client store
+            // Save to parent's client store (at client level for aggregation)
             if (window.parent?.SecureEnergyClients) {
                 window.parent.SecureEnergyClients.updateClient(activeClient.id, {
                     usageProfile: profile,
@@ -1026,19 +1212,21 @@
                 });
             }
             
-            // Also save to localStorage as backup
-            localStorage.setItem(`usage_${activeClient.id}`, JSON.stringify(profile));
+            // Save to localStorage with context key (parent+account level)
+            localStorage.setItem(`usage_${contextKey}`, JSON.stringify(profile));
             
             // Notify other widgets
             if (window.parent !== window) {
                 window.parent.postMessage({
                     type: 'CLIENT_USAGE_UPDATED',
                     clientId: activeClient.id,
+                    accountId: activeAccount?.id || null,
+                    contextKey: contextKey,
                     profile: profile
                 }, '*');
             }
             
-            showToast(`Usage saved for ${activeClient.name}`, 'success');
+            showToast(`Usage saved for ${displayName}`, 'success');
         }
         
         // Clear Usage
@@ -1185,23 +1373,63 @@
                 if (key.startsWith('usage_')) {
                     try {
                         const profile = JSON.parse(localStorage.getItem(key));
-                        const clientId = key.replace('usage_', '');
-                        let clientName = clientId;
+                        const contextKey = key.replace('usage_', '');
                         
-                        // Try to get client name from store
+                        // Parse context key - could be "clientId" or "clientId_accountId"
+                        const parts = contextKey.split('_');
+                        const clientId = parts[0];
+                        const accountId = parts.length > 1 ? parts.slice(1).join('_') : null;
+                        
+                        let displayName = contextKey;
+                        let clientName = clientId;
+                        let accountName = null;
+                        
+                        // Try to get names from store
                         if (window.parent?.SecureEnergyClients) {
                             const client = window.parent.SecureEnergyClients.getClient(clientId);
-                            if (client) clientName = client.name;
+                            if (client) {
+                                clientName = client.name;
+                                displayName = client.name;
+                                
+                                // If there's an account ID, try to find account name
+                                if (accountId && client.accounts) {
+                                    const account = client.accounts.find(a => a.id === accountId);
+                                    if (account) {
+                                        accountName = account.accountName || accountId;
+                                        displayName = `${clientName} → ${accountName}`;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Use stored names as fallback
+                        if (profile.clientName) clientName = profile.clientName;
+                        if (profile.accountName) accountName = profile.accountName;
+                        if (accountName && clientName) {
+                            displayName = `${clientName} → ${accountName}`;
+                        } else if (clientName) {
+                            displayName = clientName;
                         }
                         
                         profiles.push({
+                            contextKey,
                             clientId,
+                            accountId,
                             clientName,
+                            accountName,
+                            displayName,
                             ...profile
                         });
                     } catch {}
                 }
             }
+            
+            // Sort by update date (most recent first)
+            profiles.sort((a, b) => {
+                const dateA = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
+                const dateB = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
+                return dateB - dateA;
+            });
             
             if (profiles.length === 0) {
                 list.innerHTML = `
@@ -1218,21 +1446,54 @@
             list.innerHTML = profiles.map(p => `
                 <div class="history-item">
                     <div class="history-item-info">
-                        <div class="history-item-title">${p.clientName}</div>
+                        <div class="history-item-title">${p.displayName}</div>
                         <div class="history-item-meta">
                             ${p.totalElectric?.toLocaleString() || 0} kWh | ${p.totalGas?.toLocaleString() || 0} Therms
-                            ${p.updatedAt ? ' | Updated: ' + new Date(p.updatedAt).toLocaleDateString() : ''}
+                            ${p.updatedAt ? ' | ' + new Date(p.updatedAt).toLocaleDateString() : ''}
+                            ${p.accountId ? ' <span style="color:#3b82f6;">● Account</span>' : ''}
                         </div>
                     </div>
-                    <button class="btn btn-sm btn-secondary" onclick="loadProfile('${p.clientId}')">Load</button>
+                    <button class="btn btn-sm btn-secondary" onclick="loadProfile('${p.contextKey}')">Load</button>
                 </div>
             `).join('');
         }
         
-        function loadProfile(clientId) {
-            loadClientUsage(clientId);
-            document.querySelector('[data-tab="electric"]').click();
-            showToast('Profile loaded', 'success');
+        function loadProfile(contextKey) {
+            // Parse context key to get client and account IDs
+            const parts = contextKey.split('_');
+            const clientId = parts[0];
+            const accountId = parts.length > 1 ? parts.slice(1).join('_') : null;
+            
+            // Load from localStorage
+            const stored = localStorage.getItem(`usage_${contextKey}`);
+            if (stored) {
+                try {
+                    const profile = JSON.parse(stored);
+                    electricData = [...(profile.electric || Array(12).fill(0))];
+                    gasData = [...(profile.gas || Array(12).fill(0))];
+                    updateUIFromData();
+                    
+                    // Update display
+                    let displayName = contextKey;
+                    if (window.parent?.SecureEnergyClients) {
+                        const client = window.parent.SecureEnergyClients.getClient(clientId);
+                        if (client) {
+                            displayName = client.name;
+                            if (accountId && client.accounts) {
+                                const account = client.accounts.find(a => a.id === accountId);
+                                if (account) {
+                                    displayName = `${client.name} → ${account.accountName || accountId}`;
+                                }
+                            }
+                        }
+                    }
+                    
+                    document.querySelector('[data-tab="electric"]').click();
+                    showToast(`Loaded profile for ${displayName}`, 'success');
+                } catch (e) {
+                    showToast('Failed to load profile', 'error');
+                }
+            }
         }
         
         // Toast

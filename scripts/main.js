@@ -80,7 +80,14 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (typeof SecureEnergyClients !== 'undefined') {
         SecureEnergyClients.init();
         SecureEnergyClients.subscribe((event, data) => {
-            if (event === 'activeClientChanged') { broadcastActiveClientToWidgets(data.client); updateGlobalClientIndicator(); }
+            if (event === 'activeClientChanged') { 
+                broadcastActiveClientToWidgets(data.client, data.account || null); 
+                updateGlobalClientIndicator(); 
+            }
+            if (event === 'activeAccountChanged') { 
+                broadcastActiveAccountToWidgets(data.account, data.client); 
+                updateGlobalClientIndicator(); 
+            }
         });
     }
     if (typeof SecureEnergySuppliers !== 'undefined') SecureEnergySuppliers.init();
@@ -441,9 +448,26 @@ function handleWidgetMessage(event) {
     }
     if (event.data?.type === 'LMP_ANALYSIS_COMPLETE' && currentUser) {
         const d = event.data.data || {};
-        ActivityLog.logLMPAnalysis({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, clientName: d.clientName, clientId: d.clientId, iso: d.iso, zone: d.zone, startDate: d.startDate, termMonths: d.termMonths, fixedPrice: d.fixedPrice, lmpAdjustment: d.lmpAdjustment, usage: d.totalAnnualUsage || d.usage, results: d.results });
+        ActivityLog.logLMPAnalysis({ 
+            userId: currentUser.id, 
+            userEmail: currentUser.email, 
+            userName: currentUser.firstName + ' ' + currentUser.lastName, 
+            clientName: d.clientName, 
+            clientId: d.clientId, 
+            accountName: d.accountName || null,
+            accountId: d.accountId || null,
+            iso: d.iso, 
+            zone: d.zone, 
+            startDate: d.startDate, 
+            termMonths: d.termMonths, 
+            fixedPrice: d.fixedPrice, 
+            lmpAdjustment: d.lmpAdjustment, 
+            usage: d.totalAnnualUsage || d.usage, 
+            results: d.results 
+        });
         if (document.getElementById('analysisHistoryContent')) renderAnalysisHistory();
-        showNotification('Analysis logged: ' + (d.clientName || 'Unnamed'), 'success');
+        const displayName = d.accountName ? `${d.clientName} → ${d.accountName}` : (d.clientName || 'Unnamed');
+        showNotification('Analysis logged: ' + displayName, 'success');
         saveAllWidgetStates();
     }
     if (event.data?.type === 'LMP_EXPORT_COMPLETE' && currentUser) {
@@ -462,7 +486,14 @@ function handleWidgetMessage(event) {
     }
     if (event.data?.type === 'REQUEST_ACTIVE_CLIENT' && event.source) {
         const client = window.SecureEnergyClients?.getActiveClient?.();
-        event.source.postMessage({ type: 'ACTIVE_CLIENT_RESPONSE', client: client, clientId: client?.id || null }, '*');
+        const account = window.SecureEnergyClients?.getActiveAccount?.();
+        event.source.postMessage({ 
+            type: 'ACTIVE_CLIENT_RESPONSE', 
+            client: client, 
+            clientId: client?.id || null,
+            account: account,
+            accountId: account?.id || null
+        }, '*');
     }
     if (event.data?.type === 'LINK_LMP_TO_CLIENT' && event.data.analysis && window.SecureEnergyClients) {
         const activeId = SecureEnergyClients.getActiveClientId();
@@ -498,9 +529,35 @@ function handleWidgetMessage(event) {
     }
 }
 
-function broadcastActiveClientToWidgets(client) {
+function broadcastActiveClientToWidgets(client, account = null) {
     document.querySelectorAll('iframe').forEach(iframe => {
-        try { iframe.contentWindow.postMessage({ type: 'ACTIVE_CLIENT_CHANGED', client: client, clientId: client?.id || null }, '*'); } catch (e) {}
+        try { 
+            iframe.contentWindow.postMessage({ 
+                type: 'ACTIVE_CLIENT_CHANGED', 
+                client: client, 
+                clientId: client?.id || null,
+                account: account,
+                accountId: account?.id || null
+            }, '*'); 
+        } catch (e) {}
+    });
+}
+
+function broadcastActiveAccountToWidgets(account, client = null) {
+    // Get client if not provided
+    if (!client && window.SecureEnergyClients) {
+        client = window.SecureEnergyClients.getActiveClient();
+    }
+    document.querySelectorAll('iframe').forEach(iframe => {
+        try { 
+            iframe.contentWindow.postMessage({ 
+                type: 'ACTIVE_ACCOUNT_CHANGED', 
+                client: client, 
+                clientId: client?.id || null,
+                account: account,
+                accountId: account?.id || null
+            }, '*'); 
+        } catch (e) {}
     });
 }
 
@@ -508,10 +565,31 @@ function updateGlobalClientIndicator() {
     const indicator = document.getElementById('globalClientIndicator');
     if (!indicator) return;
     const client = window.SecureEnergyClients?.getActiveClient?.();
+    const account = window.SecureEnergyClients?.getActiveAccount?.();
     const nameEl = indicator.querySelector('.client-indicator-name');
     if (nameEl) {
-        if (client) { nameEl.textContent = client.name; nameEl.classList.add('has-client'); indicator.classList.add('has-client'); }
-        else { nameEl.textContent = 'None'; nameEl.classList.remove('has-client'); indicator.classList.remove('has-client'); }
+        if (client) { 
+            // Build display text with optional account
+            let displayText = client.name;
+            if (account) {
+                displayText += ' → ' + (account.accountName || account.id);
+            }
+            nameEl.textContent = displayText; 
+            nameEl.classList.add('has-client'); 
+            indicator.classList.add('has-client');
+            // Add account class for styling
+            if (account) {
+                indicator.classList.add('has-account');
+            } else {
+                indicator.classList.remove('has-account');
+            }
+        }
+        else { 
+            nameEl.textContent = 'None'; 
+            nameEl.classList.remove('has-client'); 
+            indicator.classList.remove('has-client'); 
+            indicator.classList.remove('has-account');
+        }
     }
 }
 

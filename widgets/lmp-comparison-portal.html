@@ -126,6 +126,32 @@
             font-weight: 700;
         }
 
+        .client-context-active.has-account {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border-color: rgba(59, 130, 246, 0.4);
+        }
+
+        .client-context-active.has-account svg {
+            color: #3b82f6;
+        }
+
+        .client-context-active.has-account .client-context-label {
+            color: #3b82f6;
+        }
+
+        .client-context-active.has-account .client-context-name {
+            color: #1e40af;
+        }
+
+        .client-context-account {
+            font-size: 0.9rem;
+            color: #3b82f6;
+            font-weight: 500;
+            margin-top: 2px;
+            display: flex;
+            align-items: center;
+        }
+
         .client-context-none {
             background: rgba(255, 193, 7, 0.1);
             border: 2px solid rgba(255, 193, 7, 0.35);
@@ -1598,7 +1624,8 @@
                 if (activeClient?.usageProfile) {
                     const opt = document.createElement('option');
                     opt.value = 'active-client';
-                    opt.textContent = `📋 ${activeClient.name} (Active Client)`;
+                    const displayName = getContextDisplayName() || activeClient.name;
+                    opt.textContent = `📋 ${displayName} (Active)`;
                     select.appendChild(opt);
                 }
                 return;
@@ -1645,10 +1672,11 @@
                 (activeClient.usageProfile.electric?.some(v => v > 0) || 
                  activeClient.usageProfile.gas?.some(v => v > 0))) {
                 const divider = document.createElement('optgroup');
-                divider.label = '─── From Active Client ───';
+                divider.label = activeAccount ? '─── From Active Account ───' : '─── From Active Client ───';
                 const opt = document.createElement('option');
                 opt.value = 'active-client';
-                opt.textContent = `📋 ${activeClient.name}`;
+                const displayName = getContextDisplayName() || activeClient.name;
+                opt.textContent = `📋 ${displayName}`;
                 divider.appendChild(opt);
                 select.appendChild(divider);
             }
@@ -1667,7 +1695,8 @@
             // Handle loading from active client
             if (profileId === 'active-client' && activeClient?.usageProfile) {
                 const usage = activeClient.usageProfile.electric || Array(12).fill(0);
-                loadUsageData(usage, activeClient.name + ' (Active Client)');
+                const displayName = getContextDisplayName() || activeClient.name;
+                loadUsageData(usage, displayName + ' (Active)');
                 return;
             }
             
@@ -1762,8 +1791,10 @@
         
         // Save current usage as a new profile
         async function saveCurrentAsProfile() {
-            const profileName = prompt('Enter a name for this usage profile:', 
-                activeClient ? `${activeClient.name} Profile` : 'My Usage Profile');
+            const defaultName = getContextDisplayName() 
+                ? `${getContextDisplayName()} Profile` 
+                : 'My Usage Profile';
+            const profileName = prompt('Enter a name for this usage profile:', defaultName);
             
             if (!profileName) return;
             
@@ -1779,6 +1810,9 @@
                     name: profileName,
                     clientId: activeClient?.id || null,
                     clientName: activeClient?.name || null,
+                    accountId: activeAccount?.id || null,
+                    accountName: activeAccount?.accountName || null,
+                    contextKey: getContextKey(),
                     electricUsage: electricUsage,
                     gasUsage: Array(12).fill(0)
                 });
@@ -2582,8 +2616,11 @@
                 const analysisData = {
                     type: 'LMP_ANALYSIS_COMPLETE',
                     data: {
-                        clientName: clientName,
+                        clientName: activeClient ? activeClient.name : clientName,
                         clientId: activeClient ? activeClient.id : null,
+                        accountName: activeAccount ? (activeAccount.accountName || activeAccount.id) : null,
+                        accountId: activeAccount ? activeAccount.id : null,
+                        contextKey: getContextKey(),
                         iso: iso,
                         zone: zone,
                         startDate: startDate,
@@ -2616,6 +2653,8 @@
                             years: [startDate.split('-')[0]],
                             fixedRate: fixedPrice,
                             usage: totalAnnualUsage,
+                            accountId: activeAccount?.id || null,
+                            accountName: activeAccount?.accountName || null,
                             results: {
                                 indexTotal: totalIndexCost,
                                 fixedTotal: totalFixedCost,
@@ -2626,7 +2665,8 @@
                         }
                     }, '*');
                     
-                    console.log('[LMP Portal] Analysis linked to client:', activeClient.name);
+                    const displayName = getContextDisplayName() || activeClient.name;
+                    console.log('[LMP Portal] Analysis linked to:', displayName);
                 }
                 
                 console.log('[LMP Portal] Analysis logged:', clientName);
@@ -4362,6 +4402,27 @@
         // CLIENT CONTEXT INTEGRATION
         // ========================================
         let activeClient = null;
+        let activeAccount = null;  // Track active account (child) under client
+        
+        // Helper to get context key for storage
+        function getContextKey() {
+            if (activeAccount && activeClient) {
+                return `${activeClient.id}_${activeAccount.id}`;
+            } else if (activeClient) {
+                return activeClient.id;
+            }
+            return null;
+        }
+        
+        // Get display name for current context
+        function getContextDisplayName() {
+            if (activeAccount && activeClient) {
+                return `${activeClient.name} → ${activeAccount.accountName || activeAccount.id}`;
+            } else if (activeClient) {
+                return activeClient.name;
+            }
+            return null;
+        }
         
         function handleClientMessage(event) {
             const data = event.data;
@@ -4369,6 +4430,7 @@
             
             if (data.type === 'ACTIVE_CLIENT_CHANGED' || data.type === 'ACTIVE_CLIENT_RESPONSE') {
                 activeClient = data.client;
+                activeAccount = data.account || null;
                 renderClientContextBanner();
                 populateProfileDropdown();
                 
@@ -4377,10 +4439,12 @@
                     const clientNameInput = document.getElementById('clientName');
                     const clientSourceLabel = document.getElementById('clientSourceLabel');
                     if (clientNameInput && !clientNameInput.value) {
-                        clientNameInput.value = activeClient.name;
+                        clientNameInput.value = getContextDisplayName();
                     }
                     if (clientSourceLabel) {
-                        clientSourceLabel.textContent = '(from Client Administration)';
+                        clientSourceLabel.textContent = activeAccount 
+                            ? '(from Client Administration - Account Level)' 
+                            : '(from Client Administration)';
                     }
                     
                     // Auto-select ISO if client has one
@@ -4392,6 +4456,20 @@
                             updateZoneOptions();
                         }
                     }
+                }
+            }
+            
+            // Handle account-only changes
+            if (data.type === 'ACTIVE_ACCOUNT_CHANGED') {
+                activeAccount = data.account;
+                if (data.client) activeClient = data.client;
+                renderClientContextBanner();
+                populateProfileDropdown();
+                
+                // Update client name field with account context
+                const clientNameInput = document.getElementById('clientName');
+                if (clientNameInput && activeClient) {
+                    clientNameInput.value = getContextDisplayName();
                 }
             }
             
@@ -4422,15 +4500,22 @@
             if (!container) return;
             
             if (activeClient) {
+                const hasAccount = activeAccount !== null;
                 container.innerHTML = `
-                    <div class="client-context-active">
+                    <div class="client-context-active${hasAccount ? ' has-account' : ''}">
                         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
                         <div class="client-context-info">
-                            <div class="client-context-label">Analysis for Client</div>
+                            <div class="client-context-label">Analysis for ${hasAccount ? 'Account' : 'Client'}</div>
                             <div class="client-context-name">${activeClient.name}</div>
+                            ${hasAccount ? `
+                                <div class="client-context-account">
+                                    └ ${activeAccount.accountName || activeAccount.id}
+                                    ${activeAccount.accountNumber ? '<span style="opacity:0.7;font-size:0.75rem;margin-left:6px;">#' + activeAccount.accountNumber + '</span>' : ''}
+                                </div>
+                            ` : ''}
                             <div class="client-context-meta">
                                 ${activeClient.city ? activeClient.city + ', ' + activeClient.state : ''}
                                 ${activeClient.annualUsageMWh ? ' • ' + Number(activeClient.annualUsageMWh).toLocaleString() + ' MWh/yr' : ''}
@@ -4457,6 +4542,10 @@
         
         function getActiveClient() {
             return activeClient;
+        }
+        
+        function getActiveAccount() {
+            return activeAccount;
         }
         
         // Add listener for client messages

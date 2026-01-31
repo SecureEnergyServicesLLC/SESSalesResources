@@ -60,9 +60,15 @@
         .client-context-bar .info { flex: 1; }
         .client-context-bar .label { font-size: 0.65rem; color: #28a745; text-transform: uppercase; letter-spacing: 0.5px; }
         .client-context-bar .name { font-weight: 600; color: #28a745; font-size: 0.95rem; }
+        .client-context-bar .account { font-size: 0.85rem; color: #3b82f6; margin-top: 2px; }
         .client-context-bar .badge { background: rgba(62, 180, 137, 0.2); color: var(--accent-normal); padding: 4px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: 600; }
+        .client-context-bar.has-account { background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.06) 100%); border-color: rgba(59, 130, 246, 0.35); }
+        .client-context-bar.has-account svg { color: #3b82f6; }
+        .client-context-bar.has-account .label { color: #3b82f6; }
+        .client-context-bar.has-account .name { color: #1e40af; }
         .no-client-bar { background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.25); border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; text-align: center; color: #d4a200; font-size: 0.85rem; }
         .no-client-bar a { color: #f59e0b; text-decoration: underline; cursor: pointer; }
+
 
         * {
             margin: 0;
@@ -1195,6 +1201,13 @@
             // Client context messages
             if (event.data?.type === 'ACTIVE_CLIENT_CHANGED' || event.data?.type === 'ACTIVE_CLIENT_RESPONSE') {
                 activeClient = event.data.client;
+                activeAccount = event.data.account || null;
+                renderClientContextBanner();
+            }
+            
+            if (event.data?.type === 'ACTIVE_ACCOUNT_CHANGED') {
+                activeAccount = event.data.account;
+                if (event.data.client) activeClient = event.data.client;
                 renderClientContextBanner();
             }
         });
@@ -1203,6 +1216,27 @@
         // CLIENT CONTEXT INTEGRATION
         // ========================================
         let activeClient = null;
+        let activeAccount = null;
+        
+        // Helper to get context key for storage
+        function getContextKey() {
+            if (activeAccount && activeClient) {
+                return `${activeClient.id}_${activeAccount.id}`;
+            } else if (activeClient) {
+                return activeClient.id;
+            }
+            return null;
+        }
+        
+        // Get display name for current context
+        function getContextDisplayName() {
+            if (activeAccount && activeClient) {
+                return `${activeClient.name} → ${activeAccount.accountName || activeAccount.id}`;
+            } else if (activeClient) {
+                return activeClient.name;
+            }
+            return null;
+        }
         
         function initClientContext() {
             if (window.parent !== window) {
@@ -1215,15 +1249,17 @@
             if (!container) return;
             
             if (activeClient) {
+                const hasAccount = activeAccount !== null;
                 container.innerHTML = `
-                    <div class="client-context-bar">
+                    <div class="client-context-bar${hasAccount ? ' has-account' : ''}">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
                         <div class="info">
-                            <div class="label">Peak analysis for</div>
+                            <div class="label">Peak analysis for ${hasAccount ? 'account' : 'client'}</div>
                             <div class="name">${activeClient.name}</div>
+                            ${hasAccount ? `<div class="account">└ ${activeAccount.accountName || activeAccount.id}</div>` : ''}
                         </div>
                         ${activeClient.iso ? `<span class="badge">${activeClient.iso}</span>` : ''}
                     </div>
@@ -1252,6 +1288,14 @@
             if (window.parent !== window) {
                 window.parent.postMessage({ type: 'SCROLL_TO_WIDGET', widgetId: 'client-lookup' }, '*');
             }
+        }
+        
+        function getActiveClient() {
+            return activeClient;
+        }
+        
+        function getActiveAccount() {
+            return activeAccount;
         }
         
         // Initialize client context on load
