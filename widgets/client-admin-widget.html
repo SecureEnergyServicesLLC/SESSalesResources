@@ -510,13 +510,32 @@
         </div>
         
         <div class="tab-content" id="tab-export">
-            <div class="panel-body" style="max-width:500px;margin:0 auto;text-align:center;">
-                <h3 style="margin-bottom:12px;font-size:1.1rem;">Export Client Data</h3>
-                <p style="color:var(--text-secondary);margin-bottom:24px;font-size:0.85rem;">Export all client data for backup or external use.</p>
-                <div style="display:flex;flex-direction:column;gap:12px;max-width:280px;margin:0 auto;">
-                    <button class="btn btn-primary" onclick="exportClients('json')" style="padding:14px;">Export as JSON</button>
-                    <button class="btn btn-secondary" onclick="exportClients('csv')" style="padding:14px;">Export as CSV</button>
-                    <button class="btn btn-secondary" onclick="syncToGitHub()" style="padding:14px;">Sync to GitHub</button>
+            <div class="panel-body" style="max-width:600px;margin:0 auto;">
+                <h3 style="margin-bottom:12px;font-size:1.1rem;">Export & Save Client Data</h3>
+                <p style="color:var(--text-secondary);margin-bottom:24px;font-size:0.85rem;">
+                    Client data is stored in <code>data/clients.json</code> on GitHub. 
+                    After importing, download the JSON and upload to your repository.
+                </p>
+                
+                <div id="storageInfo" style="background:var(--bg-input);padding:12px;border-radius:8px;margin-bottom:20px;font-size:0.85rem;"></div>
+                
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+                    <button class="btn btn-primary" onclick="downloadForGitHub()" style="padding:14px;background:#28a745;">
+                        ⬇️ Download clients.json<br><span style="font-size:0.75rem;opacity:0.8;">For GitHub upload</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportClients('csv')" style="padding:14px;">
+                        📊 Export as CSV<br><span style="font-size:0.75rem;opacity:0.8;">For Excel/Sheets</span>
+                    </button>
+                </div>
+                
+                <div style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px;">
+                    <p style="color:var(--text-secondary);font-size:0.8rem;margin-bottom:12px;">
+                        <strong>How to save:</strong><br>
+                        1. Click "Download clients.json"<br>
+                        2. Go to your GitHub repo → data folder<br>
+                        3. Upload/replace clients.json<br>
+                        4. Commit the changes
+                    </p>
                 </div>
             </div>
         </div>
@@ -573,6 +592,11 @@
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
                     btn.classList.add('active');
                     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+                    
+                    // Update storage info when switching to export tab
+                    if (btn.dataset.tab === 'export') {
+                        updateStorageInfo();
+                    }
                 };
             });
         }
@@ -1164,6 +1188,45 @@
             pendingAccountData = null;
             document.getElementById('accountImportPreview').style.display = 'none';
             document.getElementById('accountImportFile').value = '';
+        }
+        
+        function downloadForGitHub() {
+            if (!ClientStore) {
+                showToast('Client store not available', 'error');
+                return;
+            }
+            
+            if (ClientStore.downloadClientsJSON) {
+                ClientStore.downloadClientsJSON();
+                showToast('Downloaded clients.json - upload to GitHub data/ folder', 'success');
+            } else if (ClientStore.exportForGitHub) {
+                const data = ClientStore.exportForGitHub();
+                const blob = new Blob([data], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'clients.json';
+                a.click();
+                URL.revokeObjectURL(url);
+                showToast('Downloaded clients.json - upload to GitHub data/ folder', 'success');
+            } else {
+                exportClients('json');
+            }
+        }
+        
+        function updateStorageInfo() {
+            const infoDiv = document.getElementById('storageInfo');
+            if (!infoDiv || !ClientStore) return;
+            
+            const info = ClientStore.getStorageInfo ? ClientStore.getStorageInfo() : { clientCount: 0, accountCount: 0, sizeKB: 0 };
+            const hasChanges = ClientStore.hasUnsavedChanges ? ClientStore.hasUnsavedChanges() : false;
+            
+            infoDiv.innerHTML = '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;">' +
+                '<div><div style="font-size:1.5rem;font-weight:bold;color:var(--accent);">' + (info.clientCount || 0) + '</div><div style="font-size:0.75rem;color:var(--text-secondary);">Clients</div></div>' +
+                '<div><div style="font-size:1.5rem;font-weight:bold;color:#3b82f6;">' + (info.accountCount || 0) + '</div><div style="font-size:0.75rem;color:var(--text-secondary);">Accounts</div></div>' +
+                '<div><div style="font-size:1.5rem;font-weight:bold;color:#10b981;">' + (info.sizeKB || 0) + '</div><div style="font-size:0.75rem;color:var(--text-secondary);">KB</div></div>' +
+                '</div>' +
+                (hasChanges ? '<div style="margin-top:10px;padding:8px;background:rgba(255,193,7,0.2);border-radius:4px;color:#d4a200;font-size:0.8rem;text-align:center;">⚠️ Unsaved changes - download JSON to save</div>' : '');
         }
         
         function exportClients(fmt) {

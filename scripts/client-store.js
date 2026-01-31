@@ -110,26 +110,55 @@
     };
 
     // ========================================
-    // Initialization
+    // Initialization - GitHub First Approach
+    // Data loads from data/clients.json, NOT localStorage
     // ========================================
+    let initialized = false;
+    let pendingCallbacks = [];
+    
     function init() {
-        loadFromStorage();
-        loadActiveClient();
-        console.log('[ClientStore] Initialized with', Object.keys(clients).length, 'clients');
-        if (activeClientId) {
-            console.log('[ClientStore] Active client:', activeClientId);
+        if (initialized) {
+            console.log('[ClientStore] Already initialized with', Object.keys(clients).length, 'clients');
+            return Promise.resolve(getStats());
         }
-        return getStats();
+        
+        console.log('[ClientStore] Initializing - loading from GitHub...');
+        loadActiveClient(); // Active client selection can stay in localStorage
+        
+        return loadFromGitHub().then(() => {
+            initialized = true;
+            console.log('[ClientStore] Initialized with', Object.keys(clients).length, 'clients from GitHub');
+            
+            // Execute any pending callbacks
+            pendingCallbacks.forEach(cb => cb());
+            pendingCallbacks = [];
+            
+            return getStats();
+        }).catch(err => {
+            console.error('[ClientStore] GitHub load failed, trying localStorage fallback:', err);
+            loadFromLocalStorage();
+            initialized = true;
+            return getStats();
+        });
+    }
+    
+    function onReady(callback) {
+        if (initialized) {
+            callback();
+        } else {
+            pendingCallbacks.push(callback);
+        }
     }
 
-    function loadFromStorage() {
+    function loadFromLocalStorage() {
         try {
             const stored = localStorage.getItem(STORAGE_KEY);
             if (stored) {
                 clients = JSON.parse(stored);
+                console.log('[ClientStore] Loaded', Object.keys(clients).length, 'clients from localStorage (fallback)');
             }
         } catch (e) {
-            console.error('[ClientStore] Load error:', e);
+            console.error('[ClientStore] localStorage load error:', e);
             clients = {};
         }
     }
@@ -142,13 +171,96 @@
         }
     }
 
+    // Save to memory only - call exportForGitHub() to get JSON for manual save
     function saveToStorage() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(clients));
-            notifySubscribers('save', clients);
-        } catch (e) {
-            console.error('[ClientStore] Save error:', e);
+        // Skip if in batch mode (will save at end of batch)
+        if (batchMode) {
+            batchPending = true;
+            return;
         }
+        
+        // Mark as needing GitHub sync
+        needsGitHubSync = true;
+        
+        const sizeKB = (JSON.stringify(clients).length / 1024).toFixed(1);
+        console.log('[ClientStore] Data updated in memory (' + sizeKB + ' KB) - export to save to GitHub');
+        
+        notifySubscribers('dataChanged', { clientCount: Object.keys(clients).length, sizeKB });
+    }
+    
+    let needsGitHubSync = false;
+    
+    function hasUnsavedChanges() {
+        return needsGitHubSync;
+    }
+    
+    function exportForGitHub() {
+        // Returns JSON string ready to be saved to data/clients.json
+        const exportData = {
+            version: '2.1.0',
+            lastUpdated: new Date().toISOString(),
+            clientCount: Object.keys(clients).length,
+            clients: clients
+        };
+        return JSON.stringify(exportData, null, 2);
+    }
+    
+    // Batch mode for bulk imports - prevents saving after each record
+    let batchMode = false;
+    let batchPending = false;
+    
+    function startBatch() {
+        batchMode = true;
+        batchPending = false;
+        console.log('[ClientStore] Batch mode started');
+    }
+    
+    function endBatch() {
+        batchMode = false;
+        if (batchPending) {
+            console.log('[ClientStore] Batch mode ended - saving...');
+            saveToStorage();
+            batchPending = false;
+        }
+    }
+    
+    function getStorageInfo() {
+        try {
+            const data = JSON.stringify(clients);
+            const sizeBytes = data.length;
+            const sizeKB = (sizeBytes / 1024).toFixed(2);
+            const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
+            
+            let totalAccounts = 0;
+            Object.values(clients).forEach(c => {
+                totalAccounts += (c.accounts?.length || 0);
+            });
+            
+            return {
+                clientCount: Object.keys(clients).length,
+                accountCount: totalAccounts,
+                sizeBytes,
+                sizeKB: parseFloat(sizeKB),
+                sizeMB: parseFloat(sizeMB),
+                estimatedLimit: '5-10 MB (varies by browser)',
+                warning: sizeBytes > 3 * 1024 * 1024 ? 'Approaching storage limit!' : null
+            };
+        } catch (e) {
+            return { error: e.message };
+        }
+    }
+    
+    function clearAllClients() {
+        if (confirm('Are you sure you want to delete ALL client data? This cannot be undone!')) {
+            clients = {};
+            activeClientId = null;
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(ACTIVE_CLIENT_KEY);
+            notifySubscribers('cleared', {});
+            console.log('[ClientStore] All client data cleared');
+            return true;
+        }
+        return false;
     }
 
     function saveActiveClient() {
@@ -715,6 +827,9 @@
             console.log('[ClientStore] First record keys:', Object.keys(records[0]));
         }
         
+        // Start batch mode to prevent saving after each record
+        startBatch();
+        
         records.forEach((record, index) => {
             try {
                 // Map account fields
@@ -772,6 +887,9 @@
                 results.errors.push(`Row ${index + 1}: ${e.message}`);
             }
         });
+        
+        // End batch mode - this will trigger a single save
+        endBatch();
         
         console.log('[ClientStore] Account import results:', results);
         notifySubscribers('accountImport', results);
@@ -996,48 +1114,89 @@
     }
 
     // ========================================
-    // GitHub Sync
+    // GitHub / Server Data Loading
+    // Primary data source is data/clients.json
     // ========================================
-    async function syncToGitHub() {
-        if (typeof GitHubSync === 'undefined') {
-            console.warn('[ClientStore] GitHubSync not available');
-            return false;
-        }
-        
-        try {
-            await GitHubSync.saveFile(GITHUB_FILE, JSON.stringify(clients, null, 2));
-            console.log('[ClientStore] Synced to GitHub');
-            return true;
-        } catch (e) {
-            console.error('[ClientStore] GitHub sync error:', e);
-            return false;
-        }
-    }
-
+    
+    const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/SecureEnergyServicesLLC/SESSalesResources/main/';
+    const LOCAL_DATA_PATH = 'data/clients.json';
+    
     async function loadFromGitHub() {
-        if (typeof GitHubSync === 'undefined') {
-            console.warn('[ClientStore] GitHubSync not available');
-            return false;
+        const urls = [
+            GITHUB_RAW_BASE + LOCAL_DATA_PATH,
+            LOCAL_DATA_PATH,
+            '../' + LOCAL_DATA_PATH,
+            './' + LOCAL_DATA_PATH
+        ];
+        
+        for (const url of urls) {
+            try {
+                console.log('[ClientStore] Trying to load from:', url);
+                const response = await fetch(url + '?t=' + Date.now()); // Cache bust
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    
+                    // Handle both formats: { clients: {...} } or direct {...}
+                    if (data.clients && typeof data.clients === 'object') {
+                        clients = data.clients;
+                        console.log('[ClientStore] Loaded', Object.keys(clients).length, 'clients from:', url);
+                    } else if (typeof data === 'object' && !Array.isArray(data)) {
+                        // Direct object format - check if it looks like client data
+                        const firstKey = Object.keys(data)[0];
+                        if (firstKey && (firstKey.startsWith('CID-') || data[firstKey]?.name)) {
+                            clients = data;
+                            console.log('[ClientStore] Loaded', Object.keys(clients).length, 'clients (direct format) from:', url);
+                        }
+                    }
+                    
+                    needsGitHubSync = false;
+                    return true;
+                }
+            } catch (e) {
+                console.log('[ClientStore] Failed to load from', url, '-', e.message);
+            }
         }
         
-        try {
-            const data = await GitHubSync.loadFile(GITHUB_FILE);
-            if (data) {
-                const loaded = JSON.parse(data);
-                // Merge with existing (GitHub wins for conflicts)
-                Object.entries(loaded).forEach(([id, client]) => {
-                    if (!clients[id] || new Date(client.updatedAt) > new Date(clients[id]?.updatedAt)) {
-                        clients[id] = client;
-                    }
-                });
-                saveToStorage();
-                console.log('[ClientStore] Loaded from GitHub');
-                return true;
-            }
-        } catch (e) {
-            console.error('[ClientStore] GitHub load error:', e);
-        }
+        console.warn('[ClientStore] Could not load clients.json from any source');
         return false;
+    }
+    
+    async function syncToGitHub() {
+        // For GitHub Pages, we can't directly write files
+        // Instead, provide the JSON for manual commit or use GitHub API if available
+        
+        if (typeof GitHubSync !== 'undefined' && GitHubSync.saveFile) {
+            try {
+                const exportData = exportForGitHub();
+                await GitHubSync.saveFile(GITHUB_FILE, exportData);
+                needsGitHubSync = false;
+                console.log('[ClientStore] Synced to GitHub via GitHubSync');
+                return true;
+            } catch (e) {
+                console.error('[ClientStore] GitHub sync error:', e);
+                return false;
+            }
+        }
+        
+        // Fallback: Download as file for manual upload
+        console.log('[ClientStore] GitHubSync not available - use downloadClientsJSON() to get file for manual upload');
+        return false;
+    }
+    
+    function downloadClientsJSON() {
+        const data = exportForGitHub();
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'clients.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        console.log('[ClientStore] Downloaded clients.json - upload to data/ folder in GitHub');
+        return true;
     }
 
     // ========================================
@@ -1152,10 +1311,20 @@
         // Import/Export
         importFromSalesforce,
         exportClients,
+        exportForGitHub,
+        downloadClientsJSON,
         
         // GitHub Sync
         syncToGitHub,
         loadFromGitHub,
+        hasUnsavedChanges,
+        onReady,
+        
+        // Storage Management
+        startBatch,
+        endBatch,
+        getStorageInfo,
+        clearAllClients,
         
         // Utilities
         subscribe,
