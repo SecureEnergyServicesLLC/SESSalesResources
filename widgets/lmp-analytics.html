@@ -1113,7 +1113,7 @@
             // Try GitHub JSON - fetch from raw GitHub URL
             try {
                 // Primary: GitHub raw URL for the data repository
-                const githubUrl = 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json';
+                const githubUrl = 'https://raw.githubusercontent.com/SecureEnergyServicesLLC/SESSalesResources/main/data/lmp-database.json';
                 const response = await fetch(githubUrl + '?t=' + Date.now());
                 if (response.ok) {
                     const json = await response.json();

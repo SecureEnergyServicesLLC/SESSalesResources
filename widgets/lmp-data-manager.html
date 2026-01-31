@@ -809,7 +809,7 @@ ISONE,2016,1,4008_NEMA,NEMA,38.63`;
         // Standalone data store for local testing
         function createStandaloneDataStore() {
             const STORAGE_KEY = 'secureEnergy_LMP_Data';
-            const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json';
+            const GITHUB_RAW_URL = 'https://raw.githubusercontent.com/SecureEnergyServicesLLC/SESSalesResources/main/data/lmp-database.json';
             
             return {
                 data: null,
@@ -950,7 +950,7 @@ ISONE,2016,1,4008_NEMA,NEMA,38.63`;
             }
             
             // Try to load from GitHub JSON first
-            const githubUrl = 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json';
+            const githubUrl = 'https://raw.githubusercontent.com/SecureEnergyServicesLLC/SESSalesResources/main/data/lmp-database.json';
             
             try {
                 log('info', 'Fetching from GitHub...');
