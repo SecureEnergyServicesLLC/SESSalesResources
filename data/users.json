@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastUpdated": "2026-01-30T16:53:17.045Z",
+  "lastUpdated": "2026-01-30T18:00:00.000Z",
   "users": [
     {
       "id": "admin-001",
@@ -28,7 +28,16 @@
       "status": "active",
       "createdAt": "2026-01-27T14:48:39.357Z",
       "permissions": {
+        "client-lookup": true,
+        "client-admin": true,
+        "energy-utilization": true,
+        "bid-management": true,
+        "ai-assistant": true,
+        "aei-intelligence": true,
         "lmp-comparison": true,
+        "lmp-analytics": true,
+        "peak-demand": true,
+        "analysis-history": true,
         "data-manager": true,
         "arcadia-fetcher": true,
         "user-admin": true
@@ -49,14 +58,16 @@
         "energy-utilization": true,
         "bid-management": true,
         "ai-assistant": true,
+        "aei-intelligence": true,
         "lmp-comparison": true,
         "lmp-analytics": true,
         "peak-demand": true,
         "analysis-history": true,
         "data-manager": true,
-        "arcadia-fetcher": true
+        "arcadia-fetcher": true,
+        "user-admin": true
       },
-      "updatedAt": "2026-01-30T16:53:17.045Z"
+      "updatedAt": "2026-01-30T18:00:00.000Z"
     },
     {
       "id": "user-1769527952869",
@@ -68,18 +79,12 @@
       "status": "active",
       "createdAt": "2026-01-27T15:32:32.869Z",
       "permissions": {
-        "client-lookup": false,
-        "energy-utilization": false,
-        "bid-management": false,
-        "ai-assistant": false,
+        "client-lookup": true,
+        "aei-intelligence": true,
         "lmp-comparison": true,
-        "lmp-analytics": true,
-        "peak-demand": true,
-        "analysis-history": true,
-        "data-manager": false,
-        "arcadia-fetcher": false
+        "analysis-history": true
       },
-      "updatedAt": "2026-01-30T16:42:11.230Z"
+      "updatedAt": "2026-01-30T18:00:00.000Z"
     },
     {
       "id": "user-1769527973957",
@@ -91,18 +96,12 @@
       "status": "active",
       "createdAt": "2026-01-27T15:32:53.957Z",
       "permissions": {
-        "client-lookup": false,
-        "energy-utilization": false,
-        "bid-management": false,
-        "ai-assistant": false,
+        "client-lookup": true,
+        "aei-intelligence": true,
         "lmp-comparison": true,
-        "lmp-analytics": true,
-        "peak-demand": true,
-        "analysis-history": true,
-        "data-manager": false,
-        "arcadia-fetcher": false
+        "analysis-history": true
       },
-      "updatedAt": "2026-01-30T16:42:15.508Z"
+      "updatedAt": "2026-01-30T18:00:00.000Z"
     },
     {
       "id": "user-1769527996133",
@@ -114,18 +113,12 @@
       "status": "active",
       "createdAt": "2026-01-27T15:33:16.133Z",
       "permissions": {
-        "client-lookup": false,
-        "energy-utilization": false,
-        "bid-management": false,
-        "ai-assistant": false,
+        "client-lookup": true,
+        "aei-intelligence": true,
         "lmp-comparison": true,
-        "lmp-analytics": true,
-        "peak-demand": true,
-        "analysis-history": true,
-        "data-manager": false,
-        "arcadia-fetcher": false
+        "analysis-history": true
       },
-      "updatedAt": "2026-01-30T16:42:22.580Z"
+      "updatedAt": "2026-01-30T18:00:00.000Z"
     },
     {
       "id": "user-1769608099594",
@@ -137,18 +130,12 @@
       "status": "active",
       "createdAt": "2026-01-28T13:48:19.594Z",
       "permissions": {
-        "client-lookup": false,
-        "energy-utilization": false,
-        "bid-management": false,
-        "ai-assistant": false,
+        "client-lookup": true,
+        "aei-intelligence": true,
         "lmp-comparison": true,
-        "lmp-analytics": true,
-        "peak-demand": true,
-        "analysis-history": true,
-        "data-manager": false,
-        "arcadia-fetcher": false
+        "analysis-history": true
       },
-      "updatedAt": "2026-01-30T16:42:27.989Z"
+      "updatedAt": "2026-01-30T18:00:00.000Z"
     },
     {
       "id": "user-1769696905370",
@@ -157,20 +144,399 @@
       "email": "testuser@sesenergy.org",
       "password": "test123",
       "role": "user",
-      "permissions": {
-        "bid-management": false,
-        "ai-assistant": false,
-        "aei-intelligence": false,
-        "lmp-comparison": false,
-        "lmp-analytics": true,
-        "peak-demand": false,
-        "analysis-history": true,
-        "data-manager": false,
-        "arcadia-fetcher": false
-      },
       "status": "active",
       "createdAt": "2026-01-29T14:28:25.370Z",
-      "updatedAt": "2026-01-30T14:38:38.452Z"
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      },
+      "updatedAt": "2026-01-30T18:00:00.000Z"
+    },
+    {
+      "id": "user-1769782578495",
+      "firstName": "Alfonso",
+      "lastName": "Ferrentino",
+      "email": "aferrentino@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:36:18.495Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782631433",
+      "firstName": "Abdulah",
+      "lastName": "Arshad",
+      "email": "aarshad@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:37:11.433Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782665040",
+      "firstName": "Alexander",
+      "lastName": "Demos",
+      "email": "ademos@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:37:45.040Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782693141",
+      "firstName": "Ally",
+      "lastName": "Peters",
+      "email": "apeters@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:38:13.141Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782758381",
+      "firstName": "Brianne",
+      "lastName": "Maloney",
+      "email": "bmaloney@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:39:18.381Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782804313",
+      "firstName": "Brittany",
+      "lastName": "Dutton",
+      "email": "bdutton@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:40:04.313Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782834034",
+      "firstName": "Collin",
+      "lastName": "Fenton",
+      "email": "cfenton@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:40:34.034Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782864032",
+      "firstName": "Christopher",
+      "lastName": "French",
+      "email": "cfrench@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:41:04.032Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782895290",
+      "firstName": "Derek",
+      "lastName": "Benton",
+      "email": "dbenton@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:41:35.290Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782928562",
+      "firstName": "Dominic",
+      "lastName": "Delbuono",
+      "email": "ddelbuono@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:42:08.562Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782960667",
+      "firstName": "Erin",
+      "lastName": "Bissonnette",
+      "email": "ebissonnette@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:42:40.667Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769782996811",
+      "firstName": "Ian",
+      "lastName": "Barron",
+      "email": "ibarron@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:43:16.811Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783084080",
+      "firstName": "Joe",
+      "lastName": "Fusco",
+      "email": "joefusco@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:44:44.080Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783111120",
+      "firstName": "Joe",
+      "lastName": "Santaniello",
+      "email": "jsantaniello@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:45:11.120Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783138659",
+      "firstName": "Keith",
+      "lastName": "Hobbs",
+      "email": "khobbs@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:45:38.659Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783158630",
+      "firstName": "Melissa",
+      "lastName": "Katz",
+      "email": "mkatz@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:45:58.630Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783185407",
+      "firstName": "Michael",
+      "lastName": "Santinello",
+      "email": "msantinello@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:46:25.407Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783215549",
+      "firstName": "Nico",
+      "lastName": "Helems",
+      "email": "nhelems@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:46:55.549Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783262644",
+      "firstName": "Paul",
+      "lastName": "Henry",
+      "email": "phenry@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:47:42.644Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783300095",
+      "firstName": "Peter",
+      "lastName": "Rivera",
+      "email": "privera@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:48:20.095Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783321467",
+      "firstName": "Ralph",
+      "lastName": "Wagner",
+      "email": "rwagner@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:48:41.467Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783346315",
+      "firstName": "Sean",
+      "lastName": "Seifert",
+      "email": "sseifert@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:49:06.315Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783371323",
+      "firstName": "Siobhan",
+      "lastName": "Daley",
+      "email": "sdaley@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:49:31.323Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
+    },
+    {
+      "id": "user-1769783398967",
+      "firstName": "Xaiver",
+      "lastName": "Vasquez",
+      "email": "xvasquez@sesenergy.org",
+      "password": "test123",
+      "role": "user",
+      "status": "active",
+      "createdAt": "2026-01-31T01:49:58.967Z",
+      "permissions": {
+        "client-lookup": true,
+        "aei-intelligence": true,
+        "lmp-comparison": true,
+        "analysis-history": true
+      }
     }
   ]
 }
