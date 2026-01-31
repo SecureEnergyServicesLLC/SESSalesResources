@@ -1,0 +1,90 @@
+name: Update LMP Data Monthly
+
+on:
+  schedule:
+    - cron: '0 6 3 * *'
+  
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: 'Start date (YYYY-MM-DD) - defaults to first of previous month'
+        required: false
+        type: string
+      end_date:
+        description: 'End date (YYYY-MM-DD) - defaults to last of previous month'
+        required: false
+        type: string
+      iso_markets:
+        description: 'ISOs to fetch (comma-separated: ISONE,PJM,ERCOT or "all")'
+        required: false
+        default: 'all'
+        type: string
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  fetch-and-update:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Install dependencies
+        run: npm install
+        working-directory: scripts
+      
+      - name: Determine date range
+        id: dates
+        run: |
+          if [ -n "${{ github.event.inputs.start_date }}" ]; then
+            echo "start_date=${{ github.event.inputs.start_date }}" >> $GITHUB_OUTPUT
+            echo "end_date=${{ github.event.inputs.end_date }}" >> $GITHUB_OUTPUT
+          else
+            PREV_MONTH=$(date -d "$(date +%Y-%m-01) -1 month" +%Y-%m-01)
+            LAST_DAY=$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m-%d)
+            echo "start_date=$PREV_MONTH" >> $GITHUB_OUTPUT
+            echo "end_date=$LAST_DAY" >> $GITHUB_OUTPUT
+          fi
+          echo "Fetching data from ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}"
+      
+      - name: Fetch LMP Data from Arcadia API
+        env:
+          ARCADIA_APP_ID: ${{ secrets.ARCADIA_APP_ID }}
+          ARCADIA_APP_KEY: ${{ secrets.ARCADIA_APP_KEY }}
+          START_DATE: ${{ steps.dates.outputs.start_date }}
+          END_DATE: ${{ steps.dates.outputs.end_date }}
+          ISO_MARKETS: ${{ github.event.inputs.iso_markets || 'all' }}
+        run: node scripts/fetch-lmp-data.js
+      
+      - name: Update LMP Database
+        run: node scripts/update-lmp-database.js
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          if git diff --quiet data/lmp-database.json; then
+            echo "No changes to LMP database"
+          else
+            git add data/lmp-database.json
+            git commit -m "Auto-update LMP data"
+            git push
+            echo "LMP database updated successfully"
+          fi
+      
+      - name: Summary
+        run: |
+          echo "## LMP Data Update Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Date Range:** ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Markets:** ${{ github.event.inputs.iso_markets || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** Completed" >> $GITHUB_STEP_SUMMARY
