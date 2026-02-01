@@ -1,0 +1,1088 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Feedback Portal - Secure Energy Analytics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #003B5C;
+            --primary-blue-light: #005580;
+            --accent-green: #00A651;
+            --accent-orange: #F7941D;
+            --accent-red: #DC3545;
+            --accent-purple: #6f42c1;
+            --bg-primary: #1a1d23;
+            --bg-secondary: #22262e;
+            --bg-tertiary: #2a2f38;
+            --bg-card: #282c34;
+            --bg-hover: #32373f;
+            --text-primary: #e8eaed;
+            --text-secondary: #9aa0a6;
+            --text-muted: #6c757d;
+            --border-color: #3d4450;
+            --status-open: #17a2b8;
+            --status-in-progress: #ffc107;
+            --status-awaiting: #6f42c1;
+            --status-resolved: #28a745;
+        }
+        [data-theme="light"] {
+            --bg-primary: #f5f5f5; --bg-secondary: #ffffff; --bg-tertiary: #e8e8e8;
+            --bg-card: #ffffff; --bg-hover: #f0f0f0; --text-primary: #1a1a1a;
+            --text-secondary: #666666; --text-muted: #999999; --border-color: #ddd;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg-primary); color: var(--text-primary); }
+        
+        .admin-portal { display: flex; flex-direction: column; height: 100vh; }
+        
+        /* Tabs Navigation */
+        .tab-nav {
+            display: flex; background: var(--bg-card); border-bottom: 1px solid var(--border-color);
+            padding: 0 16px; position: sticky; top: 0; z-index: 100;
+        }
+        .tab-btn {
+            padding: 14px 20px; background: none; border: none; color: var(--text-secondary);
+            font-size: 0.9rem; font-weight: 500; cursor: pointer; position: relative;
+            display: flex; align-items: center; gap: 8px; transition: all 0.2s;
+        }
+        .tab-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
+        .tab-btn.active { color: var(--accent-green); }
+        .tab-btn.active::after {
+            content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+            height: 3px; background: var(--accent-green); border-radius: 3px 3px 0 0;
+        }
+        .tab-badge {
+            background: var(--accent-red); color: white; font-size: 0.7rem;
+            padding: 2px 6px; border-radius: 10px; font-weight: 600;
+        }
+        
+        .tab-content { display: none; flex: 1; overflow-y: auto; padding: 20px; }
+        .tab-content.active { display: block; }
+        
+        /* Header Bar */
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+        }
+        .section-header h2 { font-size: 1.25rem; display: flex; align-items: center; gap: 10px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px;
+            border: none; border-radius: 6px; font-size: 0.85rem; font-weight: 500;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .btn-primary { background: var(--primary-blue); color: white; }
+        .btn-primary:hover { background: var(--primary-blue-light); }
+        .btn-secondary { background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--bg-hover); }
+        .btn-success { background: var(--accent-green); color: white; }
+        .btn-danger { background: var(--accent-red); color: white; }
+        .btn-sm { padding: 5px 10px; font-size: 0.8rem; }
+        
+        /* Stats Grid */
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px; margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--bg-card); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 16px; text-align: center;
+        }
+        .stat-value { font-size: 1.75rem; font-weight: 700; color: var(--accent-green); }
+        .stat-value.warning { color: var(--accent-orange); }
+        .stat-value.danger { color: var(--accent-red); }
+        .stat-value.info { color: var(--status-open); }
+        .stat-label { font-size: 0.7rem; color: var(--text-secondary); text-transform: uppercase; margin-top: 4px; }
+        
+        /* Filters */
+        .filters-bar {
+            display: flex; flex-wrap: wrap; gap: 12px; padding: 14px 16px;
+            background: var(--bg-card); border-radius: 10px; margin-bottom: 16px;
+            border: 1px solid var(--border-color); align-items: flex-end;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 4px; }
+        .filter-group label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; }
+        .filter-group select, .filter-group input {
+            padding: 8px 12px; background: var(--bg-tertiary); border: 1px solid var(--border-color);
+            border-radius: 6px; color: var(--text-primary); font-size: 0.85rem; min-width: 140px;
+        }
+        .filter-group input { min-width: 180px; }
+        .filter-group select:focus, .filter-group input:focus { outline: none; border-color: var(--primary-blue); }
+        
+        /* Tables */
+        .data-table {
+            width: 100%; border-collapse: collapse; background: var(--bg-card);
+            border-radius: 10px; overflow: hidden; border: 1px solid var(--border-color);
+        }
+        .data-table th, .data-table td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .data-table th { background: var(--bg-tertiary); font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); font-weight: 600; }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background: var(--bg-hover); }
+        .data-table td { font-size: 0.9rem; }
+        
+        /* Status & Priority Badges */
+        .badge {
+            display: inline-block; padding: 3px 10px; border-radius: 12px;
+            font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+        }
+        .badge-open { background: rgba(23,162,184,0.2); color: var(--status-open); }
+        .badge-in-progress { background: rgba(255,193,7,0.2); color: var(--status-in-progress); }
+        .badge-awaiting-response { background: rgba(111,66,193,0.2); color: var(--status-awaiting); }
+        .badge-resolved { background: rgba(40,167,69,0.2); color: var(--status-resolved); }
+        .badge-closed { background: rgba(108,117,125,0.2); color: var(--text-muted); }
+        
+        .priority-indicator { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .priority-indicator.critical { background: var(--accent-red); }
+        .priority-indicator.high { background: var(--accent-orange); }
+        .priority-indicator.medium { background: #ffc107; }
+        .priority-indicator.low { background: var(--accent-green); }
+        
+        /* Ticket List */
+        .ticket-list { background: var(--bg-card); border-radius: 10px; border: 1px solid var(--border-color); }
+        .ticket-item {
+            display: flex; padding: 14px 16px; border-bottom: 1px solid var(--border-color);
+            cursor: pointer; transition: background 0.15s;
+        }
+        .ticket-item:hover { background: var(--bg-hover); }
+        .ticket-item:last-child { border-bottom: none; }
+        .ticket-priority-bar { width: 4px; border-radius: 2px; margin-right: 14px; flex-shrink: 0; }
+        .ticket-priority-bar.critical { background: var(--accent-red); }
+        .ticket-priority-bar.high { background: var(--accent-orange); }
+        .ticket-priority-bar.medium { background: #ffc107; }
+        .ticket-priority-bar.low { background: var(--accent-green); }
+        .ticket-main { flex: 1; min-width: 0; }
+        .ticket-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+        .ticket-id { font-family: monospace; font-size: 0.75rem; background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; color: var(--text-muted); }
+        .ticket-subject { font-weight: 500; font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ticket-meta { font-size: 0.8rem; color: var(--text-secondary); display: flex; gap: 12px; }
+        .ticket-badges { display: flex; gap: 8px; align-items: center; margin-left: 12px; flex-shrink: 0; }
+        
+        /* Activity Log Items */
+        .activity-item {
+            display: flex; gap: 14px; padding: 14px 16px; background: var(--bg-card);
+            border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--text-muted);
+        }
+        .activity-item.login { border-left-color: var(--accent-green); }
+        .activity-item.analysis { border-left-color: var(--primary-blue); }
+        .activity-item.export { border-left-color: var(--accent-purple); }
+        .activity-item.client { border-left-color: var(--accent-orange); }
+        .activity-item.ai { border-left-color: #8b5cf6; }
+        .activity-item.error { border-left-color: var(--accent-red); }
+        .activity-icon { font-size: 1.25rem; }
+        .activity-content { flex: 1; }
+        .activity-header { display: flex; justify-content: space-between; margin-bottom: 4px; }
+        .activity-action { font-weight: 600; }
+        .activity-time { font-size: 0.75rem; color: var(--text-muted); }
+        .activity-details { font-size: 0.85rem; color: var(--text-secondary); }
+        .activity-user { color: var(--accent-green); }
+        
+        /* Error Log Items */
+        .error-item {
+            background: var(--bg-card); border-radius: 8px; padding: 14px 16px;
+            margin-bottom: 10px; border-left: 4px solid var(--accent-red);
+        }
+        .error-item.resolved { border-left-color: var(--accent-green); opacity: 0.7; }
+        .error-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .error-type { font-weight: 600; color: var(--accent-red); }
+        .error-item.resolved .error-type { color: var(--accent-green); }
+        .error-widget { font-size: 0.75rem; background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; }
+        .error-message { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; }
+        .error-footer { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); display: none; justify-content: center;
+            align-items: flex-start; z-index: 1000; padding: 40px 20px; overflow-y: auto;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--bg-card); border-radius: 12px; width: 100%;
+            max-width: 900px; border: 1px solid var(--border-color);
+        }
+        .modal-header {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color); border-radius: 12px 12px 0 0;
+        }
+        .modal-header h3 { font-size: 1rem; display: flex; align-items: center; gap: 10px; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 1.5rem; cursor: pointer; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 14px 20px; background: var(--bg-tertiary); border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 12px 12px; }
+        
+        /* Ticket Detail Layout */
+        .ticket-detail-grid { display: grid; grid-template-columns: 1fr 280px; gap: 20px; }
+        @media (max-width: 800px) { .ticket-detail-grid { grid-template-columns: 1fr; } }
+        .ticket-detail-main { min-width: 0; }
+        .ticket-detail-sidebar { background: var(--bg-tertiary); border-radius: 10px; padding: 16px; height: fit-content; }
+        .ticket-detail-sidebar h4 { font-size: 0.8rem; color: var(--accent-green); text-transform: uppercase; margin-bottom: 14px; }
+        .sidebar-group { margin-bottom: 14px; }
+        .sidebar-group label { display: block; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+        .sidebar-group select, .sidebar-group textarea {
+            width: 100%; padding: 8px 10px; background: var(--bg-secondary);
+            border: 1px solid var(--border-color); border-radius: 6px;
+            color: var(--text-primary); font-size: 0.85rem;
+        }
+        .sidebar-group textarea { min-height: 60px; resize: vertical; }
+        
+        .detail-section { margin-bottom: 20px; }
+        .detail-section h4 {
+            font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase;
+            padding-bottom: 8px; border-bottom: 1px solid var(--border-color); margin-bottom: 10px;
+        }
+        .detail-meta {
+            display: flex; flex-wrap: wrap; gap: 16px; padding: 12px;
+            background: var(--bg-tertiary); border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px;
+        }
+        .detail-meta strong { color: var(--text-muted); font-weight: 400; }
+        
+        .conversation-thread {
+            max-height: 350px; overflow-y: auto; background: var(--bg-primary);
+            border-radius: 8px; padding: 12px; margin-bottom: 12px;
+        }
+        .message { margin-bottom: 12px; padding: 10px 14px; border-radius: 10px; max-width: 80%; }
+        .message.user { background: var(--primary-blue); color: white; margin-left: auto; border-bottom-right-radius: 4px; }
+        .message.admin { background: var(--bg-tertiary); border: 1px solid var(--border-color); border-bottom-left-radius: 4px; }
+        .message.system { background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3); margin: 0 auto; max-width: 100%; text-align: center; font-size: 0.8rem; }
+        .message-header { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px; opacity: 0.8; }
+        .message-body { font-size: 0.9rem; }
+        
+        .reply-box textarea {
+            width: 100%; padding: 10px; background: var(--bg-tertiary);
+            border: 1px solid var(--border-color); border-radius: 6px;
+            color: var(--text-primary); font-size: 0.9rem; min-height: 70px;
+        }
+        .reply-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+        
+        /* Form Elements */
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 6px; }
+        .form-group .required { color: var(--accent-red); }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 10px 12px; background: var(--bg-tertiary);
+            border: 1px solid var(--border-color); border-radius: 6px;
+            color: var(--text-primary); font-size: 0.9rem;
+        }
+        .form-group textarea { min-height: 100px; resize: vertical; font-family: inherit; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .help-text { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+        
+        /* Empty State */
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state .icon { font-size: 3.5rem; margin-bottom: 16px; opacity: 0.5; }
+        
+        /* Toast */
+        .toast-container { position: fixed; bottom: 20px; right: 20px; z-index: 2000; }
+        .toast {
+            padding: 12px 18px; border-radius: 8px; background: var(--bg-card);
+            border: 1px solid var(--border-color); margin-top: 10px;
+            display: flex; align-items: center; gap: 10px; animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .toast.success { border-left: 4px solid var(--accent-green); }
+        .toast.error { border-left: 4px solid var(--accent-red); }
+        .toast.info { border-left: 4px solid var(--primary-blue); }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <div class="admin-portal">
+        <!-- Tab Navigation -->
+        <nav class="tab-nav">
+            <button class="tab-btn active" data-tab="tickets" onclick="switchTab('tickets')">
+                📋 Tickets <span class="tab-badge" id="ticketBadge" style="display:none;">0</span>
+            </button>
+            <button class="tab-btn" data-tab="activity" onclick="switchTab('activity')">
+                📊 Activity Log
+            </button>
+            <button class="tab-btn" data-tab="errors" onclick="switchTab('errors')">
+                ⚠️ Error Log <span class="tab-badge" id="errorBadge" style="display:none;">0</span>
+            </button>
+        </nav>
+        
+        <!-- TICKETS TAB -->
+        <div class="tab-content active" id="ticketsTab">
+            <div class="section-header">
+                <h2>📋 Support Tickets</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshTickets()">↻ Refresh</button>
+                    <button class="btn btn-secondary" onclick="exportTickets()">📥 Export</button>
+                </div>
+            </div>
+            
+            <div class="stats-grid" id="ticketStats">
+                <div class="stat-card"><div class="stat-value" id="statOpen">0</div><div class="stat-label">Open</div></div>
+                <div class="stat-card"><div class="stat-value warning" id="statInProgress">0</div><div class="stat-label">In Progress</div></div>
+                <div class="stat-card"><div class="stat-value info" id="statAwaiting">0</div><div class="stat-label">Awaiting</div></div>
+                <div class="stat-card"><div class="stat-value" id="statResolved">0</div><div class="stat-label">Resolved</div></div>
+                <div class="stat-card"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Total</div></div>
+            </div>
+            
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="filterStatus" onchange="renderTickets()">
+                        <option value="all">All Statuses</option>
+                        <option value="open">Open</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="awaiting-response">Awaiting Response</option>
+                        <option value="resolved">Resolved</option>
+                        <option value="closed">Closed</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Category</label>
+                    <select id="filterCategory" onchange="renderTickets()">
+                        <option value="all">All Categories</option>
+                        <option value="flow">Flow / Navigation</option>
+                        <option value="new-widget">New Widget</option>
+                        <option value="enhanced-widget">Enhanced Widget</option>
+                        <option value="troubleshoot">Troubleshoot</option>
+                        <option value="data-issue">Data Issue</option>
+                        <option value="performance">Performance</option>
+                        <option value="ui-ux">UI/UX</option>
+                        <option value="documentation">Documentation</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Priority</label>
+                    <select id="filterPriority" onchange="renderTickets()">
+                        <option value="all">All Priorities</option>
+                        <option value="critical">Critical</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>User</label>
+                    <select id="filterUser" onchange="renderTickets()">
+                        <option value="all">All Users</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="flex:1;">
+                    <label>Search</label>
+                    <input type="text" id="filterSearch" placeholder="Search tickets..." oninput="renderTickets()">
+                </div>
+            </div>
+            
+            <div class="ticket-list" id="ticketList">
+                <div class="empty-state"><div class="icon">📭</div><p>No tickets found</p></div>
+            </div>
+        </div>
+        
+        <!-- ACTIVITY LOG TAB -->
+        <div class="tab-content" id="activityTab">
+            <div class="section-header">
+                <h2>📊 Activity Log</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshActivity()">↻ Refresh</button>
+                    <button class="btn btn-secondary" onclick="exportActivity()">📥 Export</button>
+                </div>
+            </div>
+            
+            <div class="stats-grid" id="activityStats"></div>
+            
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label>Action</label>
+                    <select id="activityActionFilter" onchange="renderActivity()">
+                        <option value="all">All Actions</option>
+                        <option value="Login">Login</option>
+                        <option value="Logout">Logout</option>
+                        <option value="LMP Analysis">LMP Analysis</option>
+                        <option value="LMP Export">LMP Export</option>
+                        <option value="Bid Sheet Generated">Bid Sheet</option>
+                        <option value="Client Create">Client Create</option>
+                        <option value="Client Update">Client Update</option>
+                        <option value="AI Query">AI Query</option>
+                        <option value="Data Upload">Data Upload</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Widget</label>
+                    <select id="activityWidgetFilter" onchange="renderActivity()">
+                        <option value="all">All Widgets</option>
+                        <option value="portal">Portal</option>
+                        <option value="lmp-comparison">LMP Comparison</option>
+                        <option value="lmp-analytics">LMP Analytics</option>
+                        <option value="bid-management">Bid Management</option>
+                        <option value="client-admin">Client Admin</option>
+                        <option value="ai-assistant">AI Assistant</option>
+                        <option value="data-manager">Data Manager</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>User</label>
+                    <select id="activityUserFilter" onchange="renderActivity()">
+                        <option value="all">All Users</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="flex:1;">
+                    <label>Search</label>
+                    <input type="text" id="activitySearch" placeholder="Search activity..." oninput="renderActivity()">
+                </div>
+            </div>
+            
+            <div id="activityList"></div>
+        </div>
+        
+        <!-- ERROR LOG TAB -->
+        <div class="tab-content" id="errorsTab">
+            <div class="section-header">
+                <h2>⚠️ Error Log</h2>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" onclick="refreshErrors()">↻ Refresh</button>
+                    <button class="btn btn-danger" onclick="clearErrors()">🗑️ Clear All</button>
+                </div>
+            </div>
+            
+            <div class="stats-grid" id="errorStats"></div>
+            
+            <div class="filters-bar">
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="errorStatusFilter" onchange="renderErrors()">
+                        <option value="all">All</option>
+                        <option value="unresolved">Unresolved</option>
+                        <option value="resolved">Resolved</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Widget</label>
+                    <select id="errorWidgetFilter" onchange="renderErrors()">
+                        <option value="all">All Widgets</option>
+                    </select>
+                </div>
+                <div class="filter-group" style="flex:1;">
+                    <label>Search</label>
+                    <input type="text" id="errorSearch" placeholder="Search errors..." oninput="renderErrors()">
+                </div>
+            </div>
+            
+            <div id="errorList"></div>
+        </div>
+    </div>
+    
+    <!-- Ticket Detail Modal -->
+    <div class="modal-overlay" id="ticketModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Ticket #<span id="modalTicketId"></span> <span class="badge" id="modalTicketStatus"></span></h3>
+                <button class="modal-close" onclick="closeModal('ticketModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="modalTicketBody"></div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+    
+    <script>
+    // =====================================================
+    // STATE & CONFIG
+    // =====================================================
+    const CATEGORY_NAMES = {
+        'flow': 'Flow / Navigation', 'new-widget': 'New Widget', 'enhanced-widget': 'Enhanced Widget',
+        'troubleshoot': 'Troubleshoot', 'data-issue': 'Data Issue', 'performance': 'Performance',
+        'ui-ux': 'UI/UX', 'documentation': 'Documentation', 'other': 'Other'
+    };
+    const STATUS_NAMES = {
+        'open': 'Open', 'in-progress': 'In Progress', 'awaiting-response': 'Awaiting Response',
+        'resolved': 'Resolved', 'closed': 'Closed'
+    };
+    const ACTIVITY_ICONS = {
+        'Login': '🔑', 'Logout': '🚪', 'LMP Analysis': '📊', 'LMP Export': '📥',
+        'Bid Sheet Generated': '📄', 'Client Create': '➕', 'Client Update': '✏️',
+        'AI Query': '🤖', 'Data Upload': '📤', 'Widget Expand': '🔼'
+    };
+    
+    let state = {
+        tickets: [], activities: [], errors: [],
+        currentUser: null, currentTicket: null, adminUsers: []
+    };
+    
+    // =====================================================
+    // INITIALIZATION
+    // =====================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+        await initUser();
+        await loadAllData();
+        renderAll();
+        
+        // Listen for updates from parent
+        window.addEventListener('message', handleMessage);
+        window.addEventListener('activityLogged', () => { loadActivity(); renderActivity(); });
+        
+        // Request data from parent
+        window.parent?.postMessage({ type: 'REQUEST_USER_DATA' }, '*');
+    });
+    
+    async function initUser() {
+        try {
+            if (window.parent !== window) {
+                if (window.parent.currentUser) state.currentUser = window.parent.currentUser;
+                if (window.parent.UserStore) state.adminUsers = window.parent.UserStore.getAll().filter(u => u.role === 'admin');
+            }
+            if (!state.currentUser) {
+                const stored = localStorage.getItem('secureEnergy_currentUser');
+                if (stored) state.currentUser = JSON.parse(stored);
+            }
+        } catch (e) { console.warn('User init error:', e); }
+    }
+    
+    async function loadAllData() {
+        await Promise.all([loadTickets(), loadActivity(), loadErrors()]);
+    }
+    
+    async function loadTickets() {
+        try {
+            // Try GitHub first
+            if (window.parent?.TicketStore) {
+                const data = await window.parent.TicketStore.getTickets();
+                state.tickets = data?.tickets || [];
+                return;
+            }
+            // Fallback to localStorage
+            const stored = localStorage.getItem('secureEnergy_tickets');
+            if (stored) state.tickets = JSON.parse(stored).tickets || [];
+        } catch (e) { console.error('Load tickets error:', e); state.tickets = []; }
+        populateUserFilter('filterUser', state.tickets.map(t => t.submittedBy));
+    }
+    
+    async function loadActivity() {
+        try {
+            if (window.parent?.ActivityLog) {
+                state.activities = window.parent.ActivityLog.getAll();
+                return;
+            }
+            const stored = localStorage.getItem('secureEnergy_activityLog');
+            if (stored) state.activities = JSON.parse(stored) || [];
+        } catch (e) { console.error('Load activity error:', e); state.activities = []; }
+        populateUserFilter('activityUserFilter', state.activities);
+    }
+    
+    async function loadErrors() {
+        try {
+            if (window.parent?.ErrorLog) {
+                state.errors = window.parent.ErrorLog.getAll();
+                return;
+            }
+            const stored = localStorage.getItem('secureEnergy_errorLog');
+            if (stored) state.errors = JSON.parse(stored) || [];
+        } catch (e) { console.error('Load errors error:', e); state.errors = []; }
+        populateWidgetFilter();
+    }
+    
+    function populateUserFilter(selectId, items) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+        const users = new Map();
+        items.forEach(item => {
+            const id = item.userId || item.submittedBy?.id;
+            const name = item.userName || item.submittedBy?.name;
+            if (id && name) users.set(id, name);
+        });
+        const current = select.value;
+        select.innerHTML = '<option value="all">All Users</option>' +
+            [...users.entries()].map(([id, name]) => `<option value="${id}"${id === current ? ' selected' : ''}>${escapeHtml(name)}</option>`).join('');
+    }
+    
+    function populateWidgetFilter() {
+        const select = document.getElementById('errorWidgetFilter');
+        if (!select) return;
+        const widgets = new Set(state.errors.map(e => e.widget).filter(Boolean));
+        select.innerHTML = '<option value="all">All Widgets</option>' +
+            [...widgets].map(w => `<option value="${w}">${w}</option>`).join('');
+    }
+    
+    function handleMessage(e) {
+        if (e.data?.type === 'THEME_CHANGE') document.documentElement.setAttribute('data-theme', e.data.theme);
+        if (e.data?.type === 'USER_DATA') { state.currentUser = e.data.user; loadAllData().then(renderAll); }
+        if (e.data?.type === 'TICKET_CREATED' || e.data?.type === 'TICKET_REPLY') { loadTickets().then(renderTickets); }
+    }
+    
+    // =====================================================
+    // TAB SWITCHING
+    // =====================================================
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        document.getElementById(`${tabId}Tab`).classList.add('active');
+    }
+    
+    // =====================================================
+    // RENDER ALL
+    // =====================================================
+    function renderAll() {
+        renderTickets();
+        renderActivity();
+        renderErrors();
+        updateBadges();
+    }
+    
+    function updateBadges() {
+        const openTickets = state.tickets.filter(t => t.status === 'open' || t.status === 'in-progress').length;
+        const unresolvedErrors = state.errors.filter(e => !e.resolved).length;
+        
+        const ticketBadge = document.getElementById('ticketBadge');
+        const errorBadge = document.getElementById('errorBadge');
+        
+        if (openTickets > 0) { ticketBadge.textContent = openTickets; ticketBadge.style.display = 'inline'; }
+        else { ticketBadge.style.display = 'none'; }
+        
+        if (unresolvedErrors > 0) { errorBadge.textContent = unresolvedErrors; errorBadge.style.display = 'inline'; }
+        else { errorBadge.style.display = 'none'; }
+    }
+    
+    // =====================================================
+    // TICKETS RENDERING
+    // =====================================================
+    function renderTickets() {
+        const status = document.getElementById('filterStatus').value;
+        const category = document.getElementById('filterCategory').value;
+        const priority = document.getElementById('filterPriority').value;
+        const user = document.getElementById('filterUser').value;
+        const search = document.getElementById('filterSearch').value.toLowerCase();
+        
+        let filtered = state.tickets.filter(t => {
+            if (status !== 'all' && t.status !== status) return false;
+            if (category !== 'all' && t.category !== category) return false;
+            if (priority !== 'all' && t.priority !== priority) return false;
+            if (user !== 'all' && t.submittedBy?.id !== user) return false;
+            if (search && !`${t.id} ${t.subject} ${t.description}`.toLowerCase().includes(search)) return false;
+            return true;
+        });
+        
+        // Update stats
+        const stats = { open: 0, inProgress: 0, awaiting: 0, resolved: 0, total: state.tickets.length };
+        state.tickets.forEach(t => {
+            if (t.status === 'open') stats.open++;
+            else if (t.status === 'in-progress') stats.inProgress++;
+            else if (t.status === 'awaiting-response') stats.awaiting++;
+            else if (t.status === 'resolved' || t.status === 'closed') stats.resolved++;
+        });
+        document.getElementById('statOpen').textContent = stats.open;
+        document.getElementById('statInProgress').textContent = stats.inProgress;
+        document.getElementById('statAwaiting').textContent = stats.awaiting;
+        document.getElementById('statResolved').textContent = stats.resolved;
+        document.getElementById('statTotal').textContent = stats.total;
+        
+        const container = document.getElementById('ticketList');
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📭</div><p>No tickets found</p></div>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(t => `
+            <div class="ticket-item" onclick="viewTicket('${t.id}')">
+                <div class="ticket-priority-bar ${t.priority}"></div>
+                <div class="ticket-main">
+                    <div class="ticket-header">
+                        <span class="ticket-id">#${t.id}</span>
+                        <span class="ticket-subject">${escapeHtml(t.subject)}</span>
+                    </div>
+                    <div class="ticket-meta">
+                        <span>👤 ${escapeHtml(t.submittedBy?.name || 'Unknown')}</span>
+                        <span>📅 ${formatDate(t.createdAt)}</span>
+                        <span>${CATEGORY_NAMES[t.category] || t.category}</span>
+                    </div>
+                </div>
+                <div class="ticket-badges">
+                    <span class="badge badge-${t.status}">${STATUS_NAMES[t.status]}</span>
+                    ${t.screenshots?.length ? '📎' : ''}
+                    ${t.conversation?.length ? '💬' : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function viewTicket(ticketId) {
+        const ticket = state.tickets.find(t => t.id === ticketId);
+        if (!ticket) return;
+        state.currentTicket = ticket;
+        
+        document.getElementById('modalTicketId').textContent = ticket.id;
+        const statusBadge = document.getElementById('modalTicketStatus');
+        statusBadge.textContent = STATUS_NAMES[ticket.status];
+        statusBadge.className = `badge badge-${ticket.status}`;
+        
+        document.getElementById('modalTicketBody').innerHTML = `
+            <div class="ticket-detail-grid">
+                <div class="ticket-detail-main">
+                    <h2 style="font-size:1.1rem;margin-bottom:12px;">${escapeHtml(ticket.subject)}</h2>
+                    
+                    <div class="detail-meta">
+                        <span><strong>Created:</strong> ${new Date(ticket.createdAt).toLocaleString()}</span>
+                        <span><strong>By:</strong> ${escapeHtml(ticket.submittedBy?.name)}</span>
+                        <span><strong>Category:</strong> ${CATEGORY_NAMES[ticket.category]}</span>
+                        <span><strong>Priority:</strong> <span class="priority-indicator ${ticket.priority}"></span>${ticket.priority}</span>
+                    </div>
+                    
+                    <div class="detail-section">
+                        <h4>Description</h4>
+                        <p style="white-space:pre-wrap;">${escapeHtml(ticket.description)}</p>
+                    </div>
+                    
+                    ${ticket.errorLog ? `
+                        <div class="detail-section">
+                            <h4>Error Log</h4>
+                            <pre style="background:var(--bg-primary);padding:12px;border-radius:6px;font-size:0.8rem;overflow-x:auto;color:var(--accent-red);">${escapeHtml(ticket.errorLog)}</pre>
+                        </div>
+                    ` : ''}
+                    
+                    ${ticket.screenshots?.length ? `
+                        <div class="detail-section">
+                            <h4>Screenshots (${ticket.screenshots.length})</h4>
+                            <div style="display:flex;flex-wrap:wrap;gap:10px;">
+                                ${ticket.screenshots.map(s => `<img src="${s.data}" style="max-width:150px;border-radius:8px;cursor:pointer;" onclick="window.open('${s.data}','_blank')">`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="detail-section">
+                        <h4>Conversation</h4>
+                        <div class="conversation-thread" id="modalConversation">
+                            ${renderConversation(ticket.conversation)}
+                        </div>
+                        <div class="reply-box">
+                            <textarea id="adminReply" placeholder="Type your response to the user..."></textarea>
+                            <div class="reply-actions">
+                                <button class="btn btn-primary" onclick="submitAdminReply()">Send Reply</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="ticket-detail-sidebar">
+                    <h4>Admin Actions</h4>
+                    
+                    <div class="sidebar-group">
+                        <label>Status</label>
+                        <select id="updateStatus" onchange="updateTicketField('status', this.value)">
+                            <option value="open"${ticket.status === 'open' ? ' selected' : ''}>Open</option>
+                            <option value="in-progress"${ticket.status === 'in-progress' ? ' selected' : ''}>In Progress</option>
+                            <option value="awaiting-response"${ticket.status === 'awaiting-response' ? ' selected' : ''}>Awaiting Response</option>
+                            <option value="resolved"${ticket.status === 'resolved' ? ' selected' : ''}>Resolved</option>
+                            <option value="closed"${ticket.status === 'closed' ? ' selected' : ''}>Closed</option>
+                        </select>
+                    </div>
+                    
+                    <div class="sidebar-group">
+                        <label>Priority</label>
+                        <select id="updatePriority" onchange="updateTicketField('priority', this.value)">
+                            <option value="low"${ticket.priority === 'low' ? ' selected' : ''}>Low</option>
+                            <option value="medium"${ticket.priority === 'medium' ? ' selected' : ''}>Medium</option>
+                            <option value="high"${ticket.priority === 'high' ? ' selected' : ''}>High</option>
+                            <option value="critical"${ticket.priority === 'critical' ? ' selected' : ''}>Critical</option>
+                        </select>
+                    </div>
+                    
+                    <div class="sidebar-group">
+                        <label>Internal Notes</label>
+                        <textarea id="internalNotes" placeholder="Admin-only notes..." onchange="updateTicketField('internalNotes', this.value)">${escapeHtml(ticket.internalNotes || '')}</textarea>
+                    </div>
+                    
+                    <div class="sidebar-group">
+                        <label>Resolution Summary</label>
+                        <textarea id="resolutionSummary" placeholder="Summary for user..." onchange="updateTicketField('resolutionSummary', this.value)">${escapeHtml(ticket.resolutionSummary || '')}</textarea>
+                    </div>
+                    
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:16px;">
+                        <p><strong>Last Updated:</strong> ${formatDate(ticket.updatedAt)}</p>
+                        <p><strong>Browser:</strong> ${ticket.browser || 'Unknown'}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        openModal('ticketModal');
+    }
+    
+    function renderConversation(conversation) {
+        if (!conversation || conversation.length === 0) {
+            return '<p style="text-align:center;color:var(--text-muted);padding:20px;">No messages yet</p>';
+        }
+        return conversation.map(msg => {
+            if (msg.type === 'system') {
+                return `<div class="message system"><div class="message-body">${escapeHtml(msg.text)}</div></div>`;
+            }
+            const isAdmin = msg.type === 'admin';
+            return `<div class="message ${isAdmin ? 'admin' : 'user'}">
+                <div class="message-header"><span>${escapeHtml(msg.userName)}</span><span>${formatDate(msg.timestamp)}</span></div>
+                <div class="message-body">${escapeHtml(msg.text)}</div>
+            </div>`;
+        }).join('');
+    }
+    
+    function updateTicketField(field, value) {
+        if (!state.currentTicket) return;
+        const oldValue = state.currentTicket[field];
+        state.currentTicket[field] = value;
+        state.currentTicket.updatedAt = new Date().toISOString();
+        
+        // Add system message for status/priority changes
+        if ((field === 'status' || field === 'priority') && oldValue !== value) {
+            const msg = {
+                id: 'sys-' + Date.now(),
+                type: 'system',
+                text: `${field.charAt(0).toUpperCase() + field.slice(1)} changed from ${oldValue} to ${value}`,
+                timestamp: new Date().toISOString()
+            };
+            if (!state.currentTicket.conversation) state.currentTicket.conversation = [];
+            state.currentTicket.conversation.push(msg);
+            document.getElementById('modalConversation').innerHTML = renderConversation(state.currentTicket.conversation);
+        }
+        
+        saveTickets();
+        renderTickets();
+        showToast('Ticket updated', 'success');
+    }
+    
+    function submitAdminReply() {
+        const text = document.getElementById('adminReply').value.trim();
+        if (!text) return showToast('Enter a message', 'error');
+        
+        const reply = {
+            id: 'msg-' + Date.now(),
+            userId: state.currentUser?.id || 'admin',
+            userName: state.currentUser?.firstName ? `${state.currentUser.firstName} ${state.currentUser.lastName}` : 'Admin',
+            text: text,
+            timestamp: new Date().toISOString(),
+            type: 'admin'
+        };
+        
+        if (!state.currentTicket.conversation) state.currentTicket.conversation = [];
+        state.currentTicket.conversation.push(reply);
+        state.currentTicket.updatedAt = new Date().toISOString();
+        
+        saveTickets();
+        
+        document.getElementById('adminReply').value = '';
+        document.getElementById('modalConversation').innerHTML = renderConversation(state.currentTicket.conversation);
+        document.getElementById('modalConversation').scrollTop = document.getElementById('modalConversation').scrollHeight;
+        
+        showToast('Reply sent', 'success');
+    }
+    
+    function saveTickets() {
+        const data = { tickets: state.tickets, lastUpdated: new Date().toISOString() };
+        localStorage.setItem('secureEnergy_tickets', JSON.stringify(data));
+        window.parent?.postMessage({ type: 'TICKETS_UPDATED', data }, '*');
+        if (window.parent?.TicketStore) window.parent.TicketStore.saveTickets(data);
+    }
+    
+    // =====================================================
+    // ACTIVITY LOG RENDERING
+    // =====================================================
+    function renderActivity() {
+        const action = document.getElementById('activityActionFilter').value;
+        const widget = document.getElementById('activityWidgetFilter').value;
+        const user = document.getElementById('activityUserFilter').value;
+        const search = document.getElementById('activitySearch').value.toLowerCase();
+        
+        let filtered = state.activities.filter(a => {
+            if (action !== 'all' && a.action !== action) return false;
+            if (widget !== 'all' && a.widget !== widget) return false;
+            if (user !== 'all' && a.userId !== user) return false;
+            if (search && !`${a.userName} ${a.action} ${a.widget} ${a.clientName || ''}`.toLowerCase().includes(search)) return false;
+            return true;
+        }).slice(0, 100);
+        
+        // Stats
+        const today = new Date().toDateString();
+        const todayCount = state.activities.filter(a => new Date(a.timestamp).toDateString() === today).length;
+        const uniqueUsers = new Set(state.activities.map(a => a.userId)).size;
+        const analyses = state.activities.filter(a => a.action === 'LMP Analysis').length;
+        const aiQueries = state.activities.filter(a => a.action === 'AI Query').length;
+        
+        document.getElementById('activityStats').innerHTML = `
+            <div class="stat-card"><div class="stat-value">${state.activities.length}</div><div class="stat-label">Total Events</div></div>
+            <div class="stat-card"><div class="stat-value info">${todayCount}</div><div class="stat-label">Today</div></div>
+            <div class="stat-card"><div class="stat-value">${uniqueUsers}</div><div class="stat-label">Unique Users</div></div>
+            <div class="stat-card"><div class="stat-value">${analyses}</div><div class="stat-label">Analyses</div></div>
+            <div class="stat-card"><div class="stat-value">${aiQueries}</div><div class="stat-label">AI Queries</div></div>
+        `;
+        
+        const container = document.getElementById('activityList');
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">📊</div><p>No activity found</p></div>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(a => {
+            const typeClass = a.action.includes('Login') ? 'login' : a.action.includes('Analysis') ? 'analysis' : 
+                             a.action.includes('Export') ? 'export' : a.action.includes('Client') ? 'client' : 
+                             a.action.includes('AI') ? 'ai' : '';
+            return `
+                <div class="activity-item ${typeClass}">
+                    <div class="activity-icon">${ACTIVITY_ICONS[a.action] || '📝'}</div>
+                    <div class="activity-content">
+                        <div class="activity-header">
+                            <span class="activity-action">${escapeHtml(a.action)}</span>
+                            <span class="activity-time">${formatDate(a.timestamp)}</span>
+                        </div>
+                        <div class="activity-details">
+                            <span class="activity-user">👤 ${escapeHtml(a.userName || 'Unknown')}</span>
+                            ${a.widget ? ` · <span>${a.widget}</span>` : ''}
+                            ${a.clientName ? ` · <span style="color:var(--accent-orange);">Client: ${escapeHtml(a.clientName)}</span>` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+    
+    // =====================================================
+    // ERROR LOG RENDERING
+    // =====================================================
+    function renderErrors() {
+        const status = document.getElementById('errorStatusFilter').value;
+        const widget = document.getElementById('errorWidgetFilter').value;
+        const search = document.getElementById('errorSearch').value.toLowerCase();
+        
+        let filtered = state.errors.filter(e => {
+            if (status === 'unresolved' && e.resolved) return false;
+            if (status === 'resolved' && !e.resolved) return false;
+            if (widget !== 'all' && e.widget !== widget) return false;
+            if (search && !`${e.message} ${e.widget} ${e.type}`.toLowerCase().includes(search)) return false;
+            return true;
+        }).slice(0, 50);
+        
+        // Stats
+        const total = state.errors.length;
+        const unresolved = state.errors.filter(e => !e.resolved).length;
+        const today = state.errors.filter(e => new Date(e.timestamp).toDateString() === new Date().toDateString()).length;
+        
+        document.getElementById('errorStats').innerHTML = `
+            <div class="stat-card"><div class="stat-value danger">${total}</div><div class="stat-label">Total Errors</div></div>
+            <div class="stat-card"><div class="stat-value danger">${unresolved}</div><div class="stat-label">Unresolved</div></div>
+            <div class="stat-card"><div class="stat-value warning">${today}</div><div class="stat-label">Today</div></div>
+        `;
+        
+        const container = document.getElementById('errorList');
+        if (filtered.length === 0) {
+            container.innerHTML = '<div class="empty-state"><div class="icon">🎉</div><p>No errors logged!</p></div>';
+            return;
+        }
+        
+        container.innerHTML = filtered.map(e => `
+            <div class="error-item ${e.resolved ? 'resolved' : ''}">
+                <div class="error-header">
+                    <span class="error-type">${e.resolved ? '✓ Resolved' : '⚠️ ' + (e.type || 'Error')}</span>
+                    <span class="error-widget">${e.widget || 'Unknown'}</span>
+                </div>
+                <div class="error-message">${escapeHtml(e.message || 'Unknown error')}</div>
+                <div class="error-footer">
+                    <span>${new Date(e.timestamp).toLocaleString()}</span>
+                    ${!e.resolved ? `<button class="btn btn-sm btn-success" onclick="resolveError('${e.id}')">Mark Resolved</button>` : ''}
+                </div>
+            </div>
+        `).join('');
+    }
+    
+    function resolveError(errorId) {
+        const error = state.errors.find(e => e.id === errorId);
+        if (error) {
+            error.resolved = true;
+            error.resolvedAt = new Date().toISOString();
+            localStorage.setItem('secureEnergy_errorLog', JSON.stringify(state.errors));
+            if (window.parent?.ErrorLog) window.parent.ErrorLog.resolve(errorId);
+            renderErrors();
+            updateBadges();
+            showToast('Error marked as resolved', 'success');
+        }
+    }
+    
+    function clearErrors() {
+        if (!confirm('Clear all errors? This cannot be undone.')) return;
+        state.errors = [];
+        localStorage.setItem('secureEnergy_errorLog', JSON.stringify([]));
+        if (window.parent?.ErrorLog) window.parent.ErrorLog.clear();
+        renderErrors();
+        updateBadges();
+        showToast('Error log cleared', 'success');
+    }
+    
+    // =====================================================
+    // EXPORT FUNCTIONS
+    // =====================================================
+    function exportTickets() {
+        const csv = 'ID,Subject,Category,Priority,Status,User,Created,Updated\n' +
+            state.tickets.map(t => [t.id, `"${t.subject}"`, t.category, t.priority, t.status, t.submittedBy?.name, t.createdAt, t.updatedAt].join(',')).join('\n');
+        downloadFile(csv, 'tickets-export.csv', 'text/csv');
+        showToast('Tickets exported', 'success');
+    }
+    
+    function exportActivity() {
+        const csv = 'Timestamp,User,Action,Widget,Client\n' +
+            state.activities.map(a => [a.timestamp, a.userName, a.action, a.widget, a.clientName || ''].join(',')).join('\n');
+        downloadFile(csv, 'activity-export.csv', 'text/csv');
+        showToast('Activity exported', 'success');
+    }
+    
+    function downloadFile(content, filename, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click();
+        document.body.removeChild(a); URL.revokeObjectURL(url);
+    }
+    
+    // =====================================================
+    // REFRESH FUNCTIONS
+    // =====================================================
+    async function refreshTickets() { await loadTickets(); renderTickets(); updateBadges(); showToast('Tickets refreshed', 'info'); }
+    async function refreshActivity() { await loadActivity(); renderActivity(); showToast('Activity refreshed', 'info'); }
+    async function refreshErrors() { await loadErrors(); renderErrors(); updateBadges(); showToast('Errors refreshed', 'info'); }
+    
+    // =====================================================
+    // UTILITIES
+    // =====================================================
+    function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        const diff = (new Date() - d) / 1000;
+        if (diff < 60) return 'Just now';
+        if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+        if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+        if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+        return d.toLocaleDateString();
+    }
+    
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    function openModal(id) { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+    
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}</span> ${escapeHtml(message)}`;
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 4000);
+    }
+    
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal('ticketModal'); });
+    document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); }));
+    </script>
+</body>
+</html>

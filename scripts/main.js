@@ -37,7 +37,8 @@ const DEFAULT_WIDGETS = [
     { id: 'arcadia-fetcher', name: 'Arcadia LMP Data Fetcher', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/arcadia-lmp-fetcher.html', defaultHeight: 500, minHeight: 300, maxHeight: 800 },
     { id: 'lmp-comparison', name: 'LMP Comparison Portal', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', src: 'widgets/lmp-comparison-portal.html', fullWidth: true, defaultHeight: 700, minHeight: 400, maxHeight: 1100 },
     { id: 'peak-demand', name: 'Peak Demand Analytics', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/peak-demand-widget.html', fullWidth: true, defaultHeight: 750, minHeight: 400, maxHeight: 1100 },
-    { id: 'analysis-history', name: 'My Analysis History', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 900 }
+    { id: 'analysis-history', name: 'My Analysis History', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 900 },
+    { id: 'feedback', name: 'Feedback & Support', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>', src: 'widgets/feedback-widget-light.html', adminSrc: 'widgets/feedback-admin-portal.html', fullWidth: true, defaultHeight: 600, minHeight: 400, maxHeight: 1000 }
 ];
 
 let WIDGETS = JSON.parse(JSON.stringify(DEFAULT_WIDGETS));
@@ -72,7 +73,7 @@ window.setTheme = function(theme) {
 function loadSavedTheme() { window.setTheme(localStorage.getItem('secureEnergy_theme') || 'dark'); }
 
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('[Portal] Initializing v2.8...');
+    console.log('[Portal] Initializing v2.9 - Added Feedback System...');
     loadSavedTheme();
     await UserStore.init();
     await ActivityLog.init();
@@ -92,6 +93,16 @@ document.addEventListener('DOMContentLoaded', async function() {
     }
     if (typeof SecureEnergySuppliers !== 'undefined') SecureEnergySuppliers.init();
     if (typeof SecureEnergyBids !== 'undefined') SecureEnergyBids.init();
+    
+    // Initialize TicketStore for feedback system
+    if (typeof TicketStore !== 'undefined') {
+        TicketStore.init().then(() => {
+            console.log('[Portal] TicketStore initialized');
+        }).catch(e => {
+            console.warn('[Portal] TicketStore init failed:', e.message);
+        });
+    }
+    
     GitHubSync.pullLatest();
     initAuth();
     AISearch.init();
@@ -290,7 +301,15 @@ function createWidgetElement(widget, user) {
     } else if (widget.embedded && widget.id === 'analysis-history') {
         div.innerHTML = '<div class="widget-header"><div class="widget-title">' + widget.icon + '<span>' + widget.name + '</span></div><div class="widget-actions"><button class="widget-btn" onclick="exportMyAnalysisRecords()" title="Export"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button><button class="widget-btn" onclick="refreshAnalysisHistory()" title="Refresh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>' + controlsHtml + '</div></div><div class="widget-content analysis-history-content" id="analysisHistoryContent" style="' + contentStyle + 'overflow-y:auto;" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div><div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     } else {
-        div.innerHTML = '<div class="widget-header"><div class="widget-title">' + widget.icon + '<span>' + widget.name + '</span></div><div class="widget-actions">' + popoutBtn + controlsHtml + '</div></div><div class="widget-content" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"><iframe class="widget-iframe" src="' + widget.src + '" title="' + widget.name + '"></iframe></div><div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        // Determine widget source - use admin version for admin users if available
+        let widgetSrc = widget.src;
+        let adminBadge = '';
+        if (widget.id === 'feedback' && user.role === 'admin' && widget.adminSrc) {
+            widgetSrc = widget.adminSrc;
+            adminBadge = '<span class="widget-badge">ADMIN</span>';
+        }
+        
+        div.innerHTML = '<div class="widget-header"><div class="widget-title">' + widget.icon + '<span>' + widget.name + '</span>' + adminBadge + '</div><div class="widget-actions">' + popoutBtn + controlsHtml + '</div></div><div class="widget-content" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"><iframe class="widget-iframe" src="' + widgetSrc + '" title="' + widget.name + '"></iframe></div><div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     }
     return div;
 }
@@ -542,6 +561,30 @@ function handleWidgetMessage(event) {
     }
     if (event.data?.type === 'DATA_UPLOADED' && currentUser) {
         ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: event.data.widget || 'data-manager', action: 'Data Upload', data: event.data.data || {} });
+    }
+    
+    // Feedback/Ticket message handlers
+    if (event.data?.type === 'TICKET_CREATED' && currentUser) {
+        const ticket = event.data.ticket;
+        if (ticket) {
+            console.log('[Portal] Ticket created:', ticket.id);
+            ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'feedback', action: 'Ticket Created', data: { ticketId: ticket.id, category: ticket.category, priority: ticket.priority } });
+        }
+    }
+    if (event.data?.type === 'TICKET_REPLY' && currentUser) {
+        const { ticketId, reply } = event.data;
+        if (window.TicketStore && ticketId && reply) {
+            window.TicketStore.addReply(ticketId, reply);
+            ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'feedback', action: 'Ticket Reply', data: { ticketId } });
+        }
+    }
+    if (event.data?.type === 'TICKETS_UPDATED') {
+        if (window.TicketStore && event.data.data) {
+            window.TicketStore.saveTickets(event.data.data);
+        }
+    }
+    if (event.data?.type === 'REQUEST_USER_DATA' && event.source) {
+        event.source.postMessage({ type: 'USER_DATA', user: currentUser }, '*');
     }
 }
 
