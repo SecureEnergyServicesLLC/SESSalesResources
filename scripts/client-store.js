@@ -402,6 +402,7 @@
     // Active Client Management (Portal-Wide Context)
     // ========================================
     function setActiveClient(clientId) {
+        console.log('[ClientStore] setActiveClient called with clientId:', clientId);
         if (clientId && !clients[clientId]) {
             console.warn('[ClientStore] Client not found:', clientId);
             return false;
@@ -418,6 +419,7 @@
         
         saveActiveClient();
         
+        console.log('[ClientStore] Notifying subscribers of activeClientChanged...');
         // Notify all widgets of client change
         notifySubscribers('activeClientChanged', {
             previous: previousClient,
@@ -428,6 +430,7 @@
             account: null
         });
         
+        console.log('[ClientStore] Broadcasting ACTIVE_CLIENT_CHANGED to iframes...');
         // Post message to all iframes (widgets)
         broadcastToWidgets({
             type: 'ACTIVE_CLIENT_CHANGED',
@@ -457,6 +460,7 @@
     // Active Account Management (Child Context under Active Client)
     // ========================================
     function setActiveAccount(accountId) {
+        console.log('[ClientStore] setActiveAccount called with accountId:', accountId);
         // Must have active client to set active account
         if (!activeClientId) {
             console.warn('[ClientStore] Cannot set active account without active client');
@@ -475,7 +479,9 @@
         saveActiveClient();
         
         const account = accountId ? client.accounts.find(a => a.id === accountId) : null;
+        console.log('[ClientStore] Account found:', account?.accountName);
         
+        console.log('[ClientStore] Notifying subscribers of activeAccountChanged...');
         // Notify all widgets of account change
         notifySubscribers('activeAccountChanged', {
             previous: previousAccount,
@@ -485,6 +491,7 @@
             client: client
         });
         
+        console.log('[ClientStore] Broadcasting ACTIVE_ACCOUNT_CHANGED to iframes...');
         // Post message to all iframes (widgets)
         broadcastToWidgets({
             type: 'ACTIVE_ACCOUNT_CHANGED',
@@ -536,11 +543,14 @@
 
     function broadcastToWidgets(message) {
         // Send to all iframes in the portal
-        document.querySelectorAll('iframe').forEach(iframe => {
+        const iframes = document.querySelectorAll('iframe');
+        console.log('[ClientStore] broadcastToWidgets - Message type:', message.type, '- Found', iframes.length, 'iframes');
+        iframes.forEach((iframe, index) => {
             try {
                 iframe.contentWindow.postMessage(message, '*');
+                console.log('[ClientStore] Sent to iframe', index, ':', iframe.src?.substring(0, 60) || 'embedded');
             } catch (e) {
-                // Ignore cross-origin errors
+                console.warn('[ClientStore] Failed to send to iframe', index, ':', e.message);
             }
         });
     }
@@ -1407,17 +1417,21 @@
     // ========================================
     function subscribe(callback) {
         subscribers.push(callback);
+        console.log('[ClientStore] New subscriber added - total subscribers:', subscribers.length);
         return () => {
             subscribers = subscribers.filter(cb => cb !== callback);
+            console.log('[ClientStore] Subscriber removed - total subscribers:', subscribers.length);
         };
     }
 
     function notifySubscribers(event, data) {
-        subscribers.forEach(cb => {
+        console.log('[ClientStore] notifySubscribers - event:', event, '- subscribers:', subscribers.length);
+        subscribers.forEach((cb, index) => {
             try {
+                console.log('[ClientStore] Calling subscriber', index);
                 cb(event, data);
             } catch (e) {
-                console.error('[ClientStore] Subscriber error:', e);
+                console.error('[ClientStore] Subscriber', index, 'error:', e);
             }
         });
     }

@@ -509,13 +509,21 @@
         
         function initStores() {
             // Initialize Client Store
-            if (window.parent?.SecureEnergyClients) ClientStore = window.parent.SecureEnergyClients;
-            else if (window.SecureEnergyClients) ClientStore = window.SecureEnergyClients;
+            if (window.parent?.SecureEnergyClients) {
+                ClientStore = window.parent.SecureEnergyClients;
+                console.log('[ClientLookup] Connected to parent SecureEnergyClients');
+            } else if (window.SecureEnergyClients) {
+                ClientStore = window.SecureEnergyClients;
+                console.log('[ClientLookup] Connected to local SecureEnergyClients');
+            } else {
+                console.warn('[ClientLookup] SecureEnergyClients not found!');
+            }
             
             // Initialize Usage Profile Store
             if (window.parent?.UsageProfileStore) ProfileStore = window.parent.UsageProfileStore;
             else if (window.UsageProfileStore) ProfileStore = window.UsageProfileStore;
             
+            console.log('[ClientLookup] initStores complete - ClientStore:', !!ClientStore, 'ProfileStore:', !!ProfileStore);
             return !!ClientStore;
         }
         
@@ -724,14 +732,19 @@
         }
         
         function setAccountAsActive(accountId) {
+            console.log('[ClientLookup] setAccountAsActive called with accountId:', accountId);
             if (ClientStore && accountId) {
                 if (ClientStore.setActiveAccount) {
+                    console.log('[ClientLookup] Calling ClientStore.setActiveAccount...');
                     ClientStore.setActiveAccount(accountId);
+                    console.log('[ClientLookup] ClientStore.setActiveAccount completed');
                 } else {
+                    console.log('[ClientLookup] ClientStore.setActiveAccount not available, using fallback...');
                     // Fallback: manually set and broadcast
                     const client = ClientStore.getActiveClient();
                     if (client?.accounts) {
                         activeAccount = client.accounts.find(a => a.id === accountId) || null;
+                        console.log('[ClientLookup] Found account:', activeAccount?.accountName);
                         if (window.parent !== window) {
                             window.parent.postMessage({
                                 type: 'ACTIVE_ACCOUNT_CHANGED',
@@ -740,12 +753,15 @@
                                 account: activeAccount,
                                 accountId: activeAccount?.id || null
                             }, '*');
+                            console.log('[ClientLookup] Posted ACTIVE_ACCOUNT_CHANGED to parent');
                         }
                     }
                 }
                 updateActiveClientBanner();
                 updateActiveAccountBanner();
                 showToast('Account set as active', 'success');
+            } else {
+                console.error('[ClientLookup] Cannot set account - ClientStore:', !!ClientStore, 'accountId:', accountId);
             }
         }
         
@@ -846,12 +862,17 @@
         }
         
         function selectClient(id) {
+            console.log('[ClientLookup] selectClient called with id:', id);
             if (ClientStore) {
+                console.log('[ClientLookup] Calling ClientStore.setActiveClient...');
                 ClientStore.setActiveClient(id);
                 activeAccount = null;
                 document.getElementById('searchInput').value = '';
                 document.getElementById('dropdown').style.display = 'none';
                 showToast('Client selected', 'success');
+                console.log('[ClientLookup] Client selection complete');
+            } else {
+                console.error('[ClientLookup] ClientStore not available!');
             }
         }
         

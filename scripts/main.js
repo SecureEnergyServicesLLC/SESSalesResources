@@ -97,15 +97,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (typeof SecureEnergyClients !== 'undefined') {
         SecureEnergyClients.init();
         SecureEnergyClients.subscribe((event, data) => {
+            console.log('[Portal] SecureEnergyClients event received:', event);
             if (event === 'activeClientChanged') { 
+                console.log('[Portal] Handling activeClientChanged - Client:', data.client?.name);
                 broadcastActiveClientToWidgets(data.client, data.account || null); 
                 updateGlobalClientIndicator(); 
             }
             if (event === 'activeAccountChanged') { 
+                console.log('[Portal] Handling activeAccountChanged - Account:', data.account?.accountName);
                 broadcastActiveAccountToWidgets(data.account, data.client); 
                 updateGlobalClientIndicator(); 
             }
         });
+        console.log('[Portal] Subscribed to SecureEnergyClients events');
     }
     if (typeof SecureEnergySuppliers !== 'undefined') SecureEnergySuppliers.init();
     if (typeof SecureEnergyBids !== 'undefined') SecureEnergyBids.init();
@@ -783,7 +787,9 @@ function handleWidgetMessage(event) {
 }
 
 function broadcastActiveClientToWidgets(client, account = null) {
-    document.querySelectorAll('iframe').forEach(iframe => {
+    const iframes = document.querySelectorAll('iframe');
+    console.log('[Portal] broadcastActiveClientToWidgets - Client:', client?.name, '- Found', iframes.length, 'iframes');
+    iframes.forEach((iframe, index) => {
         try { 
             iframe.contentWindow.postMessage({ 
                 type: 'ACTIVE_CLIENT_CHANGED', 
@@ -791,8 +797,11 @@ function broadcastActiveClientToWidgets(client, account = null) {
                 clientId: client?.id || null,
                 account: account,
                 accountId: account?.id || null
-            }, '*'); 
-        } catch (e) {}
+            }, '*');
+            console.log('[Portal] Sent ACTIVE_CLIENT_CHANGED to iframe', index);
+        } catch (e) {
+            console.warn('[Portal] Failed to send to iframe', index, ':', e.message);
+        }
     });
 }
 
@@ -801,7 +810,9 @@ function broadcastActiveAccountToWidgets(account, client = null) {
     if (!client && window.SecureEnergyClients) {
         client = window.SecureEnergyClients.getActiveClient();
     }
-    document.querySelectorAll('iframe').forEach(iframe => {
+    const iframes = document.querySelectorAll('iframe');
+    console.log('[Portal] broadcastActiveAccountToWidgets - Account:', account?.accountName, 'Client:', client?.name, '- Found', iframes.length, 'iframes');
+    iframes.forEach((iframe, index) => {
         try { 
             iframe.contentWindow.postMessage({ 
                 type: 'ACTIVE_ACCOUNT_CHANGED', 
@@ -809,8 +820,11 @@ function broadcastActiveAccountToWidgets(account, client = null) {
                 clientId: client?.id || null,
                 account: account,
                 accountId: account?.id || null
-            }, '*'); 
-        } catch (e) {}
+            }, '*');
+            console.log('[Portal] Sent ACTIVE_ACCOUNT_CHANGED to iframe', index);
+        } catch (e) {
+            console.warn('[Portal] Failed to send to iframe', index, ':', e.message);
+        }
     });
 }
 

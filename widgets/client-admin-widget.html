@@ -641,8 +641,16 @@
         let pendingAccountData = null;
         
         function initStores() {
-            if (window.parent?.SecureEnergyClients) ClientStore = window.parent.SecureEnergyClients;
-            else if (window.SecureEnergyClients) ClientStore = window.SecureEnergyClients;
+            if (window.parent?.SecureEnergyClients) {
+                ClientStore = window.parent.SecureEnergyClients;
+                console.log('[ClientAdmin] Connected to parent SecureEnergyClients');
+            } else if (window.SecureEnergyClients) {
+                ClientStore = window.SecureEnergyClients;
+                console.log('[ClientAdmin] Connected to local SecureEnergyClients');
+            } else {
+                console.warn('[ClientAdmin] SecureEnergyClients not found!');
+            }
+            console.log('[ClientAdmin] initStores complete - ClientStore:', !!ClientStore);
             return !!ClientStore;
         }
         
@@ -950,21 +958,31 @@
         }
         
         function setClientActive(id) {
+            console.log('[ClientAdmin] setClientActive called with id:', id);
             if (ClientStore) {
-                ClientStore.setActiveClient(id);
+                console.log('[ClientAdmin] Calling ClientStore.setActiveClient...');
+                const result = ClientStore.setActiveClient(id);
+                console.log('[ClientAdmin] ClientStore.setActiveClient result:', result);
                 showToast('Client set as active', 'success');
+            } else {
+                console.error('[ClientAdmin] ClientStore not available!');
             }
         }
         
         function setAccountAsActive(accountId) {
+            console.log('[ClientAdmin] setAccountAsActive called with accountId:', accountId);
             if (ClientStore && accountId) {
-                ClientStore.setActiveAccount(accountId);
+                console.log('[ClientAdmin] Calling ClientStore.setActiveAccount...');
+                const result = ClientStore.setActiveAccount(accountId);
+                console.log('[ClientAdmin] ClientStore.setActiveAccount result:', result);
                 updateActiveAccountBanner();
                 // Re-render accounts list to show active state
                 if (selectedClientId) {
                     showClientDetails(selectedClientId);
                 }
                 showToast('Account set as active', 'success');
+            } else {
+                console.error('[ClientAdmin] Cannot set account - ClientStore:', !!ClientStore, 'accountId:', accountId);
             }
         }
         
