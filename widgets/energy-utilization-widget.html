@@ -986,6 +986,34 @@
         // Client Context
         function initClientContext() {
             window.addEventListener('message', handleMessage);
+            
+            // Try to directly access ClientStore from parent
+            const ClientStore = window.parent?.SecureEnergyClients || window.SecureEnergyClients;
+            
+            if (ClientStore) {
+                // Get current active client and account directly
+                const client = ClientStore.getActiveClient?.();
+                const account = ClientStore.getActiveAccount?.();
+                
+                if (client) {
+                    console.log('[EnergyUtil] Got active client from ClientStore:', client.name);
+                    setActiveClient(client, account);
+                }
+                
+                // Subscribe to ClientStore events for real-time updates
+                ClientStore.subscribe?.((event, data) => {
+                    if (event === 'activeClientChanged') {
+                        console.log('[EnergyUtil] ClientStore activeClientChanged event');
+                        setActiveClient(data.client, data.account || null);
+                    }
+                    if (event === 'activeAccountChanged') {
+                        console.log('[EnergyUtil] ClientStore activeAccountChanged event');
+                        setActiveAccount(data.account, data.client);
+                    }
+                });
+            }
+            
+            // Also request via message (fallback/redundancy)
             if (window.parent !== window) {
                 window.parent.postMessage({ type: 'REQUEST_ACTIVE_CLIENT' }, '*');
             }
@@ -996,16 +1024,19 @@
             if (!data || !data.type) return;
             
             if (data.type === 'ACTIVE_CLIENT_CHANGED' || data.type === 'ACTIVE_CLIENT_RESPONSE') {
+                console.log('[EnergyUtil] Received', data.type, '- Client:', data.client?.name, 'Account:', data.account?.accountName);
                 setActiveClient(data.client, data.account || null);
             }
             
             if (data.type === 'ACTIVE_ACCOUNT_CHANGED') {
+                console.log('[EnergyUtil] Received ACTIVE_ACCOUNT_CHANGED - Account:', data.account?.accountName);
                 // Account changed under same client
                 setActiveAccount(data.account, data.client);
             }
         }
         
         function setActiveClient(client, account = null) {
+            console.log('[EnergyUtil] setActiveClient called - Client:', client?.name, 'Account:', account?.accountName);
             activeClient = client;
             activeAccount = account;
             updateContextIndicator();
@@ -1016,6 +1047,7 @@
         }
         
         function setActiveAccount(account, client = null) {
+            console.log('[EnergyUtil] setActiveAccount called - Account:', account?.accountName, 'Client:', client?.name);
             // If client provided and different, update it
             if (client && (!activeClient || activeClient.id !== client.id)) {
                 activeClient = client;
