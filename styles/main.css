@@ -1,4 +1,10 @@
-/* Secure Energy Analytics Portal - Main Styles */
+/* Secure Energy Analytics Portal - Main Styles v2.1
+ * FIXES:
+ * - Clock & Weather now visible on all screen sizes (compact mode on smaller screens)
+ * - Improved responsive top-bar layout
+ * - Better data status banner visibility
+ */
+
 :root {
     --se-dark-green: #004D40;
     --se-light-green: #3EB489;
@@ -296,44 +302,62 @@ body {
     top: 0;
     z-index: 100;
     gap: 16px;
+    flex-wrap: wrap;
 }
 
-/* Weather & Clock Widgets */
+/* =====================================================
+   WEATHER & CLOCK WIDGETS - FIXED VISIBILITY
+   ===================================================== */
 .top-bar-widgets {
     display: flex;
-    gap: 16px;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
 }
 
 .top-widget {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 8px 16px;
+    padding: 8px 14px;
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
+    transition: all var(--transition-base);
+}
+
+.top-widget:hover {
+    border-color: var(--se-light-green);
+    box-shadow: 0 0 12px rgba(62, 180, 137, 0.15);
 }
 
 .weather-widget .weather-icon,
 .clock-widget .clock-icon {
     color: var(--se-light-green);
+    flex-shrink: 0;
 }
 
 .weather-info,
 .clock-info {
     display: flex;
     flex-direction: column;
+    min-width: 0;
 }
 
 .weather-temp {
     font-size: 16px;
     font-weight: 700;
     color: var(--text-primary);
+    line-height: 1.2;
 }
 
 .weather-location {
     font-size: 11px;
     color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100px;
 }
 
 .clock-time {
@@ -341,6 +365,7 @@ body {
     font-weight: 600;
     color: var(--text-primary);
     font-family: 'Consolas', 'Monaco', monospace;
+    line-height: 1.2;
 }
 
 .clock-date {
@@ -435,6 +460,7 @@ body {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex-shrink: 0;
 }
 
 .logo-img {
@@ -455,12 +481,14 @@ body {
     flex: 1;
     max-width: 500px;
     margin: 0 24px;
+    min-width: 200px;
 }
 
 .top-bar-right {
     display: flex;
     align-items: center;
     gap: 16px;
+    flex-shrink: 0;
 }
 
 .user-info {
@@ -599,6 +627,16 @@ body {
     border-radius: 50%;
     background: var(--accent-warning);
     box-shadow: 0 0 8px currentColor;
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.data-status-indicator[style*="var(--accent-success)"] {
+    animation: none;
 }
 
 .data-status-text h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
@@ -606,8 +644,18 @@ body {
 
 .data-status-right { display: flex; gap: 32px; }
 .data-stat { text-align: center; }
-.data-stat-value { font-size: 24px; font-weight: 700; color: var(--se-light-green); }
-.data-stat-label { font-size: 11px; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.5px; }
+.data-stat-value { 
+    font-size: 24px; 
+    font-weight: 700; 
+    color: var(--se-light-green);
+    font-family: 'Consolas', 'Monaco', monospace;
+}
+.data-stat-label { 
+    font-size: 11px; 
+    color: var(--text-tertiary); 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+}
 
 /* Widgets Grid */
 .widgets-grid {
@@ -1187,22 +1235,170 @@ body {
 .notification.success { border-left: 4px solid var(--accent-success); }
 .notification.error { border-left: 4px solid var(--accent-error); }
 .notification.info { border-left: 4px solid var(--accent-info); }
+.notification.warning { border-left: 4px solid var(--accent-warning); }
 
-/* Responsive */
-@media (max-width: 1200px) {
-    .widgets-grid { grid-template-columns: 1fr; }
-}
+/* =====================================================
+   RESPONSIVE - IMPROVED WEATHER/CLOCK VISIBILITY
+   ===================================================== */
 
-@media (max-width: 992px) {
+/* Large screens - full display */
+@media (min-width: 1201px) {
     .top-bar-widgets {
-        display: none;
+        display: flex;
     }
 }
 
+/* Medium screens - compact widgets */
+@media (max-width: 1200px) {
+    .widgets-grid { grid-template-columns: 1fr; }
+    
+    .top-bar-widgets {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .top-widget {
+        padding: 6px 10px;
+    }
+    
+    .weather-temp {
+        font-size: 14px;
+    }
+    
+    .clock-time {
+        font-size: 12px;
+    }
+    
+    .weather-location,
+    .clock-date {
+        font-size: 10px;
+    }
+}
+
+/* Tablet screens - still visible but more compact */
+@media (max-width: 992px) {
+    .top-bar {
+        padding: 10px 16px;
+    }
+    
+    .top-bar-widgets {
+        display: flex;  /* KEEP VISIBLE - was display: none */
+        gap: 6px;
+    }
+    
+    .top-widget {
+        padding: 5px 8px;
+        gap: 6px;
+    }
+    
+    .weather-icon,
+    .clock-icon {
+        width: 16px;
+        height: 16px;
+    }
+    
+    .weather-temp {
+        font-size: 13px;
+    }
+    
+    .clock-time {
+        font-size: 11px;
+    }
+    
+    .weather-location,
+    .clock-date {
+        font-size: 9px;
+    }
+    
+    .top-bar-center {
+        margin: 0 12px;
+        min-width: 150px;
+    }
+    
+    .theme-selector {
+        margin-right: 8px;
+        padding: 4px 8px;
+    }
+    
+    .theme-dot {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+/* Small screens - icon-only mode for weather/clock */
 @media (max-width: 768px) {
-    .top-bar { flex-wrap: wrap; gap: 12px; }
-    .top-bar-center { order: 3; width: 100%; max-width: none; margin: 0; }
+    .top-bar { 
+        flex-wrap: wrap; 
+        gap: 10px;
+        padding: 10px 12px;
+    }
+    
+    .top-bar-center { 
+        order: 3; 
+        width: 100%; 
+        max-width: none; 
+        margin: 8px 0 0 0;
+    }
+    
     .form-row { grid-template-columns: 1fr; }
+    
     .user-info { display: none; }
-    .top-bar-widgets { display: none; }
+    
+    /* KEEP WEATHER/CLOCK VISIBLE - compact icon mode */
+    .top-bar-widgets { 
+        display: flex;  /* KEEP VISIBLE - was display: none */
+        order: 2;
+    }
+    
+    .top-widget {
+        padding: 6px 8px;
+        gap: 4px;
+    }
+    
+    /* Show only icons + main value on small screens */
+    .weather-location,
+    .clock-date {
+        display: none;
+    }
+    
+    .weather-temp,
+    .clock-time {
+        font-size: 12px;
+    }
+    
+    .theme-selector {
+        display: none; /* Hide theme selector on very small screens */
+    }
+}
+
+/* Very small screens - minimal mode */
+@media (max-width: 480px) {
+    .top-bar-widgets {
+        gap: 4px;
+    }
+    
+    .top-widget {
+        padding: 4px 6px;
+    }
+    
+    .weather-icon,
+    .clock-icon {
+        width: 14px;
+        height: 14px;
+    }
+    
+    .weather-temp,
+    .clock-time {
+        font-size: 11px;
+    }
+    
+    .logo-text {
+        display: none;
+    }
+    
+    .logout-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
 }

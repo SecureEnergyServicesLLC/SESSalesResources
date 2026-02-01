@@ -1,23 +1,10 @@
 /**
- * Secure Energy Analytics Portal - Widget Styles v3.0 (Consolidated)
+ * Secure Energy Analytics Portal - Widget Styles v3.1 (Consolidated)
  * Combines: admin-wide-styles.css, double-height-widget.css, widget-enhancements.css
+ * 
+ * IMPORTANT: CSS custom properties are defined in main.css
+ * This file should be loaded AFTER main.css to avoid variable conflicts
  */
-
-/* =============================================================================
-   CSS CUSTOM PROPERTIES (ensure these are defined in your main stylesheet)
-   ============================================================================= */
-:root {
-    --bg-primary: #0f0f1a;
-    --bg-secondary: #1e1e2e;
-    --bg-tertiary: #2a2a3e;
-    --border-color: #333;
-    --text-primary: #fff;
-    --text-secondary: #888;
-    --text-tertiary: #666;
-    --accent-primary: #4ade80;
-    --accent-secondary: #22c55e;
-    --se-light-green: #3EB489;
-}
 
 /* =============================================================================
    WIDGET BASE & GRID
@@ -55,7 +42,7 @@
     grid-column: 1 / -1;
     width: 100%;
     max-width: 100%;
-    border: 2px solid var(--accent-primary);
+    border: 2px solid var(--se-light-green, #3EB489);
 }
 
 .widget.admin-wide .widget-content {
@@ -64,7 +51,7 @@
 
 .widget.admin-wide .widget-header {
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
-    border-bottom: 2px solid var(--accent-primary);
+    border-bottom: 2px solid var(--se-light-green, #3EB489);
     padding: 16px 20px;
 }
 
@@ -85,7 +72,7 @@
 
 /* Double height - taller content area */
 .widget.double-height {
-    border: 2px solid var(--se-light-green);
+    border: 2px solid var(--se-light-green, #3EB489);
     box-shadow: 0 4px 20px rgba(62, 180, 137, 0.15);
 }
 
@@ -133,12 +120,12 @@
 
 .widget-title svg {
     flex-shrink: 0;
-    color: var(--accent-primary);
+    color: var(--se-light-green, #3EB489);
 }
 
 .widget-badge {
     padding: 2px 8px;
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
     color: #000;
     font-size: 10px;
     font-weight: 700;
@@ -194,8 +181,8 @@
 }
 
 .widget-btn:hover {
-    background: var(--accent-primary);
-    border-color: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
+    border-color: var(--se-light-green, #3EB489);
     color: #000;
 }
 
@@ -213,7 +200,7 @@
 
 .widget-drag-handle:hover {
     background: var(--bg-tertiary);
-    color: var(--accent-primary);
+    color: var(--se-light-green, #3EB489);
 }
 
 .widget-drag-handle:active {
@@ -278,7 +265,7 @@
 .widget-resize-handle:hover::before,
 .widget.resizing .widget-resize-handle::before {
     opacity: 1;
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
 }
 
 .widget.resizing {
@@ -300,11 +287,11 @@
 }
 
 .widget.drag-over-top {
-    box-shadow: 0 -4px 0 0 var(--accent-primary), 0 0 20px rgba(74, 222, 128, 0.2);
+    box-shadow: 0 -4px 0 0 var(--se-light-green, #3EB489), 0 0 20px rgba(62, 180, 137, 0.2);
 }
 
 .widget.drag-over-bottom {
-    box-shadow: 0 4px 0 0 var(--accent-primary), 0 0 20px rgba(74, 222, 128, 0.2);
+    box-shadow: 0 4px 0 0 var(--se-light-green, #3EB489), 0 0 20px rgba(62, 180, 137, 0.2);
 }
 
 .widget.drag-over-top::before,
@@ -317,10 +304,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(74, 222, 128, 0.1);
-    border: 2px dashed var(--accent-primary);
+    background: rgba(62, 180, 137, 0.1);
+    border: 2px dashed var(--se-light-green, #3EB489);
     border-radius: 8px;
-    color: var(--accent-primary);
+    color: var(--se-light-green, #3EB489);
     font-size: 12px;
     font-weight: 600;
     z-index: 10;
@@ -381,7 +368,7 @@
 .layout-reset-btn:hover {
     background: var(--bg-tertiary);
     color: var(--text-primary);
-    border-color: var(--accent-primary);
+    border-color: var(--se-light-green, #3EB489);
 }
 
 /* =============================================================================
@@ -422,8 +409,8 @@
 
 .admin-tab.active {
     background: var(--bg-secondary);
-    border-bottom-color: var(--accent-primary);
-    color: var(--accent-primary);
+    border-bottom-color: var(--se-light-green, #3EB489);
+    color: var(--se-light-green, #3EB489);
 }
 
 .widget.admin-wide .admin-tab {
@@ -436,13 +423,13 @@
 
 .widget.admin-wide .admin-tab:hover {
     background: var(--bg-primary);
-    border-color: var(--accent-primary);
+    border-color: var(--se-light-green, #3EB489);
 }
 
 .widget.admin-wide .admin-tab.active {
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
     color: white;
-    border-color: var(--accent-primary);
+    border-color: var(--se-light-green, #3EB489);
 }
 
 .admin-panel {
@@ -513,8 +500,8 @@
 .form-group input:focus,
 .form-group select:focus {
     outline: none;
-    border-color: var(--accent-primary);
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+    border-color: var(--se-light-green, #3EB489);
+    box-shadow: 0 0 0 3px rgba(62, 180, 137, 0.15);
 }
 
 /* =============================================================================
@@ -596,13 +583,13 @@
 }
 
 .status-badge.active {
-    background: rgba(74, 222, 128, 0.2);
-    color: #4ade80;
+    background: rgba(62, 180, 137, 0.2);
+    color: var(--se-light-green, #3EB489);
 }
 
 .widget.admin-wide .status-badge.active {
-    background: rgba(16, 185, 129, 0.15);
-    color: #10b981;
+    background: rgba(62, 180, 137, 0.15);
+    color: var(--se-light-green, #3EB489);
 }
 
 .status-badge.inactive {
@@ -620,7 +607,7 @@
    ============================================================================= */
 .btn-primary {
     padding: 12px 24px;
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
     border: none;
     border-radius: 8px;
     color: #000;
@@ -631,17 +618,18 @@
 }
 
 .btn-primary:hover {
-    background: var(--accent-secondary);
+    background: var(--se-dark-green, #004D40);
+    color: white;
 }
 
 .widget.admin-wide .btn-primary {
-    background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+    background: linear-gradient(135deg, var(--se-light-green, #3EB489) 0%, var(--se-dark-green, #004D40) 100%);
     color: white;
 }
 
 .widget.admin-wide .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 4px 12px rgba(62, 180, 137, 0.3);
 }
 
 .btn-secondary {
@@ -656,7 +644,7 @@
 
 .btn-secondary:hover {
     background: var(--bg-secondary);
-    border-color: var(--accent-primary);
+    border-color: var(--se-light-green, #3EB489);
 }
 
 .action-btn {
@@ -680,7 +668,7 @@
 }
 
 .widget.admin-wide .action-btn:hover {
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
     color: white;
     opacity: 1;
 }
@@ -701,9 +689,9 @@
 }
 
 .export-btn:hover {
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
     color: white;
-    border-color: var(--accent-primary);
+    border-color: var(--se-light-green, #3EB489);
 }
 
 /* =============================================================================
@@ -720,7 +708,7 @@
 .stat-value {
     font-size: 28px;
     font-weight: 700;
-    color: var(--accent-primary);
+    color: var(--se-light-green, #3EB489);
 }
 
 .stat-label {
@@ -778,7 +766,7 @@
     align-items: flex-start;
     padding: 12px 16px;
     background: var(--bg-secondary);
-    border-left: 4px solid var(--accent-primary);
+    border-left: 4px solid var(--se-light-green, #3EB489);
 }
 
 .widget.admin-wide .activity-item:hover {
@@ -857,11 +845,11 @@
 }
 
 .toggle-switch input:checked + .toggle-slider {
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
 }
 
 .widget.admin-wide .toggle-switch input:checked + .toggle-slider {
-    border-color: var(--accent-primary);
+    border-color: var(--se-light-green, #3EB489);
 }
 
 .toggle-switch input:checked + .toggle-slider::before {
@@ -948,7 +936,7 @@
 
 .ai-message.user {
     align-self: flex-end;
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
     color: #000;
     border-bottom-right-radius: 4px;
 }
@@ -980,7 +968,7 @@
 
 .ai-chat-input:focus {
     outline: none;
-    border-color: var(--accent-primary);
+    border-color: var(--se-light-green, #3EB489);
 }
 
 .ai-chat-send {
@@ -989,7 +977,7 @@
     justify-content: center;
     width: 42px;
     height: 42px;
-    background: var(--accent-primary);
+    background: var(--se-light-green, #3EB489);
     border: none;
     border-radius: 8px;
     color: #000;
@@ -998,7 +986,8 @@
 }
 
 .ai-chat-send:hover {
-    background: var(--accent-secondary);
+    background: var(--se-dark-green, #004D40);
+    color: white;
     transform: scale(1.05);
 }
 
@@ -1016,5 +1005,24 @@
     
     .admin-tabs {
         justify-content: flex-start;
+    }
+}
+
+@media (max-width: 768px) {
+    .widgets-grid {
+        padding: 12px;
+        gap: 12px;
+    }
+    
+    .widget-header {
+        padding: 10px 12px;
+    }
+    
+    .admin-panel {
+        padding: 12px;
+    }
+    
+    .widget.admin-wide .admin-panel {
+        padding: 16px;
     }
 }

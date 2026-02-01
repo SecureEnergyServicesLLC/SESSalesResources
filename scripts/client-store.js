@@ -2,7 +2,11 @@
  * Client Store - Centralized Client Management
  * Provides unique client identifiers (CID) across all portal widgets
  * Supports Salesforce data import and cross-widget client context
- * Version: 2.3.0 - User-specific active client/account selection
+ * Version: 2.3.1 - Fixed broadcast function reference
+ * 
+ * CHANGELOG:
+ * v2.3.1 - Added local broadcast() helper to fix "Can't find variable: broadcast" error
+ * v2.3.0 - User-specific active client/account selection
  */
 
 (function() {
@@ -18,6 +22,45 @@
     let activeAccountId = null;  // Track active child account under the active client
     let subscribers = [];
     let currentUserId = null;  // Track current user for user-specific storage
+
+    // ========================================
+    // Broadcast Helper - Uses global broadcast if available
+    // This fixes the "Can't find variable: broadcast" error
+    // ========================================
+    function broadcast(messageType, data = {}) {
+        // Try to use global broadcast from shared-data-store.js
+        if (typeof window.broadcast === 'function') {
+            return window.broadcast(messageType, data);
+        }
+        
+        // Fallback implementation if global broadcast not available
+        const message = { type: messageType, ...data, timestamp: Date.now() };
+        
+        // Broadcast to parent window (for embedded widgets)
+        if (window.parent && window.parent !== window) {
+            try {
+                window.parent.postMessage(message, '*');
+            } catch (e) { /* ignore cross-origin errors */ }
+        }
+        
+        // Broadcast to all iframes
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+            try {
+                if (iframe.contentWindow) {
+                    iframe.contentWindow.postMessage(message, '*');
+                }
+            } catch (e) { /* ignore cross-origin errors */ }
+        });
+        
+        // Dispatch as CustomEvent for same-window listeners
+        try {
+            window.dispatchEvent(new CustomEvent(messageType, { detail: data }));
+        } catch (e) { /* ignore */ }
+        
+        console.log(`[ClientStore:Broadcast] ${messageType}`, data);
+        return message;
+    }
 
     // Get user-specific storage key
     function getActiveClientKey() {
