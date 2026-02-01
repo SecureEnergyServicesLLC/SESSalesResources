@@ -1124,7 +1124,34 @@ function renderErrorLog() {
     if (statsContainer) {
         statsContainer.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:12px;"><div style="background:var(--bg-tertiary);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#ef4444;">' + (stats.total || 0) + '</div><div style="font-size:11px;color:var(--text-tertiary);">Total</div></div><div style="background:var(--bg-tertiary);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#f59e0b;">' + (stats.today || 0) + '</div><div style="font-size:11px;color:var(--text-tertiary);">Today</div></div><div style="background:var(--bg-tertiary);padding:12px;border-radius:8px;text-align:center;"><div style="font-size:24px;font-weight:700;color:#ef4444;">' + (stats.unresolved || 0) + '</div><div style="font-size:11px;color:var(--text-tertiary);">Unresolved</div></div></div>' + (stats.byWidget && Object.keys(stats.byWidget).length > 0 ? '<div style="margin-top:12px;font-size:12px;color:var(--text-secondary);"><strong>By Widget:</strong> ' + Object.entries(stats.byWidget).map(function(e) { return e[0] + ': ' + e[1]; }).join(', ') + '</div>' : '');
     }
-    container.innerHTML = errors.length ? errors.slice(0, 50).map(e => '<div class="error-item" style="background:var(--bg-tertiary);padding:12px;border-radius:8px;margin-bottom:8px;border-left:3px solid ' + (e.resolved ? '#10b981' : '#ef4444') + ';"><div style="display:flex;justify-content:space-between;align-items:flex-start;"><div><div style="font-weight:600;color:' + (e.resolved ? '#10b981' : '#ef4444') + ';">' + escapeHtml(e.type || 'Error') + ' - ' + escapeHtml(e.widget || 'Unknown') + '</div><div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">' + escapeHtml(e.message || 'Unknown error') + '</div></div>' + (!e.resolved ? '<button onclick="resolveError(\'' + e.id + '\')" style="font-size:10px;padding:4px 8px;background:var(--accent-success);color:white;border:none;border-radius:4px;cursor:pointer;">Resolve</button>' : '<span style="font-size:10px;color:#10b981;">✓ Resolved</span>') + '</div><div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">' + new Date(e.timestamp).toLocaleString() + '</div></div>').join('') : '<div style="text-align:center;color:var(--text-tertiary);padding:40px;">No errors logged 🎉</div>';
+    
+    if (!errors.length) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-tertiary);padding:40px;">No errors logged 🎉</div>';
+        return;
+    }
+    
+    container.innerHTML = errors.slice(0, 50).map(function(e) {
+        const explanation = (typeof ErrorLog !== 'undefined' && ErrorLog.getErrorExplanation) 
+            ? ErrorLog.getErrorExplanation(e.message) 
+            : null;
+        const userDisplay = e.userName ? '<div style="font-size:11px;color:var(--accent-primary);margin-top:4px;">👤 ' + escapeHtml(e.userName) + '</div>' : '';
+        const explanationDisplay = explanation 
+            ? '<div style="font-size:11px;color:var(--text-tertiary);margin-top:8px;padding:8px;background:var(--bg-secondary);border-radius:6px;border-left:2px solid var(--accent-warning);"><strong style="color:var(--accent-warning);">💡 Possible cause:</strong> ' + escapeHtml(explanation) + '</div>' 
+            : '';
+        
+        return '<div class="error-item" style="background:var(--bg-tertiary);padding:12px;border-radius:8px;margin-bottom:8px;border-left:3px solid ' + (e.resolved ? '#10b981' : '#ef4444') + ';">' +
+            '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+            '<div style="flex:1;">' +
+            '<div style="font-weight:600;color:' + (e.resolved ? '#10b981' : '#ef4444') + ';">' + escapeHtml(e.type || 'Error') + ' - ' + escapeHtml(e.widget || 'Unknown') + '</div>' +
+            '<div style="font-size:12px;color:var(--text-secondary);margin-top:4px;">' + escapeHtml(e.message || 'Unknown error') + '</div>' +
+            userDisplay +
+            explanationDisplay +
+            '</div>' +
+            (!e.resolved ? '<button onclick="resolveError(\'' + e.id + '\')" style="font-size:10px;padding:4px 8px;background:var(--accent-success);color:white;border:none;border-radius:4px;cursor:pointer;flex-shrink:0;margin-left:8px;">Resolve</button>' : '<span style="font-size:10px;color:#10b981;flex-shrink:0;margin-left:8px;">✓ Resolved</span>') +
+            '</div>' +
+            '<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">' + new Date(e.timestamp).toLocaleString() + '</div>' +
+            '</div>';
+    }).join('');
 }
 
 window.resolveError = function(errorId) {

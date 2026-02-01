@@ -191,6 +191,13 @@
         .error-item.resolved .error-type { color: var(--accent-green); }
         .error-widget { font-size: 0.75rem; background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; }
         .error-message { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 8px; }
+        .error-user { font-size: 0.8rem; color: var(--accent-green); margin-bottom: 8px; }
+        .error-explanation {
+            font-size: 0.8rem; color: var(--text-muted); padding: 10px 12px;
+            background: var(--bg-tertiary); border-radius: 6px; margin-bottom: 8px;
+            border-left: 3px solid var(--status-awaiting);
+        }
+        .error-explanation strong { color: var(--status-awaiting); }
         .error-footer { display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--text-muted); }
         
         /* Modal */
@@ -948,6 +955,81 @@
     // =====================================================
     // ERROR LOG RENDERING
     // =====================================================
+    
+    // Get human-readable explanation for common errors
+    function getErrorExplanation(message) {
+        if (!message) return null;
+        const msg = message.toLowerCase();
+        
+        // Variable/Reference errors
+        if (msg.includes("can't find variable") || msg.includes("is not defined")) {
+            const varMatch = message.match(/(?:Can't find variable|ReferenceError):\s*(\w+)/i);
+            const varName = varMatch ? varMatch[1] : 'unknown';
+            return `The code tried to use "${varName}" but it doesn't exist. This usually means a script loaded before its dependencies, or there's a typo in the variable name.`;
+        }
+        
+        // Type errors
+        if (msg.includes("is not a function")) {
+            return "Code tried to call something as a function that isn't one. Usually caused by a missing library or incorrect object property access.";
+        }
+        if (msg.includes("cannot read property") || msg.includes("cannot read properties of")) {
+            return "Code tried to access a property on null or undefined. Often happens when data hasn't loaded yet or an element doesn't exist.";
+        }
+        if (msg.includes("is null") || msg.includes("is undefined")) {
+            return "A value was expected but was null/undefined. Check that data is loaded before accessing it.";
+        }
+        
+        // Network errors
+        if (msg.includes("failed to fetch") || msg.includes("networkerror")) {
+            return "Network request failed. Could be a connectivity issue, CORS problem, or the server is unavailable.";
+        }
+        if (msg.includes("cors") || msg.includes("cross-origin")) {
+            return "Cross-origin request blocked. The server doesn't allow requests from this domain.";
+        }
+        if (msg.includes("401") || msg.includes("unauthorized")) {
+            return "Authentication required or failed. Check if the API key or login session is valid.";
+        }
+        if (msg.includes("403") || msg.includes("forbidden")) {
+            return "Access denied. User doesn't have permission to perform this action.";
+        }
+        if (msg.includes("404") || msg.includes("not found")) {
+            return "Resource not found. The requested URL or file doesn't exist.";
+        }
+        if (msg.includes("500") || msg.includes("internal server")) {
+            return "Server error. Something went wrong on the backend - check server logs.";
+        }
+        
+        // Syntax errors
+        if (msg.includes("syntax error") || msg.includes("unexpected token")) {
+            return "Invalid JavaScript syntax. There's likely a typo, missing bracket, or malformed JSON.";
+        }
+        if (msg.includes("json") && (msg.includes("parse") || msg.includes("unexpected"))) {
+            return "Failed to parse JSON data. The response isn't valid JSON format.";
+        }
+        
+        // Storage errors
+        if (msg.includes("quota") || msg.includes("storage")) {
+            return "Browser storage is full. Try clearing old data or using less localStorage.";
+        }
+        
+        // Promise errors
+        if (msg.includes("unhandled promise") || msg.includes("rejection")) {
+            return "An async operation failed without error handling. Add try/catch or .catch() to handle it.";
+        }
+        
+        // DOM errors
+        if (msg.includes("queryselector") || msg.includes("getelementby")) {
+            return "Couldn't find a DOM element. The element may not exist yet or the selector is wrong.";
+        }
+        
+        // iframe/postMessage errors
+        if (msg.includes("postmessage") || msg.includes("iframe")) {
+            return "Communication with embedded widget failed. The iframe may not have loaded or origin is blocked.";
+        }
+        
+        return null;
+    }
+    
     function renderErrors() {
         const status = document.getElementById('errorStatusFilter').value;
         const widget = document.getElementById('errorWidgetFilter').value;
@@ -978,19 +1060,29 @@
             return;
         }
         
-        container.innerHTML = filtered.map(e => `
-            <div class="error-item ${e.resolved ? 'resolved' : ''}">
-                <div class="error-header">
-                    <span class="error-type">${e.resolved ? '✓ Resolved' : '⚠️ ' + (e.type || 'Error')}</span>
-                    <span class="error-widget">${e.widget || 'Unknown'}</span>
+        container.innerHTML = filtered.map(e => {
+            const explanation = getErrorExplanation(e.message);
+            const userDisplay = e.userName ? `<div class="error-user">👤 ${escapeHtml(e.userName)}</div>` : '';
+            const explanationDisplay = explanation 
+                ? `<div class="error-explanation"><strong>💡 Possible cause:</strong> ${escapeHtml(explanation)}</div>` 
+                : '';
+            
+            return `
+                <div class="error-item ${e.resolved ? 'resolved' : ''}">
+                    <div class="error-header">
+                        <span class="error-type">${e.resolved ? '✓ Resolved' : '⚠️ ' + (e.type || 'Error')}</span>
+                        <span class="error-widget">${e.widget || 'Unknown'}</span>
+                    </div>
+                    <div class="error-message">${escapeHtml(e.message || 'Unknown error')}</div>
+                    ${userDisplay}
+                    ${explanationDisplay}
+                    <div class="error-footer">
+                        <span>${new Date(e.timestamp).toLocaleString()}</span>
+                        ${!e.resolved ? `<button class="btn btn-sm btn-success" onclick="resolveError('${e.id}')">Mark Resolved</button>` : ''}
+                    </div>
                 </div>
-                <div class="error-message">${escapeHtml(e.message || 'Unknown error')}</div>
-                <div class="error-footer">
-                    <span>${new Date(e.timestamp).toLocaleString()}</span>
-                    ${!e.resolved ? `<button class="btn btn-sm btn-success" onclick="resolveError('${e.id}')">Mark Resolved</button>` : ''}
-                </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
     
     function resolveError(errorId) {
