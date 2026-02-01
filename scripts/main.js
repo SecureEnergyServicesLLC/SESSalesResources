@@ -7,6 +7,8 @@
  * - Standard users see ticket submission and own ticket tracking
  * - Added 'feedback' permission to user management
  * - TicketStore integration for GitHub-synced tickets
+ * - Added 30-minute session timeout with 2-minute warning
+ * - Fixed session persistence on page refresh
  * 
  * v2.8 Updates:
  * - Activity Log auto-refreshes when activities are logged
@@ -31,6 +33,13 @@
 
 let currentUser = null;
 
+// Session timeout configuration (30 minutes)
+const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+const SESSION_WARNING_MS = 2 * 60 * 1000;  // Warn 2 minutes before timeout
+let sessionTimeoutId = null;
+let sessionWarningId = null;
+let lastActivityTime = Date.now();
+
 const DEFAULT_WIDGETS = [
     { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, adminWide: true, fullWidth: true, embedded: true, defaultHeight: 800, minHeight: 500, maxHeight: 1400, doubleHeight: true },
     { id: 'client-admin', name: 'Client Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', src: 'widgets/client-admin-widget.html', adminOnly: true, adminWide: true, fullWidth: true, defaultHeight: 800, minHeight: 500, maxHeight: 1400, doubleHeight: true },
@@ -45,7 +54,7 @@ const DEFAULT_WIDGETS = [
     { id: 'lmp-comparison', name: 'LMP Comparison Portal', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', src: 'widgets/lmp-comparison-portal.html', fullWidth: true, defaultHeight: 700, minHeight: 400, maxHeight: 1100 },
     { id: 'peak-demand', name: 'Peak Demand Analytics', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/peak-demand-widget.html', fullWidth: true, defaultHeight: 750, minHeight: 400, maxHeight: 1100 },
     { id: 'analysis-history', name: 'My Analysis History', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 900 },
-    { id: 'feedback', name: 'Feedback & Support', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>', src: 'widgets/feedback-widget-light.html', adminSrc: 'widgets/feedback-admin-portal.html', fullWidth: true, defaultHeight: 600, minHeight: 400, maxHeight: 1000 }
+    { id: 'feedback', name: 'Feedback & Support', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>', src: 'widgets/feedback-widget-light.html', adminSrc: 'widgets/feedback-admin-portal.html', fullWidth: true, defaultHeight: 600, minHeight: 400, maxHeight: 1000, permission: 'feedback' }
 ];
 
 let WIDGETS = JSON.parse(JSON.stringify(DEFAULT_WIDGETS));
@@ -163,14 +172,190 @@ function updateClock() {
     dateEl.textContent = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][now.getDay()] + ', ' + ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()] + ' ' + now.getDate();
 }
 
+// =====================================================
+// SESSION TIMEOUT MANAGEMENT
+// =====================================================
+function initSessionTimeout() {
+    if (!currentUser) return;
+    
+    // Activity events that reset the timeout
+    const activityEvents = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+    
+    activityEvents.forEach(event => {
+        document.addEventListener(event, resetSessionTimeout, { passive: true });
+    });
+    
+    // Also track activity in iframes
+    window.addEventListener('message', (event) => {
+        if (event.data?.type === 'USER_ACTIVITY') {
+            resetSessionTimeout();
+        }
+    });
+    
+    // Start the timeout
+    resetSessionTimeout();
+    console.log('[Session] Timeout initialized (30 minutes)');
+}
+
+function resetSessionTimeout() {
+    if (!currentUser) return;
+    
+    lastActivityTime = Date.now();
+    
+    // Clear existing timers
+    if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
+    if (sessionWarningId) clearTimeout(sessionWarningId);
+    
+    // Hide warning if showing
+    hideSessionWarning();
+    
+    // Set warning timer (2 minutes before timeout)
+    sessionWarningId = setTimeout(showSessionWarning, SESSION_TIMEOUT_MS - SESSION_WARNING_MS);
+    
+    // Set logout timer
+    sessionTimeoutId = setTimeout(sessionTimeout, SESSION_TIMEOUT_MS);
+}
+
+function showSessionWarning() {
+    if (!currentUser) return;
+    
+    // Create warning overlay if it doesn't exist
+    let warning = document.getElementById('sessionWarning');
+    if (!warning) {
+        warning = document.createElement('div');
+        warning.id = 'sessionWarning';
+        warning.innerHTML = `
+            <div class="session-warning-content">
+                <div class="session-warning-icon">⏰</div>
+                <h3>Session Expiring Soon</h3>
+                <p>Your session will expire in <span id="sessionCountdown">2:00</span> due to inactivity.</p>
+                <div class="session-warning-buttons">
+                    <button class="btn-primary" onclick="resetSessionTimeout(); hideSessionWarning();">Stay Logged In</button>
+                    <button class="btn-secondary" onclick="document.getElementById('logoutBtn').click();">Logout Now</button>
+                </div>
+            </div>
+        `;
+        warning.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.8); display: flex; align-items: center;
+            justify-content: center; z-index: 10000; opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        const style = document.createElement('style');
+        style.textContent = `
+            .session-warning-content {
+                background: var(--bg-secondary, #22262e); padding: 32px 40px;
+                border-radius: 16px; text-align: center; max-width: 400px;
+                border: 1px solid var(--border-color, #3d4450);
+                box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            }
+            .session-warning-icon { font-size: 48px; margin-bottom: 16px; }
+            .session-warning-content h3 {
+                margin: 0 0 12px; font-size: 20px;
+                color: var(--text-primary, #e8eaed);
+            }
+            .session-warning-content p {
+                margin: 0 0 24px; color: var(--text-secondary, #9aa0a6);
+                font-size: 14px;
+            }
+            #sessionCountdown {
+                font-weight: 700; color: #f59e0b; font-size: 16px;
+            }
+            .session-warning-buttons { display: flex; gap: 12px; justify-content: center; }
+            .session-warning-buttons button {
+                padding: 10px 24px; border-radius: 8px; font-size: 14px;
+                font-weight: 600; cursor: pointer; border: none;
+            }
+            .session-warning-buttons .btn-primary {
+                background: var(--accent-green, #00A651); color: white;
+            }
+            .session-warning-buttons .btn-secondary {
+                background: var(--bg-tertiary, #2a2f38); color: var(--text-primary, #e8eaed);
+                border: 1px solid var(--border-color, #3d4450);
+            }
+        `;
+        document.head.appendChild(style);
+        document.body.appendChild(warning);
+    }
+    
+    warning.style.display = 'flex';
+    setTimeout(() => warning.style.opacity = '1', 10);
+    
+    // Start countdown
+    let secondsLeft = SESSION_WARNING_MS / 1000;
+    const countdownEl = document.getElementById('sessionCountdown');
+    
+    const countdownInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0 || !document.getElementById('sessionWarning')?.style.display || document.getElementById('sessionWarning')?.style.display === 'none') {
+            clearInterval(countdownInterval);
+            return;
+        }
+        const mins = Math.floor(secondsLeft / 60);
+        const secs = secondsLeft % 60;
+        if (countdownEl) countdownEl.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+    }, 1000);
+    
+    warning.dataset.countdownInterval = countdownInterval;
+}
+
+function hideSessionWarning() {
+    const warning = document.getElementById('sessionWarning');
+    if (warning) {
+        warning.style.opacity = '0';
+        setTimeout(() => warning.style.display = 'none', 300);
+        if (warning.dataset.countdownInterval) {
+            clearInterval(parseInt(warning.dataset.countdownInterval));
+        }
+    }
+}
+
+function sessionTimeout() {
+    if (!currentUser) return;
+    
+    console.log('[Session] Timed out after 30 minutes of inactivity');
+    
+    // Log the timeout
+    ActivityLog.log({
+        userId: currentUser.id,
+        userEmail: currentUser.email,
+        userName: currentUser.firstName + ' ' + currentUser.lastName,
+        widget: 'portal',
+        action: 'Session Timeout',
+        data: { lastActivity: new Date(lastActivityTime).toISOString() }
+    });
+    
+    // Clear session
+    UserStore.clearSession();
+    currentUser = null;
+    
+    // Clear timers
+    if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
+    if (sessionWarningId) clearTimeout(sessionWarningId);
+    
+    // Hide warning and show login
+    hideSessionWarning();
+    showLogin();
+    
+    // Show timeout message
+    showNotification('Session expired due to inactivity. Please log in again.', 'warning');
+}
+
+function clearSessionTimers() {
+    if (sessionTimeoutId) clearTimeout(sessionTimeoutId);
+    if (sessionWarningId) clearTimeout(sessionWarningId);
+    hideSessionWarning();
+}
+
 function initAuth() {
-    currentUser = UserStore.getCurrentUser();
+    currentUser = UserStore.getSession();
     if (currentUser) {
         // Set user in ClientStore for user-specific active client/account
         if (typeof SecureEnergyClients !== 'undefined' && SecureEnergyClients.setCurrentUser) {
             SecureEnergyClients.setCurrentUser(currentUser.id);
         }
         showPortal(currentUser);
+        initSessionTimeout(); // Start session timeout tracking
     } else {
         showLogin();
     }
@@ -221,6 +406,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             SecureEnergyClients.setCurrentUser(result.user.id);
         }
         showPortal(result.user);
+        initSessionTimeout(); // Start session timeout tracking
         showNotification('Welcome back, ' + result.user.firstName + '!', 'success');
         ActivityLog.log({ userId: result.user.id, userEmail: result.user.email, userName: result.user.firstName + ' ' + result.user.lastName, widget: 'portal', action: 'Login' });
     } else {
@@ -232,6 +418,7 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
 
 document.getElementById('logoutBtn').addEventListener('click', function() {
     if (currentUser) ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'portal', action: 'Logout' });
+    clearSessionTimers(); // Clear session timeout timers
     UserStore.clearSession();
     currentUser = null;
     // Clear user in ClientStore (will fall back to default non-user-specific storage)
@@ -253,6 +440,8 @@ function renderWidgets(user) {
     container.innerHTML = '';
     let availableWidgets = DEFAULT_WIDGETS.filter(w => {
         if (w.adminOnly && user.role !== 'admin') return false;
+        // Admins always see feedback widget for ticket management
+        if (w.id === 'feedback' && user.role === 'admin') return true;
         if (user.permissions && user.permissions[w.id] === false) return false;
         return true;
     });
@@ -951,7 +1140,7 @@ function clearErrorLog() {
 }
 
 function getActivityIcon(action) {
-    const icons = { 'Login': '🔑', 'Logout': '🚪', 'LMP Analysis': '📊', 'LMP Export': '📥', 'Button Click': '👆', 'Bid Sheet Generated': '📄', 'Client Save': '💾', 'Client Create': '➕', 'Client Update': '✏️', 'Client Delete': '🗑️', 'Widget Expand': '🔼', 'Widget Collapse': '🔽', 'Widget Resize': '↕️', 'Widget Reorder': '🔀', 'Widget Width Toggle': '↔️', 'Widget Popout': '🪟', 'Widget Layout Reset': '🔄', 'Data Upload': '📤', 'Data Update': '🔄', 'Error Check at Login': '⚠️', 'Error Resolved': '✅', 'Error Log Cleared': '🧹', 'Admin Tab Switch': '📑', 'User Created': '👤', 'User Updated': '✏️', 'User Deleted': '🗑️', 'AI Query': '🤖', 'Utilization Data Saved': '⚡', 'History Export': '📁', 'Export Users': '👥', 'Export Activity': '📋', 'Export LMP Data': '📈', 'Ticket Created': '🎫', 'Ticket Reply': '💬', 'Ticket Updated': '📝' };
+    const icons = { 'Login': '🔑', 'Logout': '🚪', 'Session Timeout': '⏰', 'LMP Analysis': '📊', 'LMP Export': '📥', 'Button Click': '👆', 'Bid Sheet Generated': '📄', 'Client Save': '💾', 'Client Create': '➕', 'Client Update': '✏️', 'Client Delete': '🗑️', 'Widget Expand': '🔼', 'Widget Collapse': '🔽', 'Widget Resize': '↕️', 'Widget Reorder': '🔀', 'Widget Width Toggle': '↔️', 'Widget Popout': '🪟', 'Widget Layout Reset': '🔄', 'Data Upload': '📤', 'Data Update': '🔄', 'Error Check at Login': '⚠️', 'Error Resolved': '✅', 'Error Log Cleared': '🧹', 'Admin Tab Switch': '📑', 'User Created': '👤', 'User Updated': '✏️', 'User Deleted': '🗑️', 'AI Query': '🤖', 'Utilization Data Saved': '⚡', 'History Export': '📁', 'Export Users': '👥', 'Export Activity': '📋', 'Export LMP Data': '📈', 'Ticket Created': '🎫', 'Ticket Reply': '💬', 'Ticket Updated': '📝' };
     return icons[action] || '📝';
 }
 

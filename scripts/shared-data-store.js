@@ -1240,6 +1240,17 @@ const UserStore = {
     },
 
     clearSession() { localStorage.removeItem(this.SESSION_KEY); },
+    
+    // Alias for getSession (for compatibility)
+    getCurrentUser() { return this.getSession(); },
+    
+    // Set current user session (called after login)
+    setCurrentUser(user) {
+        if (!user) return;
+        const sessionUser = { ...user };
+        delete sessionUser.password;
+        localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionUser));
+    },
 
     getAll() { return this.users.map(u => ({ ...u, password: undefined })); },
     getById(id) { return this.users.find(u => u.id === id); },
