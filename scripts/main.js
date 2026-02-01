@@ -147,7 +147,15 @@ function updateClock() {
 
 function initAuth() {
     currentUser = UserStore.getCurrentUser();
-    currentUser ? showPortal(currentUser) : showLogin();
+    if (currentUser) {
+        // Set user in ClientStore for user-specific active client/account
+        if (typeof SecureEnergyClients !== 'undefined' && SecureEnergyClients.setCurrentUser) {
+            SecureEnergyClients.setCurrentUser(currentUser.id);
+        }
+        showPortal(currentUser);
+    } else {
+        showLogin();
+    }
     const users = UserStore.getAll();
     document.getElementById('firstTimeNote').style.display = users.length <= 1 ? 'block' : 'none';
 }
@@ -190,6 +198,10 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
     if (result.success) {
         currentUser = result.user;
         UserStore.setCurrentUser(result.user);
+        // Set user in ClientStore for user-specific active client/account
+        if (typeof SecureEnergyClients !== 'undefined' && SecureEnergyClients.setCurrentUser) {
+            SecureEnergyClients.setCurrentUser(result.user.id);
+        }
         showPortal(result.user);
         showNotification('Welcome back, ' + result.user.firstName + '!', 'success');
         ActivityLog.log({ userId: result.user.id, userEmail: result.user.email, userName: result.user.firstName + ' ' + result.user.lastName, widget: 'portal', action: 'Login' });
@@ -204,6 +216,10 @@ document.getElementById('logoutBtn').addEventListener('click', function() {
     if (currentUser) ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'portal', action: 'Logout' });
     UserStore.clearSession();
     currentUser = null;
+    // Clear user in ClientStore (will fall back to default non-user-specific storage)
+    if (typeof SecureEnergyClients !== 'undefined' && SecureEnergyClients.setCurrentUser) {
+        SecureEnergyClients.setCurrentUser(null);
+    }
     showLogin();
     showNotification('Logged out', 'info');
     document.getElementById('loginEmail').value = '';

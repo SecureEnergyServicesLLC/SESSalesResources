@@ -2,21 +2,50 @@
  * Client Store - Centralized Client Management
  * Provides unique client identifiers (CID) across all portal widgets
  * Supports Salesforce data import and cross-widget client context
- * Version: 2.2.0 - Added active account (child) selection support for parent/child context
+ * Version: 2.3.0 - User-specific active client/account selection
  */
 
 (function() {
     'use strict';
 
     const STORAGE_KEY = 'secureEnergy_clients';
-    const ACTIVE_CLIENT_KEY = 'secureEnergy_activeClient';
-    const ACTIVE_ACCOUNT_KEY = 'secureEnergy_activeAccount';
+    const ACTIVE_CLIENT_KEY_BASE = 'secureEnergy_activeClient';
+    const ACTIVE_ACCOUNT_KEY_BASE = 'secureEnergy_activeAccount';
     const GITHUB_FILE = 'data/clients.json';
     
     let clients = {};
     let activeClientId = null;
     let activeAccountId = null;  // Track active child account under the active client
     let subscribers = [];
+    let currentUserId = null;  // Track current user for user-specific storage
+
+    // Get user-specific storage key
+    function getActiveClientKey() {
+        return currentUserId 
+            ? `${ACTIVE_CLIENT_KEY_BASE}_${currentUserId}` 
+            : ACTIVE_CLIENT_KEY_BASE;
+    }
+    
+    function getActiveAccountKey() {
+        return currentUserId 
+            ? `${ACTIVE_ACCOUNT_KEY_BASE}_${currentUserId}` 
+            : ACTIVE_ACCOUNT_KEY_BASE;
+    }
+    
+    // Set current user (called when user logs in)
+    function setCurrentUser(userId) {
+        if (currentUserId !== userId) {
+            currentUserId = userId;
+            // Reload active client/account for this user
+            loadActiveClient();
+            broadcast('userChanged', { userId: userId });
+        }
+    }
+    
+    // Get current user ID
+    function getCurrentUserId() {
+        return currentUserId;
+    }
 
     // ========================================
     // Salesforce Field Mappings - PARENT LEVEL (Contract Report)
@@ -167,8 +196,11 @@
 
     function loadActiveClient() {
         try {
-            activeClientId = localStorage.getItem(ACTIVE_CLIENT_KEY) || null;
-            activeAccountId = localStorage.getItem(ACTIVE_ACCOUNT_KEY) || null;
+            const clientKey = getActiveClientKey();
+            const accountKey = getActiveAccountKey();
+            
+            activeClientId = localStorage.getItem(clientKey) || null;
+            activeAccountId = localStorage.getItem(accountKey) || null;
             
             // Validate that active account belongs to active client
             if (activeAccountId && activeClientId) {
@@ -176,12 +208,16 @@
                 if (!client?.accounts?.find(a => a.id === activeAccountId)) {
                     console.log('[ClientStore] Active account no longer valid, clearing');
                     activeAccountId = null;
-                    localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+                    localStorage.removeItem(accountKey);
                 }
             } else if (activeAccountId && !activeClientId) {
                 // Can't have active account without active client
                 activeAccountId = null;
-                localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+                localStorage.removeItem(accountKey);
+            }
+            
+            if (activeClientId) {
+                console.log('[ClientStore] Loaded active client for user:', currentUserId || 'default', '- Client:', activeClientId);
             }
         } catch (e) {
             activeClientId = null;
@@ -274,8 +310,8 @@
             activeClientId = null;
             activeAccountId = null;
             localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(ACTIVE_CLIENT_KEY);
-            localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+            localStorage.removeItem(getActiveClientKey());
+            localStorage.removeItem(getActiveAccountKey());
             notifySubscribers('cleared', {});
             console.log('[ClientStore] All client data cleared');
             return true;
@@ -285,17 +321,22 @@
 
     function saveActiveClient() {
         try {
+            const clientKey = getActiveClientKey();
+            const accountKey = getActiveAccountKey();
+            
             if (activeClientId) {
-                localStorage.setItem(ACTIVE_CLIENT_KEY, activeClientId);
+                localStorage.setItem(clientKey, activeClientId);
             } else {
-                localStorage.removeItem(ACTIVE_CLIENT_KEY);
+                localStorage.removeItem(clientKey);
             }
             
             if (activeAccountId) {
-                localStorage.setItem(ACTIVE_ACCOUNT_KEY, activeAccountId);
+                localStorage.setItem(accountKey, activeAccountId);
             } else {
-                localStorage.removeItem(ACTIVE_ACCOUNT_KEY);
+                localStorage.removeItem(accountKey);
             }
+            
+            console.log('[ClientStore] Saved active selection for user:', currentUserId || 'default');
         } catch (e) {
             console.error('[ClientStore] Save active client/account error:', e);
         }
@@ -1388,6 +1429,10 @@
     // ========================================
     window.SecureEnergyClients = {
         init,
+        
+        // User Management (for user-specific selections)
+        setCurrentUser,
+        getCurrentUserId,
         
         // Active Client (Portal-Wide Context)
         setActiveClient,
