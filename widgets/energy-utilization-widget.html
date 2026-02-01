@@ -1205,26 +1205,6 @@
         function loadClientUsage(clientId) {
             loadContextUsage();
         }
-                const client = window.parent.SecureEnergyClients.getClient(clientId);
-                if (client?.usageProfile) {
-                    electricData = [...(client.usageProfile.electric || Array(12).fill(0))];
-                    gasData = [...(client.usageProfile.gas || Array(12).fill(0))];
-                    electricData.forEach((v, i) => document.getElementById(`electric-${i}`).value = v);
-                    gasData.forEach((v, i) => document.getElementById(`gas-${i}`).value = v);
-                    updateSummary('electric');
-                    updateSummary('gas');
-                    updateChart('electric');
-                    updateChart('gas');
-                    return;
-                }
-            }
-            
-            // No usage found - prompt user
-            if (activeClient) {
-                document.getElementById('noUsageClientName').textContent = activeClient.name;
-                document.getElementById('noUsageModal').classList.add('show');
-            }
-        }
         
         function closeNoUsageModal() {
             document.getElementById('noUsageModal').classList.remove('show');
