@@ -1252,6 +1252,9 @@
             // Save to localStorage with context key (parent+account level)
             localStorage.setItem(`usage_${contextKey}`, JSON.stringify(profile));
             
+            // Log activity to ActivityLog
+            logUsageActivity(profile);
+            
             // Notify other widgets
             if (window.parent !== window) {
                 window.parent.postMessage({
@@ -1264,6 +1267,87 @@
             }
             
             showToast(`Usage saved for ${displayName}`, 'success');
+        }
+        
+        // Log usage entry to ActivityLog
+        function logUsageActivity(profile) {
+            // Try to get current user info
+            let userInfo = { userId: null, userName: null, userEmail: null };
+            try {
+                // First try parent's UserStore
+                if (window.parent?.UserStore) {
+                    const user = window.parent.UserStore.getCurrentUser();
+                    if (user) {
+                        userInfo = {
+                            userId: user.id || null,
+                            userName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : null,
+                            userEmail: user.email || null
+                        };
+                    }
+                }
+                // Fallback to localStorage
+                if (!userInfo.userId) {
+                    const sessionData = localStorage.getItem('secureEnergy_currentUser');
+                    if (sessionData) {
+                        const user = JSON.parse(sessionData);
+                        userInfo = {
+                            userId: user.id || null,
+                            userName: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : null,
+                            userEmail: user.email || null
+                        };
+                    }
+                }
+            } catch (e) { 
+                console.warn('[EnergyUtil] Could not get user info for activity log:', e);
+            }
+            
+            // Try to use parent's ActivityLog
+            if (window.parent?.ActivityLog?.logUsageEntry) {
+                window.parent.ActivityLog.logUsageEntry({
+                    ...userInfo,
+                    clientId: profile.clientId,
+                    clientName: profile.clientName,
+                    accountId: profile.accountId,
+                    accountName: profile.accountName,
+                    totalElectric: profile.totalElectric,
+                    totalGas: profile.totalGas,
+                    electricData: profile.electric,
+                    gasData: profile.gas
+                });
+                console.log('[EnergyUtil] Usage entry logged to ActivityLog');
+            } else if (window.parent?.ActivityLog?.log) {
+                // Fallback to generic log method
+                window.parent.ActivityLog.log({
+                    ...userInfo,
+                    widget: 'energy-utilization',
+                    action: 'Usage Entry',
+                    clientName: profile.clientName,
+                    data: {
+                        clientId: profile.clientId,
+                        clientName: profile.clientName,
+                        accountId: profile.accountId,
+                        accountName: profile.accountName,
+                        totalElectric: profile.totalElectric,
+                        totalGas: profile.totalGas
+                    }
+                });
+                console.log('[EnergyUtil] Usage entry logged to ActivityLog (generic)');
+            } else {
+                // Send message to parent to log
+                window.parent?.postMessage({
+                    type: 'LOG_USAGE_ACTIVITY',
+                    ...userInfo,
+                    clientId: profile.clientId,
+                    clientName: profile.clientName,
+                    accountId: profile.accountId,
+                    accountName: profile.accountName,
+                    totalElectric: profile.totalElectric,
+                    totalGas: profile.totalGas,
+                    electricData: profile.electric,
+                    gasData: profile.gas
+                }, '*');
+                console.log('[EnergyUtil] Usage entry sent via postMessage');
+            }
         }
         
         // Clear Usage

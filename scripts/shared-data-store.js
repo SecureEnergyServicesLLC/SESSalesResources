@@ -1527,6 +1527,24 @@ const ActivityLog = {
         });
     },
 
+    logUsageEntry(params) {
+        return this.log({
+            userId: params.userId, userEmail: params.userEmail, userName: params.userName,
+            widget: 'energy-utilization', action: 'Usage Entry',
+            clientName: params.clientName,
+            data: {
+                clientId: params.clientId,
+                clientName: params.clientName,
+                accountId: params.accountId || null,
+                accountName: params.accountName || null,
+                totalElectric: params.totalElectric || 0,
+                totalGas: params.totalGas || 0,
+                electricData: params.electricData || [],
+                gasData: params.gasData || []
+            }
+        });
+    },
+
     getAll() { return this.activities; },
     getByUser(userId) { return this.activities.filter(a => a.userId === userId); },
     getByWidget(widget) { return this.activities.filter(a => a.widget === widget); },
@@ -1546,6 +1564,7 @@ const ActivityLog = {
     countLMPExports(todayOnly = false) { return this.countByAction('LMP Export', todayOnly); },
     countAIQueries(todayOnly = false) { return this.countByAction('AI Query', todayOnly); },
     countButtonClicks(todayOnly = false) { return this.countByAction('Button Click', todayOnly); },
+    countUsageEntries(todayOnly = false) { return this.countByAction('Usage Entry', todayOnly); },
 
     getActivityStats() {
         return {
@@ -1554,6 +1573,7 @@ const ActivityLog = {
             lmpExports: { today: this.countLMPExports(true), total: this.countLMPExports(false) },
             aiQueries: { today: this.countAIQueries(true), total: this.countAIQueries(false) },
             buttonClicks: { today: this.countButtonClicks(true), total: this.countButtonClicks(false) },
+            usageEntries: { today: this.countUsageEntries(true), total: this.countUsageEntries(false) },
             totalActivities: this.activities.length
         };
     },
