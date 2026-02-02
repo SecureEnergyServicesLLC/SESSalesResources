@@ -1619,35 +1619,74 @@
             // Clear existing options except the first one
             select.innerHTML = '<option value="">-- Select a saved profile --</option>';
             
-            if (!ProfileStore) {
-                // If no store available, still show client profile option if available
-                if (activeClient?.usageProfile) {
-                    const opt = document.createElement('option');
-                    opt.value = 'active-client';
-                    const displayName = getContextDisplayName() || activeClient.name;
-                    opt.textContent = `📋 ${displayName} (Active)`;
-                    select.appendChild(opt);
-                }
-                return;
+            // Get profiles from UsageProfileStore (GitHub-synced)
+            let storeProfiles = [];
+            if (ProfileStore && ProfileStore.getAll) {
+                storeProfiles = ProfileStore.getAll() || [];
             }
             
-            // Get all profiles
-            const profiles = ProfileStore.getAll();
-            const activeProfileId = ProfileStore.getActiveProfileId();
+            // Also collect localStorage profiles (for any that might not be synced yet)
+            const localStorageProfiles = getLocalStorageUsageProfiles();
             
-            // Group profiles
-            const clientProfiles = profiles.filter(p => p.clientId);
-            const standaloneProfiles = profiles.filter(p => !p.clientId);
+            // Merge: prefer store profiles but include localStorage-only profiles
+            const storeProfileKeys = new Set(storeProfiles.map(p => 
+                p.accountId ? `${p.clientId}_${p.accountId}` : p.clientId
+            ).filter(k => k));
             
-            // Add client-linked profiles
+            const localOnlyProfiles = localStorageProfiles.filter(p => 
+                !storeProfileKeys.has(p.contextKey)
+            );
+            
+            // Group profiles by type
+            const clientProfiles = storeProfiles.filter(p => p.clientId && !p.accountId);
+            const accountProfiles = storeProfiles.filter(p => p.clientId && p.accountId);
+            const standaloneProfiles = storeProfiles.filter(p => !p.clientId);
+            
+            // Add account-level profiles (most specific)
+            if (accountProfiles.length > 0) {
+                const group = document.createElement('optgroup');
+                group.label = '⚡ Account Profiles';
+                accountProfiles.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = p.id;
+                    opt.textContent = `${p.name || p.clientName} (${((p.totalElectric || 0) / 1000).toLocaleString()} MWh/yr)`;
+                    // Auto-select if matches current context
+                    if (p.clientId === activeClient?.id && p.accountId === activeAccount?.id) {
+                        opt.selected = true;
+                    }
+                    group.appendChild(opt);
+                });
+                select.appendChild(group);
+            }
+            
+            // Add client-level profiles
             if (clientProfiles.length > 0) {
                 const group = document.createElement('optgroup');
-                group.label = 'Client Profiles';
+                group.label = '📋 Client Profiles';
                 clientProfiles.forEach(p => {
                     const opt = document.createElement('option');
                     opt.value = p.id;
-                    opt.textContent = p.name;
-                    if (p.id === activeProfileId) opt.selected = true;
+                    opt.textContent = `${p.name || p.clientName} (${((p.totalElectric || 0) / 1000).toLocaleString()} MWh/yr)`;
+                    // Auto-select if matches current client (when no account selected)
+                    if (p.clientId === activeClient?.id && !activeAccount) {
+                        opt.selected = true;
+                    }
+                    group.appendChild(opt);
+                });
+                select.appendChild(group);
+            }
+            
+            // Add localStorage-only profiles (not yet synced to store)
+            if (localOnlyProfiles.length > 0) {
+                const group = document.createElement('optgroup');
+                group.label = '💾 Local Profiles (Not Synced)';
+                localOnlyProfiles.forEach(p => {
+                    const opt = document.createElement('option');
+                    opt.value = 'localStorage:' + p.contextKey;
+                    opt.textContent = `${p.displayName} (${(p.totalElectric / 1000).toLocaleString()} MWh/yr)`;
+                    if (p.contextKey === getContextKey()) {
+                        opt.selected = true;
+                    }
                     group.appendChild(opt);
                 });
                 select.appendChild(group);
@@ -1661,7 +1700,6 @@
                     const opt = document.createElement('option');
                     opt.value = p.id;
                     opt.textContent = p.name;
-                    if (p.id === activeProfileId) opt.selected = true;
                     group.appendChild(opt);
                 });
                 select.appendChild(group);
@@ -1682,6 +1720,55 @@
             }
         }
         
+        // Get all usage profiles saved in localStorage by energy-utilization-widget
+        function getLocalStorageUsageProfiles() {
+            const profiles = [];
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('usage_')) {
+                    try {
+                        const profile = JSON.parse(localStorage.getItem(key));
+                        const contextKey = key.replace('usage_', '');
+                        
+                        // Parse context key - could be "clientId" or "clientId_accountId"
+                        const parts = contextKey.split('_');
+                        const clientId = parts[0];
+                        const accountId = parts.length > 1 ? parts.slice(1).join('_') : null;
+                        
+                        let displayName = profile.clientName || contextKey;
+                        if (profile.accountName) {
+                            displayName = `${profile.clientName || clientId} → ${profile.accountName}`;
+                        }
+                        
+                        // Only include if has actual usage data
+                        if (profile.electric?.some(v => v > 0) || profile.totalElectric > 0) {
+                            profiles.push({
+                                contextKey,
+                                clientId,
+                                accountId,
+                                displayName,
+                                totalElectric: profile.totalElectric || (profile.electric?.reduce((a, b) => a + b, 0) || 0),
+                                totalGas: profile.totalGas || (profile.gas?.reduce((a, b) => a + b, 0) || 0),
+                                electric: profile.electric,
+                                gas: profile.gas,
+                                updatedAt: profile.updatedAt
+                            });
+                        }
+                    } catch (e) { /* ignore invalid entries */ }
+                }
+            }
+            
+            // Sort by update date (most recent first)
+            profiles.sort((a, b) => {
+                const dateA = a.updatedAt ? new Date(a.updatedAt) : new Date(0);
+                const dateB = b.updatedAt ? new Date(b.updatedAt) : new Date(0);
+                return dateB - dateA;
+            });
+            
+            return profiles;
+        }
+        
         // Load the selected profile from dropdown
         function loadSelectedProfile() {
             const select = document.getElementById('usageProfileSelect');
@@ -1700,14 +1787,39 @@
                 return;
             }
             
-            // Load from ProfileStore
+            // Handle loading from localStorage (energy-utilization-widget profiles)
+            if (profileId.startsWith('localStorage:')) {
+                const contextKey = profileId.replace('localStorage:', '');
+                const stored = localStorage.getItem(`usage_${contextKey}`);
+                if (stored) {
+                    try {
+                        const profile = JSON.parse(stored);
+                        const displayName = profile.accountName 
+                            ? `${profile.clientName || 'Client'} → ${profile.accountName}`
+                            : (profile.clientName || contextKey);
+                        loadUsageData(profile.electric || Array(12).fill(0), displayName);
+                        return;
+                    } catch (e) {
+                        showNotification('Failed to load profile', 'error');
+                    }
+                }
+                return;
+            }
+            
+            // Load from UsageProfileStore (by profile ID)
             if (ProfileStore) {
                 const profile = ProfileStore.getById(profileId);
                 if (profile) {
                     ProfileStore.setActiveProfile(profileId);
-                    loadProfileData(profile);
+                    // Use electricUsage (store format) or electric (localStorage format)
+                    const usage = profile.electricUsage || profile.electric || Array(12).fill(0);
+                    const displayName = profile.name || profile.clientName || 'Loaded Profile';
+                    loadUsageData(usage, displayName);
+                    return;
                 }
             }
+            
+            showNotification('Profile not found', 'warning');
         }
         
         // Load profile data into the usage grid
@@ -4456,6 +4568,9 @@
                             updateZoneOptions();
                         }
                     }
+                    
+                    // Auto-load usage profile from localStorage if available
+                    autoLoadUsageProfile();
                 }
             }
             
@@ -4470,6 +4585,29 @@
                 const clientNameInput = document.getElementById('clientName');
                 if (clientNameInput && activeClient) {
                     clientNameInput.value = getContextDisplayName();
+                }
+                
+                // Auto-load usage profile for the new account context
+                autoLoadUsageProfile();
+            }
+            
+            // Handle usage profile updates from Energy Utilization widget
+            if (data.type === 'CLIENT_USAGE_UPDATED') {
+                console.log('[LMP Portal] Received CLIENT_USAGE_UPDATED:', data);
+                
+                // Check if this update is for our active client/account
+                const ourContextKey = getContextKey();
+                if (data.contextKey === ourContextKey || 
+                    (data.clientId === activeClient?.id && (!activeAccount || data.accountId === activeAccount?.id))) {
+                    
+                    // Load the updated profile
+                    if (data.profile?.electric) {
+                        loadUsageData(data.profile.electric, getContextDisplayName() + ' (Updated)');
+                        showNotification('Usage profile updated from Energy Utilization widget', 'success');
+                    }
+                    
+                    // Refresh the dropdown
+                    populateProfileDropdown();
                 }
             }
             
@@ -4493,6 +4631,88 @@
                     );
                 }
             }
+        }
+        
+        // Auto-load usage profile from UsageProfileStore or localStorage for current context
+        function autoLoadUsageProfile() {
+            const contextKey = getContextKey();
+            if (!contextKey) return false;
+            
+            // Try UsageProfileStore first (GitHub-synced centralized data)
+            if (ProfileStore && ProfileStore.getByContext) {
+                const profile = ProfileStore.getByContext(activeClient?.id, activeAccount?.id);
+                if (profile && (profile.electricUsage?.some(v => v > 0))) {
+                    const displayName = getContextDisplayName() || profile.name;
+                    loadUsageData(profile.electricUsage, displayName);
+                    console.log('[LMP Portal] Auto-loaded from UsageProfileStore:', profile.name);
+                    return true;
+                }
+            }
+            
+            // Fallback: try to load from localStorage (same format as energy-utilization-widget)
+            const stored = localStorage.getItem(`usage_${contextKey}`);
+            if (stored) {
+                try {
+                    const profile = JSON.parse(stored);
+                    if (profile.electric && profile.electric.some(v => v > 0)) {
+                        const displayName = getContextDisplayName() || 'Saved Profile';
+                        loadUsageData(profile.electric, displayName);
+                        console.log('[LMP Portal] Auto-loaded from localStorage:', contextKey);
+                        return true;
+                    }
+                } catch (e) {
+                    console.warn('[LMP Portal] Failed to parse stored profile:', e);
+                }
+            }
+            
+            // Fallback: try client-only key if we have account but no account-specific data
+            if (activeAccount && activeClient) {
+                // Try UsageProfileStore for client-level
+                if (ProfileStore && ProfileStore.getByContext) {
+                    const clientProfile = ProfileStore.getByContext(activeClient.id, null);
+                    if (clientProfile && clientProfile.electricUsage?.some(v => v > 0)) {
+                        loadUsageData(clientProfile.electricUsage, activeClient.name + ' (Parent)');
+                        console.log('[LMP Portal] Loaded parent profile from UsageProfileStore');
+                        return true;
+                    }
+                }
+                
+                // Try localStorage
+                const clientOnlyKey = `usage_${activeClient.id}`;
+                const clientStored = localStorage.getItem(clientOnlyKey);
+                if (clientStored) {
+                    try {
+                        const profile = JSON.parse(clientStored);
+                        if (profile.electric && profile.electric.some(v => v > 0)) {
+                            loadUsageData(profile.electric, activeClient.name + ' (Parent)');
+                            console.log('[LMP Portal] Loaded parent client profile as fallback');
+                            return true;
+                        }
+                    } catch (e) { /* ignore */ }
+                }
+            }
+            
+            // Fallback: check if activeClient has usageProfile property
+            if (activeClient?.usageProfile?.electric?.some(v => v > 0)) {
+                loadUsageData(activeClient.usageProfile.electric, getContextDisplayName());
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Get saved usage profile from localStorage for a given context key
+        function getSavedUsageProfile(contextKey) {
+            if (!contextKey) return null;
+            const stored = localStorage.getItem(`usage_${contextKey}`);
+            if (stored) {
+                try {
+                    return JSON.parse(stored);
+                } catch (e) {
+                    return null;
+                }
+            }
+            return null;
         }
         
         function renderClientContextBanner() {

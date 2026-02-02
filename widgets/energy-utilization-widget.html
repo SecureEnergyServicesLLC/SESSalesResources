@@ -1132,7 +1132,20 @@
             electricData = Array(12).fill(0);
             gasData = Array(12).fill(0);
             
-            // Try localStorage with context key first
+            // Try UsageProfileStore first (GitHub-synced centralized store)
+            const ProfileStore = window.parent?.UsageProfileStore || window.UsageProfileStore;
+            if (ProfileStore && ProfileStore.getByContext) {
+                const profile = ProfileStore.getByContext(activeClient?.id, activeAccount?.id);
+                if (profile && (profile.electricUsage?.some(v => v > 0) || profile.gasUsage?.some(v => v > 0))) {
+                    electricData = [...(profile.electricUsage || Array(12).fill(0))];
+                    gasData = [...(profile.gasUsage || Array(12).fill(0))];
+                    updateUIFromData();
+                    console.log('[EnergyUtil] Loaded from UsageProfileStore:', profile.name);
+                    return;
+                }
+            }
+            
+            // Fallback: try localStorage with context key
             const stored = localStorage.getItem(`usage_${contextKey}`);
             if (stored) {
                 try {
@@ -1144,12 +1157,27 @@
                         gasData = [...profile.gas];
                     }
                     updateUIFromData();
+                    console.log('[EnergyUtil] Loaded from localStorage:', contextKey);
                     return;
                 } catch {}
             }
             
             // Fallback: try client-only key if we have account but no account-specific data
             if (activeAccount && activeClient) {
+                // First try UsageProfileStore for client-level
+                if (ProfileStore && ProfileStore.getByContext) {
+                    const clientProfile = ProfileStore.getByContext(activeClient.id, null);
+                    if (clientProfile && (clientProfile.electricUsage?.some(v => v > 0) || clientProfile.gasUsage?.some(v => v > 0))) {
+                        electricData = [...(clientProfile.electricUsage || Array(12).fill(0))];
+                        gasData = [...(clientProfile.gasUsage || Array(12).fill(0))];
+                        updateUIFromData();
+                        showToast('Loaded parent-level usage (no account-specific data yet)', 'info');
+                        console.log('[EnergyUtil] Loaded parent profile from UsageProfileStore');
+                        return;
+                    }
+                }
+                
+                // Then try localStorage
                 const clientOnlyKey = `usage_${activeClient.id}`;
                 const clientStored = localStorage.getItem(clientOnlyKey);
                 if (clientStored) {
@@ -1218,7 +1246,7 @@
         }
         
         // Save to Client
-        function saveToClient() {
+        async function saveToClient() {
             if (!activeClient) {
                 showToast('Please select a client first', 'warning');
                 return;
@@ -1249,8 +1277,11 @@
                 });
             }
             
-            // Save to localStorage with context key (parent+account level)
+            // Save to localStorage with context key (quick local cache)
             localStorage.setItem(`usage_${contextKey}`, JSON.stringify(profile));
+            
+            // Save to UsageProfileStore for GitHub sync and cross-device availability
+            await saveToUsageProfileStore(profile);
             
             // Log activity to ActivityLog
             logUsageActivity(profile);
@@ -1267,6 +1298,72 @@
             }
             
             showToast(`Usage saved for ${displayName}`, 'success');
+        }
+        
+        // Save to UsageProfileStore (GitHub-synced centralized store)
+        async function saveToUsageProfileStore(profile) {
+            // Try to access UsageProfileStore from parent window
+            const ProfileStore = window.parent?.UsageProfileStore || window.UsageProfileStore;
+            
+            if (ProfileStore && ProfileStore.createOrUpdateByContext) {
+                try {
+                    // Get user info for createdBy field
+                    let userInfo = {};
+                    try {
+                        const user = window.parent?.UserStore?.getCurrentUser?.();
+                        if (user) {
+                            userInfo = {
+                                createdBy: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : null,
+                                createdByEmail: user.email || null
+                            };
+                        }
+                    } catch (e) { /* ignore */ }
+                    
+                    const result = await ProfileStore.createOrUpdateByContext(
+                        profile.clientId,
+                        profile.accountId,
+                        {
+                            name: profile.accountName 
+                                ? `${profile.clientName} → ${profile.accountName}`
+                                : profile.clientName,
+                            clientName: profile.clientName,
+                            accountName: profile.accountName,
+                            electricUsage: profile.electric,
+                            gasUsage: profile.gas,
+                            totalElectric: profile.totalElectric,
+                            totalGas: profile.totalGas,
+                            ...userInfo
+                        }
+                    );
+                    
+                    if (result.success) {
+                        console.log('[EnergyUtil] Profile saved to UsageProfileStore:', result.profile?.id);
+                    } else {
+                        console.warn('[EnergyUtil] UsageProfileStore save failed:', result.error);
+                    }
+                } catch (e) {
+                    console.warn('[EnergyUtil] Failed to save to UsageProfileStore:', e);
+                }
+            } else {
+                // Fallback: send message to parent to handle the save
+                window.parent?.postMessage({
+                    type: 'SAVE_USAGE_PROFILE',
+                    clientId: profile.clientId,
+                    accountId: profile.accountId,
+                    profile: {
+                        name: profile.accountName 
+                            ? `${profile.clientName} → ${profile.accountName}`
+                            : profile.clientName,
+                        clientName: profile.clientName,
+                        accountName: profile.accountName,
+                        electricUsage: profile.electric,
+                        gasUsage: profile.gas,
+                        totalElectric: profile.totalElectric,
+                        totalGas: profile.totalGas
+                    }
+                }, '*');
+                console.log('[EnergyUtil] Sent SAVE_USAGE_PROFILE message to parent');
+            }
         }
         
         // Log usage entry to ActivityLog

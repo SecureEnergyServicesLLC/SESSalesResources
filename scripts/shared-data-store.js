@@ -394,29 +394,29 @@ const UsageProfileStore = {
             name: profileData.name || 'Unnamed Profile',
             clientId: profileData.clientId || null,
             clientName: profileData.clientName || null,
-            electricUsage: profileData.electricUsage || Array(12).fill(0),
-            gasUsage: profileData.gasUsage || Array(12).fill(0),
+            accountId: profileData.accountId || null,
+            accountName: profileData.accountName || null,
+            electricUsage: profileData.electricUsage || profileData.electric || Array(12).fill(0),
+            gasUsage: profileData.gasUsage || profileData.gas || Array(12).fill(0),
+            totalElectric: profileData.totalElectric || (profileData.electricUsage || profileData.electric || []).reduce((a, b) => a + b, 0),
+            totalGas: profileData.totalGas || (profileData.gasUsage || profileData.gas || []).reduce((a, b) => a + b, 0),
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             createdBy: profileData.createdBy || null,
+            createdByEmail: profileData.createdByEmail || null,
             notes: profileData.notes || ''
         };
         this.profiles.push(profile);
         this.saveToStorage();
         this._notifySubscribers();
         
-        // Sync to GitHub immediately for cross-device availability
-        if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) {
-            try {
-                await GitHubSync.syncUsageProfiles();
-                console.log(`[UsageProfileStore] Created and synced profile: ${profile.name}`);
-            } catch (e) {
-                console.warn('[UsageProfileStore] GitHub sync failed, but local save succeeded:', e.message);
-            }
-        } else {
-            console.log(`[UsageProfileStore] Created profile (local only): ${profile.name}`);
-        }
+        // Broadcast the new profile to all widgets
+        this._broadcastProfileChange(profile, 'created');
         
+        // Sync to GitHub immediately for cross-device availability
+        this._scheduleSyncToGitHub();
+        
+        console.log(`[UsageProfileStore] Created profile: ${profile.name} (${profile.id})`);
         return { success: true, profile };
     },
 
@@ -424,6 +424,18 @@ const UsageProfileStore = {
     async update(id, updates) {
         const idx = this.profiles.findIndex(p => p.id === id);
         if (idx === -1) return { success: false, error: 'Profile not found' };
+        
+        // Recalculate totals if usage data is being updated
+        if (updates.electricUsage || updates.electric) {
+            const elec = updates.electricUsage || updates.electric;
+            updates.electricUsage = elec;
+            updates.totalElectric = elec.reduce((a, b) => a + b, 0);
+        }
+        if (updates.gasUsage || updates.gas) {
+            const gas = updates.gasUsage || updates.gas;
+            updates.gasUsage = gas;
+            updates.totalGas = gas.reduce((a, b) => a + b, 0);
+        }
         
         this.profiles[idx] = {
             ...this.profiles[idx],
@@ -433,16 +445,13 @@ const UsageProfileStore = {
         this.saveToStorage();
         this._notifySubscribers();
         
-        // Sync to GitHub immediately for cross-device availability
-        if (GitHubSync.hasToken() && GitHubSync.autoSyncEnabled) {
-            try {
-                await GitHubSync.syncUsageProfiles();
-                console.log(`[UsageProfileStore] Updated and synced profile: ${this.profiles[idx].name}`);
-            } catch (e) {
-                console.warn('[UsageProfileStore] GitHub sync failed, but local save succeeded:', e.message);
-            }
-        }
+        // Broadcast the updated profile
+        this._broadcastProfileChange(this.profiles[idx], 'updated');
         
+        // Sync to GitHub
+        this._scheduleSyncToGitHub();
+        
+        console.log(`[UsageProfileStore] Updated profile: ${this.profiles[idx].name}`);
         return { success: true, profile: this.profiles[idx] };
     },
 
@@ -488,6 +497,61 @@ const UsageProfileStore = {
     // Get profiles for a specific client
     getByClientId(clientId) {
         return this.profiles.filter(p => p.clientId === clientId);
+    },
+    
+    // Get profile by context (clientId + optional accountId)
+    getByContext(clientId, accountId = null) {
+        if (accountId) {
+            // Look for account-specific profile first
+            const accountProfile = this.profiles.find(p => 
+                p.clientId === clientId && p.accountId === accountId
+            );
+            if (accountProfile) return accountProfile;
+        }
+        // Fall back to client-level profile
+        return this.profiles.find(p => 
+            p.clientId === clientId && !p.accountId
+        );
+    },
+    
+    // Get context key for a profile (matches energy-utilization-widget format)
+    getContextKey(clientId, accountId = null) {
+        return accountId ? `${clientId}_${accountId}` : clientId;
+    },
+    
+    // Create or update profile by context (upsert operation)
+    async createOrUpdateByContext(clientId, accountId, profileData) {
+        if (!clientId) return { success: false, error: 'Client ID is required' };
+        
+        // Look for existing profile with this context
+        const existing = accountId 
+            ? this.profiles.find(p => p.clientId === clientId && p.accountId === accountId)
+            : this.profiles.find(p => p.clientId === clientId && !p.accountId);
+        
+        if (existing) {
+            // Update existing profile
+            return await this.update(existing.id, {
+                ...profileData,
+                clientId,
+                accountId: accountId || null
+            });
+        } else {
+            // Create new profile
+            return await this.create({
+                ...profileData,
+                clientId,
+                accountId: accountId || null,
+                name: profileData.name || this._generateProfileName(profileData.clientName, profileData.accountName)
+            });
+        }
+    },
+    
+    // Generate a profile name from client/account info
+    _generateProfileName(clientName, accountName) {
+        if (accountName && clientName) {
+            return `${clientName} → ${accountName}`;
+        }
+        return clientName || 'Usage Profile';
     },
 
     // Get standalone profiles (not linked to any client)
@@ -553,34 +617,37 @@ const UsageProfileStore = {
         });
     },
 
-    _broadcastProfileChange(profile) {
+    _broadcastProfileChange(profile, action = 'changed') {
+        const message = {
+            type: 'USAGE_PROFILE_CHANGED',
+            profile: profile,
+            profileId: profile?.id || null,
+            clientId: profile?.clientId || null,
+            accountId: profile?.accountId || null,
+            action: action  // 'created', 'updated', 'deleted', 'changed'
+        };
+        
         // Broadcast to parent window (for embedded widgets)
         if (window.parent !== window) {
-            window.parent.postMessage({
-                type: 'USAGE_PROFILE_CHANGED',
-                profile: profile,
-                profileId: profile?.id || null
-            }, '*');
+            window.parent.postMessage(message, '*');
         }
         
         // Broadcast to all iframes
         const iframes = document.querySelectorAll('iframe');
         iframes.forEach(iframe => {
             try {
-                iframe.contentWindow.postMessage({
-                    type: 'USAGE_PROFILE_CHANGED',
-                    profile: profile,
-                    profileId: profile?.id || null
-                }, '*');
+                iframe.contentWindow.postMessage(message, '*');
             } catch (e) { /* ignore cross-origin */ }
         });
         
         // Dispatch custom event
         try {
             window.dispatchEvent(new CustomEvent('usageProfileChanged', { 
-                detail: { profile, profileId: profile?.id || null }
+                detail: message
             }));
         } catch (e) { /* ignore */ }
+        
+        console.log(`[UsageProfileStore] Broadcast profile ${action}:`, profile?.name);
     },
 
     // Create a profile from client data (from Client Store or Utilization Widget)

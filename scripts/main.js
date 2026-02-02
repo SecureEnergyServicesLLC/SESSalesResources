@@ -757,6 +757,75 @@ function handleWidgetMessage(event) {
         ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'energy-utilization', action: 'Utilization Data Saved', clientName: event.data.clientName, data: event.data.data || {} });
         saveAllWidgetStates();
     }
+    
+    // Handle LOG_USAGE_ACTIVITY message from energy-utilization-widget
+    if (event.data?.type === 'LOG_USAGE_ACTIVITY' && currentUser) {
+        const d = event.data;
+        const displayName = d.accountName 
+            ? `${d.clientName || 'Client'} → ${d.accountName}` 
+            : (d.clientName || 'Unknown Client');
+        
+        ActivityLog.logUsageEntry({
+            userId: d.userId || currentUser.id,
+            userEmail: d.userEmail || currentUser.email,
+            userName: d.userName || (currentUser.firstName + ' ' + currentUser.lastName),
+            clientId: d.clientId,
+            clientName: d.clientName,
+            accountId: d.accountId,
+            accountName: d.accountName,
+            totalElectric: d.totalElectric,
+            totalGas: d.totalGas,
+            electricData: d.electricData,
+            gasData: d.gasData
+        });
+        
+        console.log('[Portal] Logged usage entry for:', displayName);
+        saveAllWidgetStates();
+    }
+    
+    // Handle CLIENT_USAGE_UPDATED - broadcast to all widgets
+    if (event.data?.type === 'CLIENT_USAGE_UPDATED') {
+        console.log('[Portal] Received CLIENT_USAGE_UPDATED, broadcasting to all widgets');
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach((iframe) => {
+            try {
+                iframe.contentWindow.postMessage(event.data, '*');
+            } catch (e) { /* ignore */ }
+        });
+    }
+    
+    // Handle SAVE_USAGE_PROFILE - save to UsageProfileStore when widget can't access it directly
+    if (event.data?.type === 'SAVE_USAGE_PROFILE' && window.UsageProfileStore) {
+        const d = event.data;
+        console.log('[Portal] Received SAVE_USAGE_PROFILE for client:', d.clientId);
+        
+        // Get user info for createdBy field
+        let userInfo = {};
+        if (currentUser) {
+            userInfo = {
+                createdBy: currentUser.firstName + ' ' + currentUser.lastName,
+                createdByEmail: currentUser.email
+            };
+        }
+        
+        window.UsageProfileStore.createOrUpdateByContext(
+            d.clientId,
+            d.accountId,
+            {
+                ...d.profile,
+                ...userInfo
+            }
+        ).then(result => {
+            if (result.success) {
+                console.log('[Portal] Usage profile saved to store:', result.profile?.id);
+            } else {
+                console.warn('[Portal] Failed to save usage profile:', result.error);
+            }
+        }).catch(e => {
+            console.error('[Portal] Error saving usage profile:', e);
+        });
+    }
+    
     if (event.data?.type === 'DATA_UPLOADED' && currentUser) {
         ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: event.data.widget || 'data-manager', action: 'Data Upload', data: event.data.data || {} });
     }
