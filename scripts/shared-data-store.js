@@ -1027,6 +1027,23 @@ const UserStore = {
 
     getSession() { try { return JSON.parse(localStorage.getItem(this.SESSION_KEY)); } catch { return null; } },
     clearSession() { localStorage.removeItem(this.SESSION_KEY); },
+    
+    // Current user management (used by main.js)
+    getCurrentUser() { return this.getSession(); },
+    setCurrentUser(user) {
+        if (user) {
+            const sessionUser = { ...user };
+            delete sessionUser.password;
+            localStorage.setItem(this.SESSION_KEY, JSON.stringify(sessionUser));
+            // Also notify ClientStore if available
+            if (typeof SecureEnergyClients !== 'undefined' && SecureEnergyClients.setCurrentUser) {
+                SecureEnergyClients.setCurrentUser(user.id);
+            }
+        } else {
+            this.clearSession();
+        }
+        return user;
+    },
 
     create(userData) {
         if (this.users.some(u => u.email.toLowerCase() === userData.email.toLowerCase())) {
