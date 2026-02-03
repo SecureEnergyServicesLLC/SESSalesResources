@@ -1331,42 +1331,36 @@
     // Primary data source is data/clients.json
     // ========================================
     
-    const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/SecureEnergyServicesLLC/SESSalesResources/main/';
-    const LOCAL_DATA_PATH = 'data/clients.json';
-    
     async function loadFromGitHub() {
-        const urls = [
-            GITHUB_RAW_BASE + LOCAL_DATA_PATH,
-            LOCAL_DATA_PATH,
-            '../' + LOCAL_DATA_PATH,
-            './' + LOCAL_DATA_PATH
-        ];
-        
-        for (const url of urls) {
-            try {
-                console.log('[ClientStore] Trying to load from:', url);
-                const response = await fetch(url + '?t=' + Date.now()); // Cache bust
-                
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    // Handle both formats: { clients: {...} } or direct {...}
-                    if (data.clients && typeof data.clients === 'object') {
-                        clients = data.clients;
-                        console.log('[ClientStore] Loaded', Object.keys(clients).length, 'clients from:', url);
-                    } else if (typeof data === 'object' && !Array.isArray(data)) {
-                        // Direct object format - check if it looks like client data
-                        const firstKey = Object.keys(data)[0];
-                        if (firstKey && (firstKey.startsWith('CID-') || data[firstKey]?.name)) {
-                            clients = data;
-                            console.log('[ClientStore] Loaded', Object.keys(clients).length, 'clients (direct format) from:', url);
-                        }
-                    }
-                    
-                    needsGitHubSync = false;
-                    return true;
-                }
-            } catch (e) {
+    // Try Azure first
+    if (typeof AzureDataService !== 'undefined' && AzureDataService.isConfigured()) {
+        try {
+            console.log('[ClientStore] Loading from Azure...');
+            const data = await AzureDataService.get('clients.json');
+            if (data?.clients) {
+                clients = data.clients;
+                console.log('[ClientStore] Loaded', Object.keys(clients).length, 'clients from Azure');
+                needsGitHubSync = false;
+                return true;
+            }
+        } catch (e) {
+            console.warn('[ClientStore] Azure fetch failed:', e.message);
+        }
+    }
+    
+    // Fallback to local file
+    try {
+        const response = await fetch('data/clients.json?t=' + Date.now());
+        if (response.ok) {
+            const data = await response.json();
+            if (data.clients) clients = data.clients;
+            console.log('[ClientStore] Loaded from local file');
+            return true;
+        }
+    } catch (e) { }
+    
+    return false;
+}         } catch (e) {
                 console.log('[ClientStore] Failed to load from', url, '-', e.message);
             }
         }
@@ -1376,26 +1370,19 @@
     }
     
     async function syncToGitHub() {
-        // For GitHub Pages, we can't directly write files
-        // Instead, provide the JSON for manual commit or use GitHub API if available
-        
-        if (typeof GitHubSync !== 'undefined' && GitHubSync.saveFile) {
-            try {
-                const exportData = exportForGitHub();
-                await GitHubSync.saveFile(GITHUB_FILE, exportData);
-                needsGitHubSync = false;
-                console.log('[ClientStore] Synced to GitHub via GitHubSync');
-                return true;
-            } catch (e) {
-                console.error('[ClientStore] GitHub sync error:', e);
-                return false;
-            }
+    if (typeof AzureDataService !== 'undefined' && AzureDataService.isConfigured()) {
+        try {
+            await AzureDataService.save('clients.json', JSON.parse(exportForGitHub()));
+            needsGitHubSync = false;
+            console.log('[ClientStore] Synced to Azure');
+            return true;
+        } catch (e) {
+            console.error('[ClientStore] Azure sync error:', e);
         }
-        
-        // Fallback: Download as file for manual upload
-        console.log('[ClientStore] GitHubSync not available - use downloadClientsJSON() to get file for manual upload');
-        return false;
     }
+    console.log('[ClientStore] Use downloadClientsJSON() to export');
+    return false;
+}
     
     function downloadClientsJSON() {
         const data = exportForGitHub();
