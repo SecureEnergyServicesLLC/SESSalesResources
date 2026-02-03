@@ -13,15 +13,12 @@
     // CONFIGURATION - Set your API key here
     // =============================================
     const API_CONFIG = {
-        // Your Azure Function API endpoint
-        apiEndpoint: 'https://ses-data-api-gpaqghfbehhrb6c2.eastus-01.azurewebsites.net/api/data',
-        
         // Admin API key - all portal users will use this
         // Replace with your production key when ready
         apiKey: 'ses-admin-abc123def456',
         
         // Set to true to skip validation (faster startup)
-        skipValidation: false
+        skipValidation: true
     };
     
     // =============================================
@@ -37,15 +34,15 @@
             return false;
         }
         
-        // Configure the service
-        AzureDataService.configure(API_CONFIG.apiEndpoint, API_CONFIG.apiKey);
+        // Configure the service with API key
+        AzureDataService.setApiKey(API_CONFIG.apiKey);
         
         // Optionally validate the connection
         if (!API_CONFIG.skipValidation) {
             try {
                 // Try a simple request to verify connection
-                const testResult = await AzureDataService.list();
-                console.log('[API Setup] Azure connection verified. Files:', testResult?.length || 0);
+                const testResult = await AzureDataService.get('users.json');
+                console.log('[API Setup] Azure connection verified.');
             } catch (e) {
                 console.warn('[API Setup] Could not verify Azure connection:', e.message);
                 console.warn('[API Setup] Portal will use local fallback data.');
@@ -56,8 +53,7 @@
         // Signal that Azure is ready
         window.dispatchEvent(new CustomEvent('azureDataReady', { 
             detail: { 
-                configured: true,
-                endpoint: API_CONFIG.apiEndpoint
+                configured: true
             } 
         }));
         
@@ -78,7 +74,6 @@
     
     // Export config for debugging (remove in production if desired)
     window.AzureConfig = {
-        getEndpoint: () => API_CONFIG.apiEndpoint,
         isConfigured: () => typeof AzureDataService !== 'undefined' && AzureDataService.isConfigured()
     };
     
