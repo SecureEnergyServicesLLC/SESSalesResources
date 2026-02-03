@@ -555,10 +555,11 @@
     
     async function loadTickets() {
         try {
-            // Try GitHub first
+            // Try parent TicketStore first
             if (window.parent?.TicketStore) {
-                const data = await window.parent.TicketStore.getTickets();
-                state.tickets = data?.tickets || [];
+                const tickets = window.parent.TicketStore.getAll();
+                state.tickets = tickets || [];
+                populateUserFilter('filterUser', state.tickets.map(t => t.submittedBy));
                 return;
             }
             // Fallback to localStorage
@@ -901,10 +902,10 @@
         const search = document.getElementById('activitySearch').value.toLowerCase();
         
         let filtered = state.activities.filter(a => {
-            if (action !== 'all' && a.action !== action) return false;
+            if (action !== 'all' && (a.action || '') !== action) return false;
             if (widget !== 'all' && a.widget !== widget) return false;
             if (user !== 'all' && a.userId !== user) return false;
-            if (search && !`${a.userName} ${a.action} ${a.widget} ${a.clientName || ''}`.toLowerCase().includes(search)) return false;
+            if (search && !`${a.userName || ''} ${a.action || ''} ${a.widget || ''} ${a.clientName || ''}`.toLowerCase().includes(search)) return false;
             return true;
         }).slice(0, 100);
         
@@ -912,8 +913,8 @@
         const today = new Date().toDateString();
         const todayCount = state.activities.filter(a => new Date(a.timestamp).toDateString() === today).length;
         const uniqueUsers = new Set(state.activities.map(a => a.userId)).size;
-        const analyses = state.activities.filter(a => a.action === 'LMP Analysis').length;
-        const aiQueries = state.activities.filter(a => a.action === 'AI Query').length;
+        const analyses = state.activities.filter(a => (a.action || '') === 'LMP Analysis').length;
+        const aiQueries = state.activities.filter(a => (a.action || '') === 'AI Query').length;
         
         document.getElementById('activityStats').innerHTML = `
             <div class="stat-card"><div class="stat-value">${state.activities.length}</div><div class="stat-label">Total Events</div></div>
@@ -930,15 +931,16 @@
         }
         
         container.innerHTML = filtered.map(a => {
-            const typeClass = a.action.includes('Login') ? 'login' : a.action.includes('Analysis') ? 'analysis' : 
-                             a.action.includes('Export') ? 'export' : a.action.includes('Client') ? 'client' : 
-                             a.action.includes('AI') ? 'ai' : '';
+            const action = a.action || '';
+            const typeClass = action.includes('Login') ? 'login' : action.includes('Analysis') ? 'analysis' : 
+                             action.includes('Export') ? 'export' : action.includes('Client') ? 'client' : 
+                             action.includes('AI') ? 'ai' : '';
             return `
                 <div class="activity-item ${typeClass}">
-                    <div class="activity-icon">${ACTIVITY_ICONS[a.action] || '📝'}</div>
+                    <div class="activity-icon">${ACTIVITY_ICONS[action] || '📝'}</div>
                     <div class="activity-content">
                         <div class="activity-header">
-                            <span class="activity-action">${escapeHtml(a.action)}</span>
+                            <span class="activity-action">${escapeHtml(action)}</span>
                             <span class="activity-time">${formatDate(a.timestamp)}</span>
                         </div>
                         <div class="activity-details">
@@ -1120,7 +1122,7 @@
     
     function exportActivity() {
         const csv = 'Timestamp,User,Action,Widget,Client\n' +
-            state.activities.map(a => [a.timestamp, a.userName, a.action, a.widget, a.clientName || ''].join(',')).join('\n');
+            state.activities.map(a => [a.timestamp || '', a.userName || '', a.action || '', a.widget || '', a.clientName || ''].join(',')).join('\n');
         downloadFile(csv, 'activity-export.csv', 'text/csv');
         showToast('Activity exported', 'success');
     }
