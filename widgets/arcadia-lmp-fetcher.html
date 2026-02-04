@@ -22,6 +22,7 @@
             --accent-error: #FF5252;
             --accent-info: #00B8D4;
             --accent-purple: #B388FF;
+            --accent-azure: #0078D4;
         }
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -37,73 +38,46 @@
         .header { margin-bottom: 20px; }
         .header h2 { font-size: 18px; color: var(--se-light-green); margin-bottom: 6px; }
         .header p { font-size: 12px; color: var(--text-secondary); }
+        .header .version { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
         
-        /* Mode Tabs */
         .mode-tabs {
-            display: flex;
-            gap: 0;
-            margin-bottom: 16px;
-            background: var(--bg-secondary);
-            border-radius: 10px;
-            padding: 4px;
-            border: 1px solid var(--border-color);
+            display: flex; gap: 0; margin-bottom: 16px;
+            background: var(--bg-secondary); border-radius: 10px; padding: 4px; border: 1px solid var(--border-color);
         }
         .mode-tab {
-            flex: 1;
-            padding: 12px 16px;
-            background: transparent;
-            border: none;
-            color: var(--text-secondary);
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.2s;
+            flex: 1; padding: 12px 16px; background: transparent; border: none;
+            color: var(--text-secondary); font-size: 13px; font-weight: 600;
+            cursor: pointer; border-radius: 8px; transition: all 0.2s;
         }
         .mode-tab:hover { color: var(--text-primary); }
-        .mode-tab.active {
-            background: var(--se-gradient);
-            color: white;
-        }
+        .mode-tab.active { background: var(--se-gradient); color: white; }
         .mode-tab .tab-icon { margin-right: 8px; }
         
         .mode-content { display: none; }
         .mode-content.active { display: block; }
         
         .server-notice {
-            background: rgba(179, 136, 255, 0.1);
-            border: 1px solid rgba(179, 136, 255, 0.3);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 16px;
+            background: rgba(179, 136, 255, 0.1); border: 1px solid rgba(179, 136, 255, 0.3);
+            border-radius: 8px; padding: 12px; margin-bottom: 16px;
         }
         .server-notice h4 { color: var(--accent-purple); font-size: 13px; margin-bottom: 6px; }
         .server-notice p { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
         
         .cors-notice {
-            background: rgba(255, 179, 0, 0.1);
-            border: 1px solid rgba(255, 179, 0, 0.3);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 16px;
+            background: rgba(255, 179, 0, 0.1); border: 1px solid rgba(255, 179, 0, 0.3);
+            border-radius: 8px; padding: 12px; margin-bottom: 16px;
         }
         .cors-notice h4 { color: var(--accent-warning); font-size: 13px; margin-bottom: 6px; }
         .cors-notice p { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
         .cors-notice code { background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 3px; font-size: 10px; }
         
         .section {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 12px;
+            background: var(--bg-secondary); border: 1px solid var(--border-color);
+            border-radius: 10px; padding: 16px; margin-bottom: 12px;
         }
         .section-title {
-            font-size: 14px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            padding-bottom: 6px;
-            border-bottom: 2px solid var(--se-light-green);
+            font-size: 14px; font-weight: 600; margin-bottom: 12px;
+            padding-bottom: 6px; border-bottom: 2px solid var(--se-light-green);
         }
         
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
@@ -118,6 +92,8 @@
             outline: none; border-color: var(--se-light-green);
             box-shadow: 0 0 0 2px rgba(62, 180, 137, 0.1);
         }
+        .form-group input.error { border-color: var(--accent-error); }
+        .form-group .helper-text { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
         
         button {
             padding: 8px 16px; border: none; border-radius: 6px;
@@ -129,6 +105,7 @@
         .btn-success { background: linear-gradient(135deg, #00C853, #00E676); color: white; }
         .btn-purple { background: linear-gradient(135deg, #7C4DFF, #B388FF); color: white; }
         .btn-purple:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(179, 136, 255, 0.3); }
+        .btn-azure { background: linear-gradient(135deg, #0078D4, #00BCF2); color: white; }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         .button-group { display: flex; gap: 10px; margin-top: 12px; }
         
@@ -174,7 +151,7 @@
         .debug-console {
             background: #0D1117; border: 1px solid var(--border-color); border-radius: 6px;
             padding: 12px; font-family: 'Consolas', monospace; font-size: 11px;
-            max-height: 200px; overflow-y: auto; display: none; margin-top: 12px;
+            max-height: 250px; overflow-y: auto; display: none; margin-top: 12px;
         }
         .debug-console.active { display: block; }
         .debug-line { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
@@ -183,6 +160,7 @@
         .debug-line.warning { color: var(--accent-warning); }
         .debug-line.info { color: var(--accent-info); }
         .debug-timestamp { color: var(--text-tertiary); margin-right: 6px; }
+        .debug-actions { display: flex; gap: 8px; margin-bottom: 8px; }
         
         .results-section { display: none; }
         .results-section.active { display: block; }
@@ -215,107 +193,59 @@
         .proxy-toggle input:checked + .proxy-slider { background: var(--se-light-green); }
         .proxy-toggle input:checked + .proxy-slider:before { transform: translateX(18px); background: white; }
         
-        /* Workflow Status Card */
-        .workflow-status {
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 16px;
-        }
-        .workflow-status h4 {
-            font-size: 13px;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        .workflow-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 12px;
-        }
+        .workflow-status { background: var(--bg-tertiary); border-radius: 8px; padding: 16px; margin-top: 16px; }
+        .workflow-status h4 { font-size: 13px; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .workflow-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
         .workflow-item:last-child { border-bottom: none; }
-        .workflow-badge {
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: 600;
-        }
+        .workflow-badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-decoration: none; }
         .workflow-badge.success { background: rgba(0, 230, 118, 0.2); color: var(--accent-success); }
         .workflow-badge.pending { background: rgba(255, 179, 0, 0.2); color: var(--accent-warning); }
         .workflow-badge.running { background: rgba(0, 184, 212, 0.2); color: var(--accent-info); }
         .workflow-badge.failed { background: rgba(255, 82, 82, 0.2); color: var(--accent-error); }
 
-        /* Setup Instructions */
-        .setup-steps {
-            background: var(--bg-tertiary);
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 16px;
-        }
-        .setup-steps h4 {
-            font-size: 13px;
-            color: var(--accent-info);
-            margin-bottom: 12px;
-        }
-        .setup-step {
-            display: flex;
-            gap: 12px;
-            padding: 10px 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 12px;
-        }
+        .setup-steps { background: var(--bg-tertiary); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .setup-steps h4 { font-size: 13px; color: var(--accent-info); margin-bottom: 12px; }
+        .setup-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
         .setup-step:last-child { border-bottom: none; }
         .step-number {
-            width: 24px;
-            height: 24px;
-            background: var(--se-gradient);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 11px;
-            flex-shrink: 0;
+            width: 24px; height: 24px; background: var(--se-gradient); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;
         }
         .step-content { flex: 1; }
         .step-content strong { color: var(--text-primary); }
         .step-content p { color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
-        .step-content code {
-            background: rgba(255,255,255,0.1);
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-            color: var(--accent-info);
-        }
+        .step-content code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 11px; color: var(--accent-info); }
+        
+        .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 8px 0; }
+        .collapsible-header:hover { opacity: 0.8; }
+        .collapsible-content { display: none; padding-top: 12px; }
+        .collapsible-content.active { display: block; }
+        .collapse-icon { transition: transform 0.2s; }
+        .collapse-icon.rotated { transform: rotate(180deg); }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h2>⚡ Arcadia LMP Data Fetcher</h2>
-            <p>Fetch Day-Ahead LMP data from Arcadia Signal API</p>
+            <p>Fetch Day-Ahead LMP data from Genability API</p>
+            <div class="version">v2.1.0 • Updated Feb 2026 • Azure Ready</div>
         </div>
         
-        <!-- Mode Tabs -->
         <div class="mode-tabs">
             <button class="mode-tab active" onclick="switchMode('server')">
-                <span class="tab-icon">🖥️</span> Server Update (Recommended)
+                <span class="tab-icon">🖥️</span> Server Update
             </button>
             <button class="mode-tab" onclick="switchMode('browser')">
-                <span class="tab-icon">🌐</span> Browser Fetch (CORS Proxy)
+                <span class="tab-icon">🌐</span> Browser Fetch
             </button>
         </div>
         
-        <!-- Server Mode Content -->
+        <!-- Server Mode -->
         <div id="serverMode" class="mode-content active">
             <div class="server-notice">
-                <h4>🚀 Server-Side Updates (No CORS Issues)</h4>
-                <p>Trigger the GitHub Actions workflow to fetch and update LMP data server-side. This method bypasses browser CORS restrictions and automatically commits updates to your repository.</p>
+                <h4>🚀 Server-Side Updates (Recommended)</h4>
+                <p>Trigger GitHub Actions workflow to fetch and update LMP data. Bypasses CORS restrictions and auto-commits to your repository.</p>
             </div>
             
             <div class="section">
@@ -324,15 +254,43 @@
                     <div class="form-group">
                         <label>GitHub Token (PAT)</label>
                         <input type="password" id="githubToken" placeholder="ghp_xxxxxxxxxxxx">
+                        <div class="helper-text">Requires <code>repo</code> + <code>workflow</code> scopes</div>
                     </div>
                     <div class="form-group">
                         <label>Repository</label>
-                        <input type="text" id="repoName" value="SecureEnergyServicesLLC/SESSalesResources" placeholder="owner/repo">
+                        <input type="text" id="repoName" value="ClemmensSES/SESSalesResources" placeholder="owner/repo">
                     </div>
                 </div>
-                <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px;">
-                    Need a token? <a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=LMP%20Fetcher" target="_blank" style="color: var(--se-light-green);">Create one here</a> (select "repo" and "workflow" scopes)
-                </p>
+                
+                <div class="collapsible-header" onclick="toggleCollapsible('tokenHelp')">
+                    <span style="font-size: 12px; color: var(--accent-info);">📋 How to get/refresh your GitHub Token</span>
+                    <span class="collapse-icon" id="tokenHelpIcon">▼</span>
+                </div>
+                <div class="collapsible-content" id="tokenHelp">
+                    <div class="setup-steps" style="margin: 0;">
+                        <div class="setup-step">
+                            <div class="step-number">1</div>
+                            <div class="step-content">
+                                <strong>Go to GitHub Token Settings</strong>
+                                <p><a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=LMP%20Fetcher%20-%20Secure%20Energy" target="_blank" style="color: var(--se-light-green);">Click here for pre-configured token</a></p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">2</div>
+                            <div class="step-content">
+                                <strong>Set Expiration</strong>
+                                <p>Choose 90 days (recommended) or custom</p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number">3</div>
+                            <div class="step-content">
+                                <strong>Generate & Copy</strong>
+                                <p>Click "Generate token" and <strong>copy immediately</strong></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <div class="section">
@@ -359,88 +317,98 @@
                     </select>
                 </div>
                 <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px;">
-                    Leave dates blank to fetch the previous month's data (default behavior).
+                    Leave dates blank to fetch the previous month's data.
                 </p>
             </div>
             
             <div class="section">
                 <div class="button-group">
-                    <button class="btn-purple" id="triggerWorkflowBtn" onclick="triggerWorkflow()" style="flex: 1;">
-                        🚀 Trigger Server Update
-                    </button>
-                    <button class="btn-secondary" onclick="checkWorkflowStatus()">
-                        📊 Check Status
-                    </button>
+                    <button class="btn-purple" onclick="triggerWorkflow()" style="flex: 1;">🚀 Trigger Server Update</button>
+                    <button class="btn-secondary" onclick="checkWorkflowStatus()">📊 Check Status</button>
                 </div>
-                
                 <div class="status-message" id="serverStatus"></div>
-                
                 <div class="workflow-status" id="workflowStatusCard" style="display: none;">
                     <h4>📋 Recent Workflow Runs</h4>
                     <div id="workflowRuns"></div>
                 </div>
             </div>
             
-            <div class="setup-steps">
-                <h4>📝 First-Time Setup Required</h4>
-                <div class="setup-step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <strong>Add API Secrets to GitHub</strong>
-                        <p>Go to your repo → <code>Settings</code> → <code>Secrets and variables</code> → <code>Actions</code><br>
-                        Add: <code>ARCADIA_APP_ID</code> and <code>ARCADIA_APP_KEY</code></p>
-                    </div>
+            <div class="section">
+                <div class="collapsible-header" onclick="toggleCollapsible('troubleshoot')">
+                    <span class="section-title" style="margin: 0; border: none; padding: 0;">🔧 Troubleshooting</span>
+                    <span class="collapse-icon" id="troubleshootIcon">▼</span>
                 </div>
-                <div class="setup-step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <strong>Add Workflow Files</strong>
-                        <p>Upload the automation files to your repository (provided separately)</p>
-                    </div>
-                </div>
-                <div class="setup-step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <strong>Create Personal Access Token</strong>
-                        <p>Go to GitHub → Settings → Developer settings → Personal access tokens → Generate new token<br>
-                        Select scopes: <code>repo</code> and <code>workflow</code></p>
+                <div class="collapsible-content" id="troubleshoot">
+                    <div class="setup-steps" style="margin: 0; background: transparent; padding: 0;">
+                        <div class="setup-step">
+                            <div class="step-number" style="background: var(--accent-error);">!</div>
+                            <div class="step-content">
+                                <strong>Exit Code 128</strong>
+                                <p>Git push denied. Workflow needs <code>permissions: contents: write</code></p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number" style="background: var(--accent-error);">!</div>
+                            <div class="step-content">
+                                <strong>401 Unauthorized</strong>
+                                <p>Invalid/expired token. <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--se-light-green);">Regenerate PAT</a></p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number" style="background: var(--accent-error);">!</div>
+                            <div class="step-content">
+                                <strong>404 Workflow Not Found</strong>
+                                <p>Missing <code>.github/workflows/update-lmp-data.yml</code></p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number" style="background: var(--accent-warning);">!</div>
+                            <div class="step-content">
+                                <strong>API Auth Failed</strong>
+                                <p>Check GitHub Secrets: <code>ARCADIA_APP_ID</code> and <code>ARCADIA_APP_KEY</code></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <!-- Browser Mode Content -->
+        <!-- Browser Mode -->
         <div id="browserMode" class="mode-content">
             <div class="cors-notice">
                 <h4>⚠️ Browser Security (CORS)</h4>
-                <p>Enable <strong>"Use CORS Proxy"</strong> for browser testing. Routes through <code>corsproxy.io</code>. For production, use Server Mode instead.</p>
+                <p>Enable <strong>"Use CORS Proxy"</strong> for browser testing. For production, use Server Mode.</p>
             </div>
             
             <div class="section">
                 <div class="section-title">1. API Credentials</div>
                 <div class="proxy-mode">
                     <label class="proxy-toggle">
-                        <input type="checkbox" id="useProxy" checked>
+                        <input type="checkbox" id="useProxy" checked onchange="updateProxyStatus()">
                         <span class="proxy-slider"></span>
                     </label>
                     <div>
                         <strong style="font-size: 12px;">Use CORS Proxy</strong>
-                        <p style="font-size: 10px; color: var(--text-tertiary);">Required for browser testing</p>
+                        <p style="font-size: 10px; color: var(--text-tertiary);" id="proxyStatusText">Using corsproxy.io</p>
                     </div>
+                    <select id="proxySelector" onchange="updateProxyStatus()" style="margin-left: auto; padding: 4px 8px; font-size: 11px; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: 4px; color: var(--text-primary);">
+                        <option value="corsproxy">corsproxy.io</option>
+                        <option value="allorigins">allorigins.win</option>
+                    </select>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>App ID</label>
-                        <input type="text" id="appId" placeholder="Your Arcadia App ID">
+                        <input type="text" id="appId" placeholder="Your Genability App ID">
                     </div>
                     <div class="form-group">
                         <label>App Key</label>
-                        <input type="password" id="appKey" placeholder="Your Arcadia App Key">
+                        <input type="password" id="appKey" placeholder="Your Genability App Key">
                     </div>
                 </div>
                 <div class="button-group">
-                    <button class="btn-primary" id="testCredsBtn">Test Credentials</button>
-                    <button class="btn-secondary" id="toggleDebugBtn">Debug</button>
+                    <button class="btn-primary" onclick="testCredentials()">Test Credentials</button>
+                    <button class="btn-secondary" onclick="toggleDebug()">🔍 Debug Console</button>
                 </div>
                 <div class="status-message" id="credStatus"></div>
                 <p style="margin-top: 10px; font-size: 11px; color: var(--text-tertiary);">
@@ -470,15 +438,15 @@
             <div class="section" id="zoneSection" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <div class="section-title" style="margin: 0; border: none; padding: 0;">4. Select Zones</div>
-                    <button class="btn-secondary" id="selectAllBtn" style="padding: 4px 10px; font-size: 11px;">Select All</button>
+                    <button class="btn-secondary" onclick="toggleSelectAll()" style="padding: 4px 10px; font-size: 11px;">Select All</button>
                 </div>
                 <div class="zones-grid" id="zonesGrid"></div>
             </div>
             
             <div class="section">
                 <div class="button-group">
-                    <button class="btn-primary" id="fetchBtn" style="flex: 1;">Fetch LMP Data</button>
-                    <button class="btn-success" id="exportBtn" style="flex: 1;" disabled>Export CSV</button>
+                    <button class="btn-primary" onclick="fetchData()" style="flex: 1;">⚡ Fetch LMP Data</button>
+                    <button class="btn-success" id="exportBtn" onclick="exportCSV()" style="flex: 1;" disabled>📥 Export CSV</button>
                 </div>
             </div>
             
@@ -487,33 +455,113 @@
                 <div class="spinner"></div>
                 <p style="color: var(--text-secondary); font-size: 12px;">Fetching data...</p>
             </div>
-            <div class="debug-console" id="debugConsole"></div>
+            
+            <div class="debug-console" id="debugConsole">
+                <div class="debug-actions">
+                    <button class="btn-secondary" onclick="clearDebug()" style="padding: 4px 8px; font-size: 10px;">Clear</button>
+                    <button class="btn-secondary" onclick="copyDebug()" style="padding: 4px 8px; font-size: 10px;">Copy Log</button>
+                </div>
+                <div id="debugLines"></div>
+            </div>
             
             <div class="section results-section" id="resultsSection">
                 <div class="section-title">Results</div>
                 <div class="stats-grid" id="statsGrid"></div>
                 <h4 style="margin-bottom: 10px; font-size: 13px;">Monthly Averages</h4>
                 <div class="data-table-container">
-                    <table class="data-table" id="resultsTable">
+                    <table class="data-table">
                         <thead><tr><th>Zone</th><th>Month</th><th>Year</th><th>Avg $/MWh</th><th>Records</th></tr></thead>
                         <tbody id="resultsBody"></tbody>
                     </table>
                 </div>
                 <div class="button-group" style="margin-top: 12px;">
-                    <button class="btn-primary" id="sendToPortalBtn">📤 Send to Portal</button>
+                    <button class="btn-primary" onclick="sendToPortal()">📤 Send to Portal</button>
+                    <button class="btn-azure" id="syncToAzureBtn" onclick="syncToAzure()" style="display: none;">☁️ Sync to Azure</button>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
-        // ============================================
-        // MODE SWITCHING
-        // ============================================
+        const CONFIG = {
+            version: '2.1.0',
+            defaultRepo: 'ClemmensSES/SESSalesResources',
+            azureEndpoint: null,
+            proxies: {
+                corsproxy: url => 'https://corsproxy.io/?' + encodeURIComponent(url),
+                allorigins: url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
+            }
+        };
+        
+        const ISO_CONFIG = {
+            ISONE: {
+                name: 'ISO-NE', propertyKey: 'hourlyPricingDayAheadISONE',
+                zones: [
+                    { value: '4001', label: 'ISO NE CA' }, { value: '4002', label: 'Maine' },
+                    { value: '4003', label: 'NH' }, { value: '4004', label: 'Vermont' },
+                    { value: '4005', label: 'Connecticut' }, { value: '4006', label: 'Rhode Island' },
+                    { value: '4007', label: 'SEMA' }, { value: '4008', label: 'WCMA' }, { value: '4009', label: 'NEMA' }
+                ]
+            },
+            PJM: {
+                name: 'PJM', propertyKey: 'hourlyPricingDayAheadPJM',
+                zones: [
+                    { value: '51291', label: 'AECO' }, { value: '51292', label: 'BGE' },
+                    { value: '51293', label: 'DPL' }, { value: '51294', label: 'JCPL' },
+                    { value: '51295', label: 'METED' }, { value: '51296', label: 'PECO' },
+                    { value: '51297', label: 'PENELEC' }, { value: '51298', label: 'PEPCO' },
+                    { value: '51299', label: 'PPL' }, { value: '51300', label: 'PSEG' }
+                ]
+            },
+            ERCOT: {
+                name: 'ERCOT', propertyKey: 'hourlyPricingDayAheadERCOT',
+                zones: [
+                    { value: 'LZ_HOUSTON', label: 'Houston' }, { value: 'LZ_NORTH', label: 'North' },
+                    { value: 'LZ_SOUTH', label: 'South' }, { value: 'LZ_WEST', label: 'West' }
+                ]
+            }
+        };
+        
+        let currentISO = null, selectedZones = [], fetchedData = { hourly: [], monthly: [] }, debugVisible = false;
+        
+        function getProxyUrl(url) {
+            if (!document.getElementById('useProxy').checked) return url;
+            return CONFIG.proxies[document.getElementById('proxySelector').value](url);
+        }
+        
+        function updateProxyStatus() {
+            const enabled = document.getElementById('useProxy').checked;
+            const type = document.getElementById('proxySelector').value;
+            document.getElementById('proxyStatusText').textContent = enabled ? `Using ${type}` : 'Direct (may fail)';
+        }
+        
+        function addDebugLine(msg, type = 'info') {
+            const el = document.getElementById('debugLines');
+            const ts = new Date().toLocaleTimeString();
+            el.innerHTML += `<div class="debug-line ${type}"><span class="debug-timestamp">[${ts}]</span>${msg}</div>`;
+            el.scrollTop = el.scrollHeight;
+        }
+        
+        function clearDebug() { document.getElementById('debugLines').innerHTML = ''; addDebugLine('Cleared', 'info'); }
+        function copyDebug() { navigator.clipboard.writeText(document.getElementById('debugLines').innerText); addDebugLine('Copied', 'success'); }
+        function toggleDebug() { debugVisible = !debugVisible; document.getElementById('debugConsole').classList.toggle('active', debugVisible); }
+        
+        function showStatus(msg, type = 'info', id = 'statusMessage') {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = `status-message active ${type}`;
+        }
+        function hideStatus(id = 'statusMessage') { document.getElementById(id).className = 'status-message'; }
+        function showServerStatus(msg, type) { showStatus(msg, type, 'serverStatus'); }
+        
+        function toggleCollapsible(id) {
+            document.getElementById(id).classList.toggle('active');
+            document.getElementById(id + 'Icon').classList.toggle('rotated');
+        }
+        
         function switchMode(mode) {
             document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.mode-content').forEach(c => c.classList.remove('active'));
-            
             if (mode === 'server') {
                 document.querySelector('.mode-tab:first-child').classList.add('active');
                 document.getElementById('serverMode').classList.add('active');
@@ -523,274 +571,116 @@
             }
         }
         
-        // ============================================
-        // SERVER MODE - GitHub Actions
-        // ============================================
         async function triggerWorkflow() {
             const token = document.getElementById('githubToken').value.trim();
             const repo = document.getElementById('repoName').value.trim();
-            const startDate = document.getElementById('serverStartDate').value;
-            const endDate = document.getElementById('serverEndDate').value;
-            const isoMarkets = document.getElementById('serverIsoMarkets').value;
+            if (!token) { showServerStatus('❌ Enter GitHub token', 'error'); return; }
+            if (!repo) { showServerStatus('❌ Enter repository', 'error'); return; }
             
-            if (!token) {
-                showServerStatus('Please enter your GitHub token', 'error');
-                return;
-            }
-            if (!repo) {
-                showServerStatus('Please enter the repository name', 'error');
-                return;
-            }
-            
-            showServerStatus('Triggering workflow...', 'info');
+            showServerStatus('🔄 Triggering workflow...', 'info');
             
             try {
-                const inputs = { iso_markets: isoMarkets };
+                const inputs = { iso_markets: document.getElementById('serverIsoMarkets').value };
+                const startDate = document.getElementById('serverStartDate').value;
+                const endDate = document.getElementById('serverEndDate').value;
                 if (startDate) inputs.start_date = startDate;
                 if (endDate) inputs.end_date = endDate;
                 
-                const response = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/update-lmp-data.yml/dispatches`, {
+                const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/update-lmp-data.yml/dispatches`, {
                     method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        ref: 'main',
-                        inputs: inputs
-                    })
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ref: 'main', inputs })
                 });
                 
-                if (response.status === 204) {
-                    showServerStatus('✅ Workflow triggered successfully! Check status below.', 'success');
-                    // Save token for convenience
+                if (res.status === 204) {
+                    showServerStatus('✅ Workflow triggered! Check status below.', 'success');
                     localStorage.setItem('lmpFetcher_githubToken', token);
                     localStorage.setItem('lmpFetcher_repoName', repo);
-                    // Check status after a brief delay
-                    setTimeout(() => checkWorkflowStatus(), 3000);
-                } else if (response.status === 404) {
-                    showServerStatus('❌ Workflow not found. Make sure update-lmp-data.yml is in .github/workflows/', 'error');
-                } else if (response.status === 401) {
-                    showServerStatus('❌ Invalid token. Make sure it has "repo" and "workflow" permissions.', 'error');
+                    setTimeout(checkWorkflowStatus, 3000);
+                } else if (res.status === 404) {
+                    showServerStatus('❌ Workflow not found. Check .github/workflows/update-lmp-data.yml exists', 'error');
+                } else if (res.status === 401) {
+                    showServerStatus('❌ Invalid token. Needs repo + workflow scopes', 'error');
                 } else {
-                    const error = await response.json();
-                    showServerStatus(`❌ Error: ${error.message || response.status}`, 'error');
+                    const err = await res.json().catch(() => ({}));
+                    showServerStatus(`❌ Error ${res.status}: ${err.message || 'Unknown'}`, 'error');
                 }
-            } catch (err) {
-                showServerStatus(`❌ Network error: ${err.message}`, 'error');
-            }
+            } catch (e) { showServerStatus(`❌ Network error: ${e.message}`, 'error'); }
         }
         
         async function checkWorkflowStatus() {
             const token = document.getElementById('githubToken').value.trim();
             const repo = document.getElementById('repoName').value.trim();
-            
-            if (!token || !repo) {
-                showServerStatus('Enter token and repo to check status', 'warning');
-                return;
-            }
+            if (!token || !repo) { showServerStatus('Enter token and repo', 'warning'); return; }
             
             try {
-                const response = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/update-lmp-data.yml/runs?per_page=5`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
+                const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/update-lmp-data.yml/runs?per_page=5`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
                 });
                 
-                if (!response.ok) {
-                    if (response.status === 404) {
-                        showServerStatus('Workflow not found. Upload the workflow file first.', 'warning');
-                    } else {
-                        showServerStatus('Could not fetch workflow status', 'error');
-                    }
-                    return;
-                }
+                if (!res.ok) { showServerStatus(res.status === 404 ? 'Workflow not found' : 'Could not fetch status', 'error'); return; }
                 
-                const data = await response.json();
-                const statusCard = document.getElementById('workflowStatusCard');
-                const runsContainer = document.getElementById('workflowRuns');
+                const data = await res.json();
+                const card = document.getElementById('workflowStatusCard');
+                const runs = document.getElementById('workflowRuns');
                 
-                if (data.workflow_runs && data.workflow_runs.length > 0) {
-                    statusCard.style.display = 'block';
-                    runsContainer.innerHTML = data.workflow_runs.map(run => {
-                        const status = run.status === 'completed' ? run.conclusion : run.status;
-                        const badgeClass = {
-                            'success': 'success',
-                            'failure': 'failed',
-                            'in_progress': 'running',
-                            'queued': 'pending'
-                        }[status] || 'pending';
-                        
-                        const date = new Date(run.created_at).toLocaleString();
-                        
-                        return `
-                            <div class="workflow-item">
-                                <div>
-                                    <div style="color: var(--text-primary)">${run.display_title || 'LMP Update'}</div>
-                                    <div style="color: var(--text-tertiary); font-size: 10px;">${date}</div>
-                                </div>
-                                <a href="${run.html_url}" target="_blank" class="workflow-badge ${badgeClass}">
-                                    ${status.toUpperCase()}
-                                </a>
-                            </div>
-                        `;
+                if (data.workflow_runs?.length > 0) {
+                    card.style.display = 'block';
+                    runs.innerHTML = data.workflow_runs.map(run => {
+                        let badge = 'pending', text = run.status;
+                        if (run.conclusion === 'success') { badge = 'success'; text = 'Success'; }
+                        else if (run.conclusion === 'failure') { badge = 'failed'; text = 'Failed'; }
+                        else if (run.status === 'in_progress') { badge = 'running'; text = 'Running...'; }
+                        return `<div class="workflow-item"><div><div style="font-weight:600">#${run.run_number}</div><div style="font-size:10px;color:var(--text-tertiary)">${new Date(run.created_at).toLocaleString()}</div></div><a href="${run.html_url}" target="_blank" class="workflow-badge ${badge}">${text}</a></div>`;
                     }).join('');
+                    if (data.workflow_runs.some(r => r.status === 'in_progress' || r.status === 'queued')) setTimeout(checkWorkflowStatus, 10000);
                 } else {
-                    statusCard.style.display = 'block';
-                    runsContainer.innerHTML = '<p style="color: var(--text-tertiary); font-size: 12px;">No workflow runs yet. Trigger one above!</p>';
+                    card.style.display = 'block';
+                    runs.innerHTML = '<p style="color:var(--text-tertiary);font-size:12px">No runs found</p>';
                 }
-            } catch (err) {
-                showServerStatus(`Error checking status: ${err.message}`, 'error');
-            }
-        }
-        
-        function showServerStatus(msg, type) {
-            const el = document.getElementById('serverStatus');
-            el.textContent = msg;
-            el.className = `status-message active ${type}`;
-        }
-        
-        // ============================================
-        // BROWSER MODE - Original Functionality
-        // ============================================
-        const ISO_CONFIG = {
-            ISONE: {
-                name: 'ISO-NE',
-                propertyKey: 'hourlyPricingDayAheadISONE',
-                zones: [
-                    { value: '4000', label: 'ISO NE CA' },
-                    { value: '4001', label: 'Maine' },
-                    { value: '4002', label: 'NH' },
-                    { value: '4003', label: 'Vermont' },
-                    { value: '4004', label: 'Connecticut' },
-                    { value: '4005', label: 'Rhode Island' },
-                    { value: '4006', label: 'SEMA' },
-                    { value: '4007', label: 'WCMA' },
-                    { value: '4008', label: 'NEMA' }
-                ]
-            },
-            PJM: {
-                name: 'PJM',
-                propertyKey: 'hourlyPricingDayAheadPJM',
-                zones: [
-                    { value: '51291', label: 'AECO' },
-                    { value: '51292', label: 'BGE' },
-                    { value: '51293', label: 'DPL' },
-                    { value: '51294', label: 'JCPL' },
-                    { value: '51295', label: 'METED' },
-                    { value: '51296', label: 'PECO' },
-                    { value: '51297', label: 'PENELEC' },
-                    { value: '51298', label: 'PEPCO' },
-                    { value: '51299', label: 'PPL' },
-                    { value: '51300', label: 'PSEG' }
-                ]
-            },
-            ERCOT: {
-                name: 'ERCOT',
-                propertyKey: 'hourlyPricingDayAheadERCOT',
-                zones: [
-                    { value: 'LZ_HOUSTON', label: 'Houston' },
-                    { value: 'LZ_NORTH', label: 'North' },
-                    { value: 'LZ_SOUTH', label: 'South' },
-                    { value: 'LZ_WEST', label: 'West' }
-                ]
-            }
-        };
-        
-        let currentISO = null;
-        let selectedZones = [];
-        let fetchedData = { hourly: [], monthly: [] };
-        let debugVisible = false;
-        
-        function getProxyUrl(targetUrl) {
-            if (!document.getElementById('useProxy').checked) return targetUrl;
-            return 'https://corsproxy.io/?' + encodeURIComponent(targetUrl);
-        }
-        
-        function addDebugLine(msg, type = 'info') {
-            const el = document.getElementById('debugConsole');
-            const ts = new Date().toLocaleTimeString();
-            el.innerHTML += `<div class="debug-line ${type}"><span class="debug-timestamp">[${ts}]</span>${msg}</div>`;
-            el.scrollTop = el.scrollHeight;
-        }
-        
-        function showStatus(msg, type = 'info', id = 'statusMessage') {
-            const el = document.getElementById(id);
-            el.textContent = msg;
-            el.className = `status-message active ${type}`;
-        }
-        
-        function hideStatus(id = 'statusMessage') {
-            document.getElementById(id).className = 'status-message';
+            } catch (e) { showServerStatus(`Error: ${e.message}`, 'error'); }
         }
         
         function init() {
-            // Load saved settings
             const savedToken = localStorage.getItem('lmpFetcher_githubToken');
             const savedRepo = localStorage.getItem('lmpFetcher_repoName');
             if (savedToken) document.getElementById('githubToken').value = savedToken;
             if (savedRepo) document.getElementById('repoName').value = savedRepo;
             
-            // Set default dates
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today);
-            thirtyDaysAgo.setDate(today.getDate() - 30);
+            const today = new Date(), ago = new Date(today);
+            ago.setDate(today.getDate() - 30);
             document.getElementById('endDate').value = today.toISOString().split('T')[0];
-            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
+            document.getElementById('startDate').value = ago.toISOString().split('T')[0];
             
-            // Build ISO selector
-            const isoSelector = document.getElementById('isoSelector');
+            const sel = document.getElementById('isoSelector');
             Object.keys(ISO_CONFIG).forEach(key => {
                 const btn = document.createElement('button');
                 btn.className = 'iso-btn';
                 btn.textContent = ISO_CONFIG[key].name;
                 btn.onclick = () => selectISO(key, btn);
-                isoSelector.appendChild(btn);
+                sel.appendChild(btn);
             });
             
-            // Event listeners
-            document.getElementById('testCredsBtn').onclick = testCredentials;
-            document.getElementById('toggleDebugBtn').onclick = () => {
-                debugVisible = !debugVisible;
-                document.getElementById('debugConsole').classList.toggle('active', debugVisible);
-            };
-            document.getElementById('selectAllBtn').onclick = toggleSelectAll;
-            document.getElementById('fetchBtn').onclick = fetchData;
-            document.getElementById('exportBtn').onclick = exportCSV;
-            document.getElementById('sendToPortalBtn').onclick = sendToPortal;
-            
+            if (CONFIG.azureEndpoint) document.getElementById('syncToAzureBtn').style.display = 'inline-block';
             window.addEventListener('message', handleMessage);
-            notifyParent('ready', {});
-            addDebugLine('Arcadia LMP Fetcher initialized', 'success');
+            addDebugLine(`LMP Fetcher v${CONFIG.version} ready`, 'success');
         }
         
-        function selectISO(isoKey, btnEl) {
-            currentISO = isoKey;
+        function selectISO(key, btn) {
+            currentISO = key;
             selectedZones = [];
             document.querySelectorAll('.iso-btn').forEach(b => b.classList.remove('active'));
-            btnEl.classList.add('active');
+            btn.classList.add('active');
             document.getElementById('zoneSection').style.display = 'block';
-            
-            const grid = document.getElementById('zonesGrid');
-            grid.innerHTML = ISO_CONFIG[isoKey].zones.map(z => `
-                <label class="zone-item">
-                    <input type="checkbox" value="${z.value}" onchange="updateSelectedZones()">
-                    ${z.label}
-                </label>
-            `).join('');
-            addDebugLine(`Selected ISO: ${ISO_CONFIG[isoKey].name}`, 'info');
+            document.getElementById('zonesGrid').innerHTML = ISO_CONFIG[key].zones.map(z => `<label class="zone-item"><input type="checkbox" value="${z.value}" onchange="updateSelectedZones()">${z.label}</label>`).join('');
+            addDebugLine(`Selected: ${ISO_CONFIG[key].name}`, 'info');
         }
         
-        function updateSelectedZones() {
-            selectedZones = Array.from(document.querySelectorAll('.zone-item input:checked')).map(cb => cb.value);
-        }
-        
+        function updateSelectedZones() { selectedZones = Array.from(document.querySelectorAll('.zone-item input:checked')).map(cb => cb.value); }
         function toggleSelectAll() {
             const cbs = document.querySelectorAll('.zone-item input');
-            const allChecked = Array.from(cbs).every(cb => cb.checked);
-            cbs.forEach(cb => cb.checked = !allChecked);
+            const all = Array.from(cbs).every(cb => cb.checked);
+            cbs.forEach(cb => cb.checked = !all);
             updateSelectedZones();
         }
         
@@ -805,27 +695,23 @@
             try {
                 const creds = btoa(`${appId}:${appKey}`);
                 const url = getProxyUrl('https://api.genability.com/rest/echo/hello');
-                addDebugLine(`URL: ${url}`, 'info');
+                addDebugLine(`Proxy: ${document.getElementById('proxySelector').value}`, 'info');
                 
-                const res = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Basic ${creds}`, 'Accept': 'application/json' }
-                });
-                
+                const res = await fetch(url, { headers: { 'Authorization': `Basic ${creds}`, 'Accept': 'application/json' } });
                 addDebugLine(`Status: ${res.status}`, res.ok ? 'success' : 'error');
                 
-                if (res.ok) {
-                    showStatus('✓ Credentials valid!', 'success', 'credStatus');
-                    addDebugLine('Credentials validated', 'success');
-                } else if (res.status === 401) {
-                    showStatus('✗ Invalid credentials', 'error', 'credStatus');
-                    addDebugLine('Auth failed (401)', 'error');
-                } else {
-                    showStatus(`✗ API error: ${res.status}`, 'error', 'credStatus');
+                if (res.ok) { showStatus('✓ Valid!', 'success', 'credStatus'); addDebugLine('Credentials OK', 'success'); }
+                else if (res.status === 401) { showStatus('✗ Invalid', 'error', 'credStatus'); addDebugLine('Auth failed', 'error'); }
+                else { showStatus(`✗ Error: ${res.status}`, 'error', 'credStatus'); }
+            } catch (e) {
+                addDebugLine(`Error: ${e.message}`, 'error');
+                if (document.getElementById('proxySelector').value === 'corsproxy') {
+                    addDebugLine('Trying allorigins...', 'warning');
+                    document.getElementById('proxySelector').value = 'allorigins';
+                    updateProxyStatus();
+                    return testCredentials();
                 }
-            } catch (err) {
-                addDebugLine(`Error: ${err.message}`, 'error');
-                showStatus(`Connection error. Enable CORS proxy.`, 'error', 'credStatus');
+                showStatus('Connection error. Try different proxy.', 'error', 'credStatus');
             }
         }
         
@@ -837,7 +723,7 @@
             
             if (!appId || !appKey) { showStatus('Enter credentials', 'error'); return; }
             if (!currentISO) { showStatus('Select an ISO', 'error'); return; }
-            if (selectedZones.length === 0) { showStatus('Select zones', 'error'); return; }
+            if (!selectedZones.length) { showStatus('Select zones', 'error'); return; }
             if (!startDate || !endDate) { showStatus('Select dates', 'error'); return; }
             
             document.getElementById('loading').classList.add('active');
@@ -848,100 +734,73 @@
             fetchedData = { hourly: [], monthly: [] };
             let total = 0;
             
-            addDebugLine(`Fetching ${selectedZones.length} zones...`, 'info');
+            addDebugLine(`Fetching ${selectedZones.length} zones from ${cfg.name}...`, 'info');
             
             try {
                 for (const zid of selectedZones) {
                     const zname = cfg.zones.find(z => z.value === zid)?.label || zid;
-                    addDebugLine(`Zone: ${zname}...`, 'info');
+                    addDebugLine(`${zname}...`, 'info');
                     
-                    const records = await fetchZoneData(creds, cfg.propertyKey, zid, startDate, endDate);
-                    if (records.length > 0) {
-                        const enriched = records.map(r => ({ ...r, zone: zname, zone_id: zid, iso: currentISO }));
-                        fetchedData.hourly.push(...enriched);
-                        total += records.length;
-                        addDebugLine(`  → ${records.length} records`, 'success');
-                    } else {
-                        addDebugLine(`  → No data`, 'warning');
-                    }
+                    const recs = await fetchZoneData(creds, cfg.propertyKey, zid, startDate, endDate);
+                    if (recs.length) {
+                        fetchedData.hourly.push(...recs.map(r => ({ ...r, zone: zname, zone_id: zid, iso: currentISO })));
+                        total += recs.length;
+                        addDebugLine(`  → ${recs.length} records`, 'success');
+                    } else { addDebugLine(`  → No data`, 'warning'); }
                 }
                 
-                fetchedData.monthly = calcMonthlyAverages(fetchedData.hourly);
+                fetchedData.monthly = calcMonthly(fetchedData.hourly);
                 displayResults();
-                showStatus(`Fetched ${total.toLocaleString()} records`, 'success');
-                addDebugLine(`Complete: ${total} records`, 'success');
+                showStatus(`✅ ${total.toLocaleString()} records fetched`, 'success');
                 document.getElementById('exportBtn').disabled = false;
-            } catch (err) {
-                addDebugLine(`Error: ${err.message}`, 'error');
-                showStatus(`Error: ${err.message}`, 'error');
-            } finally {
-                document.getElementById('loading').classList.remove('active');
-            }
+            } catch (e) {
+                addDebugLine(`Error: ${e.message}`, 'error');
+                showStatus(`Error: ${e.message}`, 'error');
+            } finally { document.getElementById('loading').classList.remove('active'); }
         }
         
         async function fetchZoneData(creds, propKey, zoneId, start, end) {
-            const baseUrl = 'https://api.genability.com/rest/public/properties';
-            let allRecs = [], pageStart = 0, pageCount = 1000, hasMore = true;
+            const base = 'https://api.genability.com/rest/public/properties';
+            let all = [], page = 0, count = 1000, more = true;
             
-            while (hasMore) {
-                const params = new URLSearchParams({
-                    subKeyName: zoneId,
-                    fromDateTime: `${start}T00:00:00`,
-                    toDateTime: `${end}T23:59:59`,
-                    pageStart: pageStart.toString(),
-                    pageCount: pageCount.toString()
-                });
+            while (more) {
+                const params = new URLSearchParams({ subKeyName: zoneId, fromDateTime: `${start}T00:00:00`, toDateTime: `${end}T23:59:59`, pageStart: page, pageCount: count });
+                const url = getProxyUrl(`${base}/${propKey}/lookups?${params}`);
+                const res = await fetch(url, { headers: { 'Authorization': `Basic ${creds}`, 'Accept': 'application/json' } });
                 
-                const url = getProxyUrl(`${baseUrl}/${propKey}/lookups?${params}`);
-                const res = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Authorization': `Basic ${creds}`, 'Accept': 'application/json' }
-                });
-                
-                if (!res.ok) throw new Error(res.status === 401 ? 'Invalid credentials' : `API ${res.status}`);
+                if (!res.ok) throw new Error(res.status === 401 ? 'Invalid credentials' : `API error: ${res.status}`);
                 
                 const data = await res.json();
-                if (data.results && data.results.length > 0) {
-                    const recs = data.results.map(item => ({
-                        datetime: item.fromDateTime || item.period,
-                        price: parseFloat(item.dataValue || item.lmpTotal || 0)
-                    })).filter(r => !isNaN(r.price));
-                    
-                    allRecs.push(...recs);
-                    hasMore = data.count && data.count > pageStart + pageCount;
-                    pageStart += pageCount;
-                } else {
-                    hasMore = false;
-                }
+                if (data.results?.length) {
+                    all.push(...data.results.map(i => ({ datetime: i.fromDateTime || i.period, price: parseFloat(i.dataValue || i.lmpTotal || 0) })).filter(r => !isNaN(r.price)));
+                    more = data.count > page + count;
+                    page += count;
+                } else { more = false; }
             }
-            return allRecs;
+            return all;
         }
         
-        function calcMonthlyAverages(hourly) {
+        function calcMonthly(hourly) {
             const map = {};
             hourly.forEach(r => {
-                const d = new Date(r.datetime);
-                const y = d.getFullYear(), m = (d.getMonth() + 1).toString().padStart(2, '0');
+                const d = new Date(r.datetime), y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, '0');
                 const k = `${r.zone}_${y}_${m}`;
-                if (!map[k]) map[k] = { zone: r.zone, zone_id: r.zone_id, iso: r.iso, year: y.toString(), month: m, prices: [] };
+                if (!map[k]) map[k] = { zone: r.zone, zone_id: r.zone_id, iso: r.iso, year: String(y), month: m, prices: [] };
                 map[k].prices.push(r.price);
             });
-            
             return Object.values(map).map(m => ({
                 zone: m.zone, zone_id: m.zone_id, iso: m.iso, year: m.year, month: m.month,
                 avg_da_lmp: m.prices.reduce((a, b) => a + b, 0) / m.prices.length,
-                min_price: Math.min(...m.prices), max_price: Math.max(...m.prices),
-                record_count: m.prices.length
+                min_price: Math.min(...m.prices), max_price: Math.max(...m.prices), record_count: m.prices.length
             })).sort((a, b) => a.zone.localeCompare(b.zone) || a.year.localeCompare(b.year) || a.month.localeCompare(b.month));
         }
         
         function displayResults() {
             document.getElementById('resultsSection').classList.add('active');
-            const m = fetchedData.monthly;
-            const total = fetchedData.hourly.length;
-            const avg = m.length > 0 ? m.reduce((a, b) => a + b.avg_da_lmp, 0) / m.length : 0;
-            const min = m.length > 0 ? Math.min(...m.map(x => x.min_price)) : 0;
-            const max = m.length > 0 ? Math.max(...m.map(x => x.max_price)) : 0;
+            const m = fetchedData.monthly, total = fetchedData.hourly.length;
+            const avg = m.length ? m.reduce((a, b) => a + b.avg_da_lmp, 0) / m.length : 0;
+            const min = m.length ? Math.min(...m.map(x => x.min_price)) : 0;
+            const max = m.length ? Math.max(...m.map(x => x.max_price)) : 0;
             
             document.getElementById('statsGrid').innerHTML = `
                 <div class="stat-card"><div class="stat-value">${total.toLocaleString()}</div><div class="stat-label">Records</div></div>
@@ -949,51 +808,54 @@
                 <div class="stat-card"><div class="stat-value">$${min.toFixed(2)}</div><div class="stat-label">Min</div></div>
                 <div class="stat-card"><div class="stat-value">$${max.toFixed(2)}</div><div class="stat-label">Max</div></div>
             `;
-            
-            document.getElementById('resultsBody').innerHTML = m.slice(0, 15).map(r => `
-                <tr><td>${r.zone}</td><td>${r.month}</td><td>${r.year}</td><td>$${r.avg_da_lmp.toFixed(2)}</td><td>${r.record_count}</td></tr>
-            `).join('');
-            
+            document.getElementById('resultsBody').innerHTML = m.slice(0, 15).map(r => `<tr><td>${r.zone}</td><td>${r.month}</td><td>${r.year}</td><td>$${r.avg_da_lmp.toFixed(2)}</td><td>${r.record_count}</td></tr>`).join('');
             document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
         }
         
         function exportCSV() {
-            if (fetchedData.monthly.length === 0) { showStatus('No data', 'warning'); return; }
-            const headers = ['ISO','Zone','Month','Year','Avg_DA_LMP','Min','Max','Count'];
-            const rows = fetchedData.monthly.map(r => [r.iso, r.zone, r.month, r.year, r.avg_da_lmp.toFixed(4), r.min_price.toFixed(4), r.max_price.toFixed(4), r.record_count]);
-            const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-            const blob = new Blob([csv], { type: 'text/csv' });
+            if (!fetchedData.monthly.length) { showStatus('No data', 'warning'); return; }
+            const csv = ['ISO,Zone,Month,Year,Avg_DA_LMP,Min,Max,Count', ...fetchedData.monthly.map(r => `${r.iso},${r.zone},${r.month},${r.year},${r.avg_da_lmp.toFixed(4)},${r.min_price.toFixed(4)},${r.max_price.toFixed(4)},${r.record_count}`)].join('\n');
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `arcadia_lmp_${currentISO}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = `lmp_${currentISO}_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
             showStatus('CSV exported', 'success');
         }
         
         function sendToPortal() {
-            if (fetchedData.monthly.length === 0) { showStatus('No data', 'warning'); return; }
+            if (!fetchedData.monthly.length) { showStatus('No data', 'warning'); return; }
             const data = fetchedData.monthly.map(r => ({ month: r.month, year: r.year, zone: r.zone_id || r.zone, zone_name: r.zone, avg_da_lmp: r.avg_da_lmp }));
-            
-            notifyParent('LMP_DATA_UPDATE', { iso: currentISO, records: data, source: 'arcadia' });
-            
+            if (window.parent !== window) window.parent.postMessage({ type: 'LMP_DATA_UPDATE', iso: currentISO, records: data, source: 'arcadia' }, '*');
             try {
                 const existing = JSON.parse(localStorage.getItem('secureEnergy_LMP_Data') || '{"data":{}}');
                 existing.data[currentISO] = data;
                 existing.meta = { lastUpdate: new Date().toISOString(), source: 'arcadia', version: '1.0' };
-                existing.version = '1.0';
                 localStorage.setItem('secureEnergy_LMP_Data', JSON.stringify(existing));
-            } catch (e) { console.error(e); }
-            
-            showStatus('Data sent to portal!', 'success');
-            addDebugLine(`Sent ${data.length} records to portal`, 'success');
+            } catch (e) {}
+            showStatus('Sent to portal!', 'success');
+            addDebugLine(`Sent ${data.length} records`, 'success');
         }
         
-        function notifyParent(type, data) {
-            if (window.parent !== window) window.parent.postMessage({ type, ...data }, '*');
+        async function syncToAzure() {
+            if (!CONFIG.azureEndpoint) { showStatus('Azure not configured', 'warning'); return; }
+            if (!fetchedData.monthly.length) { showStatus('No data', 'warning'); return; }
+            addDebugLine('Syncing to Azure...', 'info');
+            try {
+                const res = await fetch(CONFIG.azureEndpoint, {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ iso: currentISO, records: fetchedData.monthly, timestamp: new Date().toISOString() })
+                });
+                if (res.ok) { showStatus('✅ Synced to Azure!', 'success'); addDebugLine('Azure sync OK', 'success'); }
+                else throw new Error(`Status ${res.status}`);
+            } catch (e) { showStatus(`Azure failed: ${e.message}`, 'error'); addDebugLine(`Azure error: ${e.message}`, 'error'); }
         }
         
         function handleMessage(e) {
-            if (e.data?.type === 'REQUEST_LMP_DATA' && fetchedData.monthly.length > 0) sendToPortal();
+            if (e.data?.type === 'REQUEST_LMP_DATA' && fetchedData.monthly.length) sendToPortal();
+            if (e.data?.type === 'SET_AZURE_ENDPOINT' && e.data.endpoint) {
+                CONFIG.azureEndpoint = e.data.endpoint;
+                document.getElementById('syncToAzureBtn').style.display = 'inline-block';
+            }
         }
         
         document.addEventListener('DOMContentLoaded', init);
