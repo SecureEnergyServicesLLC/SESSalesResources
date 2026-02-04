@@ -1,5 +1,11 @@
 /**
- * Secure Energy Analytics Portal - Main Controller v2.9
+ * Secure Energy Analytics Portal - Main Controller v3.0
+ * 
+ * v3.0 Updates:
+ * - Activity Log now syncs from Azure for cross-device visibility
+ * - Admins can see ALL users' activities (not just their own)
+ * - Added "Sync All" button to fetch latest activities from Azure
+ * - Auto-refresh when Azure activity data loads
  * 
  * v2.9 Updates:
  * - Added Feedback & Support widget with dual versions (light/admin)
@@ -136,6 +142,12 @@ document.addEventListener('DOMContentLoaded', async function() {
     window.addEventListener('activityLogged', function() {
         refreshActivityLogIfVisible();
         if (document.getElementById('analysisHistoryContent')) renderAnalysisHistory();
+    });
+    
+    // Auto-refresh when Azure activity log data is ready
+    window.addEventListener('activityLogReady', function() {
+        console.log('[Portal] ActivityLog ready from Azure, refreshing display...');
+        refreshActivityLogIfVisible();
     });
     
     console.log('[Portal] Ready');
@@ -1079,7 +1091,7 @@ function getCreateUserPanel() {
 function getManageUsersPanel() { return '<div style="overflow-x:auto;"><table class="users-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody id="usersTableBody"></tbody></table></div>'; }
 
 function getActivityLogPanel() {
-    return '<div class="activity-stats-grid" id="activityStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:12px;margin-bottom:20px;"></div><div class="activity-filters" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><input type="text" id="activitySearch" placeholder="Search..." style="flex:1;min-width:150px;" oninput="renderActivityLog()"><select id="activityUserFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Users</option></select><select id="activityWidgetFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Widgets</option><option value="portal">Portal</option><option value="user-admin">User Admin</option><option value="client-admin">Client Admin</option><option value="bid-management">Bid Management</option><option value="lmp-comparison">LMP Comparison</option><option value="lmp-analytics">LMP Analytics</option><option value="energy-utilization">Energy Utilization</option><option value="ai-assistant">AI Assistant</option><option value="aei-intelligence">AE Intelligence</option><option value="data-manager">Data Manager</option><option value="analysis-history">Analysis History</option></select><select id="activityActionFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Actions</option><option value="Login">Login</option><option value="Logout">Logout</option><option value="LMP Analysis">LMP Analysis</option><option value="LMP Export">LMP Export</option><option value="Bid Sheet Generated">Bid Sheet</option><option value="Client Create">Client Create</option><option value="Client Update">Client Update</option><option value="AI Query">AI Query</option><option value="Widget Expand">Widget Expand</option><option value="Widget Resize">Widget Resize</option><option value="Data Upload">Data Upload</option><option value="History Export">History Export</option></select><button onclick="renderActivityLog()" style="padding:8px 16px;background:var(--accent-primary);color:white;border:none;border-radius:6px;cursor:pointer;">🔄 Refresh</button></div><div id="activityLogContainer" style="max-height:500px;overflow-y:auto;"></div>';
+    return '<div class="activity-stats-grid" id="activityStatsGrid" style="display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:12px;margin-bottom:20px;"></div><div class="activity-filters" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;"><input type="text" id="activitySearch" placeholder="Search..." style="flex:1;min-width:150px;" oninput="renderActivityLog()"><select id="activityUserFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Users</option></select><select id="activityWidgetFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Widgets</option><option value="portal">Portal</option><option value="user-admin">User Admin</option><option value="client-admin">Client Admin</option><option value="bid-management">Bid Management</option><option value="lmp-comparison">LMP Comparison</option><option value="lmp-analytics">LMP Analytics</option><option value="energy-utilization">Energy Utilization</option><option value="ai-assistant">AI Assistant</option><option value="aei-intelligence">AE Intelligence</option><option value="data-manager">Data Manager</option><option value="analysis-history">Analysis History</option></select><select id="activityActionFilter" onchange="renderActivityLog()" style="min-width:140px;"><option value="">All Actions</option><option value="Login">Login</option><option value="Logout">Logout</option><option value="LMP Analysis">LMP Analysis</option><option value="LMP Export">LMP Export</option><option value="Bid Sheet Generated">Bid Sheet</option><option value="Client Create">Client Create</option><option value="Client Update">Client Update</option><option value="AI Query">AI Query</option><option value="Widget Expand">Widget Expand</option><option value="Widget Resize">Widget Resize</option><option value="Data Upload">Data Upload</option><option value="History Export">History Export</option></select><button onclick="renderActivityLog()" style="padding:8px 16px;background:var(--accent-primary);color:white;border:none;border-radius:6px;cursor:pointer;">🔄 Refresh</button><button id="syncAllActivitiesBtn" onclick="syncActivityFromAzure()" style="padding:8px 16px;background:#10b981;color:white;border:none;border-radius:6px;cursor:pointer;display:none;" title="Fetch all user activities from Azure">☁️ Sync All</button></div><div id="activityLogContainer" style="max-height:500px;overflow-y:auto;"></div>';
 }
 
 function getGitHubSyncPanel() {
@@ -1107,13 +1119,30 @@ function renderActivityLog() {
     if (!container) return;
     
     const allLogs = ActivityLog.getAll();
+    const isAdmin = currentUser?.role === 'admin';
     
-    // Populate user filter dropdown (for admins)
+    // Non-admins only see their own activities
+    const visibleLogs = isAdmin ? allLogs : allLogs.filter(l => l.userId === currentUser?.id);
+    
+    // Show/hide admin-only controls
+    const syncAllBtn = document.getElementById('syncAllActivitiesBtn');
+    if (syncAllBtn) {
+        syncAllBtn.style.display = isAdmin ? '' : 'none';
+    }
+    
+    // Populate user filter dropdown (for admins only)
     const userFilter = document.getElementById('activityUserFilter');
-    if (userFilter && currentUser?.role === 'admin') {
-        const uniqueUsers = [...new Map(allLogs.map(l => [l.userId, { id: l.userId, name: l.userName, email: l.userEmail }])).values()].filter(u => u.id);
-        const currentVal = userFilter.value;
-        userFilter.innerHTML = '<option value="">All Users</option>' + uniqueUsers.map(u => '<option value="' + u.id + '"' + (currentVal === u.id ? ' selected' : '') + '>' + escapeHtml(u.name || u.email || 'Unknown') + '</option>').join('');
+    if (userFilter) {
+        if (isAdmin) {
+            // Show user filter for admins
+            userFilter.style.display = '';
+            const uniqueUsers = [...new Map(visibleLogs.map(l => [l.userId, { id: l.userId, name: l.userName, email: l.userEmail }])).values()].filter(u => u.id);
+            const currentVal = userFilter.value;
+            userFilter.innerHTML = '<option value="">All Users</option>' + uniqueUsers.map(u => '<option value="' + u.id + '"' + (currentVal === u.id ? ' selected' : '') + '>' + escapeHtml(u.name || u.email || 'Unknown') + '</option>').join('');
+        } else {
+            // Hide user filter for non-admins (they only see their own)
+            userFilter.style.display = 'none';
+        }
     }
     
     const search = (document.getElementById('activitySearch')?.value || '').toLowerCase();
@@ -1121,7 +1150,7 @@ function renderActivityLog() {
     const actionFilter = document.getElementById('activityActionFilter')?.value || '';
     const userFilterVal = document.getElementById('activityUserFilter')?.value || '';
     
-    const logs = allLogs.filter(log => {
+    const logs = visibleLogs.filter(log => {
         if (widgetFilter && log.widget !== widgetFilter) return false;
         if (actionFilter && log.action !== actionFilter) return false;
         if (userFilterVal && log.userId !== userFilterVal) return false;
@@ -1133,14 +1162,14 @@ function renderActivityLog() {
     }).slice(0, 100);
     
     const today = new Date().toDateString();
-    const todayLogs = allLogs.filter(l => new Date(l.timestamp).toDateString() === today);
+    const todayLogs = visibleLogs.filter(l => new Date(l.timestamp).toDateString() === today);
     const actionCounts = {};
-    allLogs.forEach(l => { actionCounts[l.action] = (actionCounts[l.action] || 0) + 1; });
+    visibleLogs.forEach(l => { actionCounts[l.action] = (actionCounts[l.action] || 0) + 1; });
     
     if (statsGrid) {
-        statsGrid.innerHTML = '<div class="stat-box"><div class="stat-value">' + allLogs.length + '</div><div class="stat-label">Total Events</div></div>' +
+        statsGrid.innerHTML = '<div class="stat-box"><div class="stat-value">' + visibleLogs.length + '</div><div class="stat-label">Total Events</div></div>' +
             '<div class="stat-box"><div class="stat-value">' + todayLogs.length + '</div><div class="stat-label">Today</div></div>' +
-            '<div class="stat-box"><div class="stat-value">' + new Set(allLogs.map(l => l.userId)).size + '</div><div class="stat-label">Unique Users</div></div>' +
+            (isAdmin ? '<div class="stat-box"><div class="stat-value">' + new Set(visibleLogs.map(l => l.userId)).size + '</div><div class="stat-label">Unique Users</div></div>' : '') +
             '<div class="stat-box"><div class="stat-value">' + (actionCounts['LMP Analysis'] || 0) + '</div><div class="stat-label">Analyses</div></div>' +
             '<div class="stat-box"><div class="stat-value">' + (actionCounts['Bid Sheet Generated'] || 0) + '</div><div class="stat-label">Bid Sheets</div></div>' +
             '<div class="stat-box"><div class="stat-value">' + (actionCounts['AI Query'] || 0) + '</div><div class="stat-label">AI Queries</div></div>' +
@@ -1158,7 +1187,7 @@ function renderActivityLog() {
             '<span style="font-weight:600;color:var(--text-primary);">' + escapeHtml(log.action || 'Action') + '</span>' +
             '<span style="font-size:11px;padding:2px 8px;background:var(--bg-tertiary);border-radius:4px;color:var(--text-secondary);">' + escapeHtml(log.widget || 'Portal') + '</span>' +
             '</div>' +
-            '<div style="font-size:13px;color:var(--text-secondary);">👤 ' + escapeHtml(log.userName || 'Unknown') + (log.clientName ? ' • <span style="color:var(--accent-primary);">Client: ' + escapeHtml(log.clientName) + '</span>' : '') + '</div>' +
+            '<div style="font-size:13px;color:var(--text-secondary);">' + (isAdmin ? '👤 ' + escapeHtml(log.userName || 'Unknown') : '') + (log.clientName ? (isAdmin ? ' • ' : '') + '<span style="color:var(--accent-primary);">Client: ' + escapeHtml(log.clientName) + '</span>' : '') + '</div>' +
             (dataPreview ? '<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">' + dataPreview + '</div>' : '') +
             '</div>' +
             '<div style="text-align:right;font-size:11px;color:var(--text-tertiary);white-space:nowrap;">' + formatTimeAgo(log.timestamp) + '<br>' + new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) + '</div>' +
@@ -1192,6 +1221,28 @@ function refreshActivityLogIfVisible() {
         renderActivityLog();
     }
 }
+
+// Sync activity log from Azure (for admins to see all users' activities)
+window.syncActivityFromAzure = async function() {
+    if (!currentUser || currentUser.role !== 'admin') {
+        showNotification('Admin access required', 'error');
+        return;
+    }
+    
+    showNotification('Syncing activities from Azure...', 'info');
+    
+    try {
+        const result = await ActivityLog.refresh();
+        if (result.success) {
+            renderActivityLog();
+            showNotification(`Synced ${result.count} activities from Azure`, 'success');
+        } else {
+            showNotification('Sync failed: ' + (result.error || 'Unknown error'), 'error');
+        }
+    } catch (e) {
+        showNotification('Sync error: ' + e.message, 'error');
+    }
+};
 
 function renderGitHubSyncStatus() {
     const status = document.getElementById('githubSyncStatus');

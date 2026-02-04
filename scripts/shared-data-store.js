@@ -1,7 +1,13 @@
 /**
- * Secure Energy Shared Data Store v3.0 (Azure Integration)
+ * Secure Energy Shared Data Store v3.1 (Azure Integration)
  * Centralized data management for LMP data, user authentication, activity logging,
  * widget layout preferences, usage profiles, and support tickets
+ * 
+ * v3.1 Updates:
+ * - ActivityLog now uses Azure-first initialization for cross-device sync
+ * - Admin users can now see ALL users' activities (not just their own)
+ * - Added ActivityLog.refresh() method to pull latest from Azure
+ * - Activities sync to Azure immediately when logged
  * 
  * v3.0 Updates:
  * - MAJOR: Replaced GitHub sync with Azure Blob Storage API
@@ -1140,11 +1146,58 @@ const ActivityLog = {
     STORAGE_KEY: 'secureEnergy_activityLog',
     MAX_ENTRIES: 500,
     entries: [],
+    _syncTimeout: null,
+    _initialized: false,
 
-    init() {
+    async init() {
+        console.log('[ActivityLog] Initializing...');
+        
+        // Load local entries first (baseline)
         this.entries = this.loadFromStorage();
+        
+        // Try to fetch from Azure and MERGE (for cross-device sync)
+        if (typeof AzureDataService !== 'undefined' && AzureDataService.isConfigured()) {
+            try {
+                const data = await AzureDataService.get('activity-log.json');
+                if (data?.activities && Array.isArray(data.activities)) {
+                    this._mergeActivities(data.activities);
+                    console.log('[ActivityLog] Merged with Azure data');
+                }
+            } catch (e) {
+                console.warn('[ActivityLog] Azure fetch failed, using local data:', e.message);
+            }
+        }
+        
+        // Save merged result to localStorage
+        this.saveToStorage();
+        this._initialized = true;
+        
         console.log(`[ActivityLog] ${this.entries.length} entries loaded`);
         return this.entries;
+    },
+    
+    _mergeActivities(remoteActivities) {
+        // Create a map of existing entries by ID
+        const localEntriesById = new Map(this.entries.map(e => [e.id, e]));
+        
+        // Add remote entries that don't exist locally
+        let added = 0;
+        remoteActivities.forEach(remoteEntry => {
+            if (!localEntriesById.has(remoteEntry.id)) {
+                this.entries.push(remoteEntry);
+                added++;
+            }
+        });
+        
+        // Sort by timestamp (newest first)
+        this.entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        // Trim to max entries
+        if (this.entries.length > this.MAX_ENTRIES) {
+            this.entries = this.entries.slice(0, this.MAX_ENTRIES);
+        }
+        
+        console.log(`[ActivityLog] Merged ${added} activities from Azure`);
     },
 
     loadFromStorage() { try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } },
@@ -1153,7 +1206,7 @@ const ActivityLog = {
     log(action, details = {}) {
         const session = UserStore.getSession();
         const entry = {
-            id: 'act-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
+            id: 'act-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
             timestamp: new Date().toISOString(),
             action,
             userId: session?.id || null,
@@ -1163,6 +1216,9 @@ const ActivityLog = {
         };
         this.entries.unshift(entry);
         this.saveToStorage();
+        
+        // Sync to Azure for cross-device availability
+        this._scheduleSyncToAzure();
         
         try { window.dispatchEvent(new CustomEvent('activityLogged', { detail: entry })); } catch (e) { }
         
@@ -1175,13 +1231,51 @@ const ActivityLog = {
     getByAction(action) { return this.entries.filter(e => e.action === action); },
 
     clear() { this.entries = []; this.saveToStorage(); },
+    
+    // Refresh from Azure (for admin to see all users' activities)
+    async refresh() {
+        console.log('[ActivityLog] Refreshing from Azure...');
+        if (typeof AzureDataService !== 'undefined' && AzureDataService.isConfigured()) {
+            try {
+                const data = await AzureDataService.get('activity-log.json');
+                if (data?.activities && Array.isArray(data.activities)) {
+                    this._mergeActivities(data.activities);
+                    this.saveToStorage();
+                    console.log('[ActivityLog] Refreshed - now have', this.entries.length, 'entries');
+                    return { success: true, count: this.entries.length };
+                }
+            } catch (e) {
+                console.error('[ActivityLog] Refresh failed:', e);
+                return { success: false, error: e.message };
+            }
+        }
+        return { success: false, error: 'Azure not configured' };
+    },
+    
+    _scheduleSyncToAzure() {
+        if (typeof AzureDataService === 'undefined' || !AzureDataService.isConfigured()) return;
+        clearTimeout(this._syncTimeout);
+        this._syncTimeout = setTimeout(() => {
+            AzureDataService.save('activity-log.json', {
+                version: '2.3.0',
+                lastUpdated: new Date().toISOString(),
+                activities: this.entries.slice(0, this.MAX_ENTRIES)
+            }).catch(e => console.warn('[ActivityLog] Azure sync failed:', e.message));
+        }, 2000);
+    },
 
     exportForGitHub() {
         return JSON.stringify({
-            version: '1.0.0',
+            version: '2.3.0',
             lastUpdated: new Date().toISOString(),
-            entries: this.entries.slice(0, this.MAX_ENTRIES)
+            activities: this.entries.slice(0, this.MAX_ENTRIES)
         }, null, 2);
+    },
+    
+    // For backwards compatibility with mergeFromGitHub calls
+    mergeFromGitHub(remoteActivities) {
+        this._mergeActivities(remoteActivities);
+        this.saveToStorage();
     }
 };
 
@@ -1395,10 +1489,22 @@ if (typeof window !== 'undefined') {
     ErrorLog.init();
     GitHubSync.init();
     WidgetPreferences.init();
-    ActivityLog.init();
+    
+    // Initialize ActivityLog (will load from localStorage first, then merge with Azure when ready)
+    // Initial sync load happens in initStoresWithAzure
+    ActivityLog.entries = ActivityLog.loadFromStorage();
+    console.log(`[ActivityLog] ${ActivityLog.entries.length} local entries loaded (will merge with Azure when ready)`);
     
     // Initialize stores when Azure is ready
     function initStoresWithAzure() {
+        // Re-initialize ActivityLog with Azure data for cross-device sync
+        ActivityLog.init().then(() => {
+            console.log('[SharedDataStore] ActivityLog initialized with Azure');
+            try {
+                window.dispatchEvent(new CustomEvent('activityLogReady', { detail: { entries: ActivityLog.getAll() } }));
+            } catch (e) { }
+        }).catch(e => console.warn('[SharedDataStore] ActivityLog init failed:', e.message));
+        
         UsageProfileStore.init().then(() => {
             console.log('[SharedDataStore] UsageProfileStore initialized');
             try {
