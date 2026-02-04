@@ -1577,7 +1577,149 @@
             updateTermInfo();
             updateBreakEvenIndicator();
             initializeProfileStore();
+            
+            // Restore form state from localStorage (session persistence)
+            restoreFormState();
+            
+            // Save form state when page is hidden (navigating away, minimizing widget)
+            document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'hidden') {
+                    saveFormState();
+                }
+            });
+            
+            // Also save on beforeunload
+            window.addEventListener('beforeunload', saveFormState);
         });
+        
+        // Form state persistence functions
+        const FORM_STATE_KEY = 'lmpPortal_formState';
+        
+        function saveFormState() {
+            try {
+                const state = {
+                    timestamp: Date.now(),
+                    clientName: document.getElementById('clientName')?.value || '',
+                    iso: document.getElementById('iso')?.value || 'ISONE',
+                    zone: document.getElementById('zone')?.value || '',
+                    startDate: document.getElementById('startDate')?.value || '',
+                    termMonths: document.getElementById('termMonths')?.value || '60',
+                    projectionMethod: document.getElementById('projectionMethod')?.value || 'historical_average',
+                    lmpEscalator: document.getElementById('lmpEscalator')?.value || '0',
+                    fixedPrice: document.getElementById('fixedPrice')?.value || '0.085',
+                    capacityCost: document.getElementById('capacityCost')?.value || '0.015',
+                    ancillaryCost: document.getElementById('ancillaryCost')?.value || '0.005',
+                    transmissionCost: document.getElementById('transmissionCost')?.value || '0.015',
+                    simpleBlockRate: document.getElementById('simpleBlockRate')?.value || '0.075',
+                    simpleHedgeSlider: document.getElementById('simpleHedgeSlider')?.value || '50',
+                    lmpAdjustSlider: document.getElementById('lmpAdjustSlider')?.value || '0',
+                    usageData: [],
+                    resultsVisible: document.getElementById('resultsCard')?.style.display !== 'none'
+                };
+                
+                // Save usage data
+                for (let i = 0; i < 12; i++) {
+                    const usageInput = document.getElementById(`usage_${i}`);
+                    state.usageData.push(usageInput?.value || 0);
+                }
+                
+                localStorage.setItem(FORM_STATE_KEY, JSON.stringify(state));
+                console.log('[LMP Portal] Form state saved');
+            } catch (e) {
+                console.warn('[LMP Portal] Failed to save form state:', e);
+            }
+        }
+        
+        function restoreFormState() {
+            try {
+                const stateJson = localStorage.getItem(FORM_STATE_KEY);
+                if (!stateJson) return;
+                
+                const state = JSON.parse(stateJson);
+                
+                // Only restore if state is less than 24 hours old
+                const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+                if (Date.now() - state.timestamp > maxAge) {
+                    localStorage.removeItem(FORM_STATE_KEY);
+                    return;
+                }
+                
+                // Restore form values
+                const clientNameEl = document.getElementById('clientName');
+                if (clientNameEl && state.clientName) clientNameEl.value = state.clientName;
+                
+                const isoEl = document.getElementById('iso');
+                if (isoEl && state.iso) {
+                    isoEl.value = state.iso;
+                    updateZoneOptions();
+                }
+                
+                const zoneEl = document.getElementById('zone');
+                if (zoneEl && state.zone) zoneEl.value = state.zone;
+                
+                const startDateEl = document.getElementById('startDate');
+                if (startDateEl && state.startDate) startDateEl.value = state.startDate;
+                
+                const termMonthsEl = document.getElementById('termMonths');
+                if (termMonthsEl && state.termMonths) termMonthsEl.value = state.termMonths;
+                
+                const projMethodEl = document.getElementById('projectionMethod');
+                if (projMethodEl && state.projectionMethod) projMethodEl.value = state.projectionMethod;
+                
+                const escalatorEl = document.getElementById('lmpEscalator');
+                if (escalatorEl && state.lmpEscalator) escalatorEl.value = state.lmpEscalator;
+                
+                const fixedPriceEl = document.getElementById('fixedPrice');
+                if (fixedPriceEl && state.fixedPrice) fixedPriceEl.value = state.fixedPrice;
+                
+                const capacityCostEl = document.getElementById('capacityCost');
+                if (capacityCostEl && state.capacityCost) capacityCostEl.value = state.capacityCost;
+                
+                const ancillaryCostEl = document.getElementById('ancillaryCost');
+                if (ancillaryCostEl && state.ancillaryCost) ancillaryCostEl.value = state.ancillaryCost;
+                
+                const transmissionCostEl = document.getElementById('transmissionCost');
+                if (transmissionCostEl && state.transmissionCost) transmissionCostEl.value = state.transmissionCost;
+                
+                const simpleBlockRateEl = document.getElementById('simpleBlockRate');
+                if (simpleBlockRateEl && state.simpleBlockRate) simpleBlockRateEl.value = state.simpleBlockRate;
+                
+                const simpleHedgeSliderEl = document.getElementById('simpleHedgeSlider');
+                if (simpleHedgeSliderEl && state.simpleHedgeSlider) {
+                    simpleHedgeSliderEl.value = state.simpleHedgeSlider;
+                    const simpleHedgeValue = document.getElementById('simpleHedgeValue');
+                    if (simpleHedgeValue) simpleHedgeValue.textContent = state.simpleHedgeSlider + '%';
+                }
+                
+                const lmpAdjustSliderEl = document.getElementById('lmpAdjustSlider');
+                if (lmpAdjustSliderEl && state.lmpAdjustSlider) {
+                    lmpAdjustSliderEl.value = state.lmpAdjustSlider;
+                    const lmpAdjustValue = document.getElementById('lmpAdjustValue');
+                    if (lmpAdjustValue) {
+                        const val = parseFloat(state.lmpAdjustSlider);
+                        lmpAdjustValue.textContent = (val >= 0 ? '+' : '') + val.toFixed(1) + '%';
+                    }
+                }
+                
+                // Restore usage data
+                if (state.usageData && state.usageData.length === 12) {
+                    for (let i = 0; i < 12; i++) {
+                        const usageInput = document.getElementById(`usage_${i}`);
+                        if (usageInput) usageInput.value = state.usageData[i];
+                    }
+                    if (typeof updateUsageSummary === 'function') {
+                        updateUsageSummary();
+                    }
+                }
+                
+                // Update term info
+                updateTermInfo();
+                
+                console.log('[LMP Portal] Form state restored');
+            } catch (e) {
+                console.warn('[LMP Portal] Failed to restore form state:', e);
+            }
+        }
         
         // Initialize Usage Profile Store
         function initializeProfileStore() {
@@ -2788,21 +2930,48 @@
         // Reset form to initial state
         function resetForm() {
             // Clear client name
-            document.getElementById('clientName').value = '';
+            const clientNameEl = document.getElementById('clientName');
+            if (clientNameEl) clientNameEl.value = '';
+            
+            // Clear client source label
+            const clientSourceLabel = document.getElementById('clientSourceLabel');
+            if (clientSourceLabel) clientSourceLabel.textContent = '';
+            
+            // Hide client context banner
+            const clientBanner = document.getElementById('clientContextBanner');
+            if (clientBanner) clientBanner.style.display = 'none';
             
             // Reset ISO and Zone to defaults
-            document.getElementById('iso').value = 'ISONE';
+            const isoEl = document.getElementById('iso');
+            if (isoEl) isoEl.value = 'ISONE';
             updateZoneOptions();
             
             // Reset dates and term
-            document.getElementById('startDate').value = '2016-01';
-            document.getElementById('termMonths').value = '60';
+            const startDateEl = document.getElementById('startDate');
+            if (startDateEl) startDateEl.value = '2016-01';
+            
+            const termMonthsEl = document.getElementById('termMonths');
+            if (termMonthsEl) termMonthsEl.value = '60';
+            
+            // Reset projection method and escalator
+            const projMethodEl = document.getElementById('projectionMethod');
+            if (projMethodEl) projMethodEl.value = 'historical_average';
+            
+            const escalatorEl = document.getElementById('lmpEscalator');
+            if (escalatorEl) escalatorEl.value = '0';
             
             // Reset pricing
-            document.getElementById('fixedPrice').value = '0.085';
-            document.getElementById('capacityCost').value = '0.015';
-            document.getElementById('ancillaryCost').value = '0.005';
-            document.getElementById('transmissionCost').value = '0.012';
+            const fixedPriceEl = document.getElementById('fixedPrice');
+            if (fixedPriceEl) fixedPriceEl.value = '0.085';
+            
+            const capacityCostEl = document.getElementById('capacityCost');
+            if (capacityCostEl) capacityCostEl.value = '0.015';
+            
+            const ancillaryCostEl = document.getElementById('ancillaryCost');
+            if (ancillaryCostEl) ancillaryCostEl.value = '0.005';
+            
+            const transmissionCostEl = document.getElementById('transmissionCost');
+            if (transmissionCostEl) transmissionCostEl.value = '0.015';
             
             // Reset usage to defaults
             const defaultUsage = [850000, 780000, 720000, 680000, 750000, 920000, 1050000, 1020000, 880000, 760000, 700000, 820000];
@@ -2811,24 +2980,50 @@
                 if (usageInput) usageInput.value = defaultUsage[i];
             }
             
-            // Reset LMP adjustment slider
-            const lmpSlider = document.getElementById('lmpAdjustment');
+            // Update usage summary display
+            if (typeof updateUsageSummary === 'function') {
+                updateUsageSummary();
+            }
+            
+            // Reset usage profile dropdown
+            const profileSelect = document.getElementById('usageProfileSelect');
+            if (profileSelect) profileSelect.value = '';
+            
+            // Hide active profile indicator
+            const profileIndicator = document.getElementById('activeProfileIndicator');
+            if (profileIndicator) profileIndicator.style.display = 'none';
+            
+            // Reset LMP adjustment slider (correct ID is lmpAdjustSlider)
+            const lmpSlider = document.getElementById('lmpAdjustSlider');
             if (lmpSlider) {
                 lmpSlider.value = 0;
-                document.getElementById('lmpAdjustValue').textContent = '+0.0%';
+                const lmpAdjustValue = document.getElementById('lmpAdjustValue');
+                if (lmpAdjustValue) lmpAdjustValue.textContent = '+0.0%';
             }
             
             // Reset hedge mode to simple
             document.querySelectorAll('.hedge-mode-btn').forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.textContent.includes('Simple')) btn.classList.add('active');
             });
-            document.getElementById('simpleHedgeConfig').style.display = 'block';
-            document.getElementById('matrixHedgeConfig').style.display = 'none';
+            const simpleModeBtn = document.getElementById('simpleModeBtn');
+            if (simpleModeBtn) simpleModeBtn.classList.add('active');
             
-            // Reset simple hedge inputs
-            document.getElementById('hedgeRate').value = '0.055';
-            document.getElementById('hedgePercent').value = '50';
+            const simpleHedgeConfig = document.getElementById('simpleHedgeConfig');
+            if (simpleHedgeConfig) simpleHedgeConfig.style.display = 'block';
+            
+            const matrixHedgeConfig = document.getElementById('matrixHedgeConfig');
+            if (matrixHedgeConfig) matrixHedgeConfig.style.display = 'none';
+            
+            // Reset simple hedge inputs (correct IDs)
+            const simpleBlockRate = document.getElementById('simpleBlockRate');
+            if (simpleBlockRate) simpleBlockRate.value = '0.075';
+            
+            const simpleHedgeSlider = document.getElementById('simpleHedgeSlider');
+            if (simpleHedgeSlider) {
+                simpleHedgeSlider.value = '50';
+                const simpleHedgeValue = document.getElementById('simpleHedgeValue');
+                if (simpleHedgeValue) simpleHedgeValue.textContent = '50%';
+            }
             
             // Clear calculation results
             calculationResults = null;
@@ -2836,12 +3031,26 @@
             baseLMPData = [];
             
             // Hide results sections
-            document.getElementById('resultsCard').style.display = 'none';
-            document.getElementById('lmpSliderCard').style.display = 'none';
-            document.getElementById('projectionNotice').style.display = 'none';
+            const resultsCard = document.getElementById('resultsCard');
+            if (resultsCard) resultsCard.style.display = 'none';
+            
+            const lmpSliderCard = document.getElementById('lmpSliderCard');
+            if (lmpSliderCard) lmpSliderCard.style.display = 'none';
+            
+            const projectionNotice = document.getElementById('projectionNotice');
+            if (projectionNotice) projectionNotice.style.display = 'none';
             
             // Update term info display
             updateTermInfo();
+            
+            // Clear any active client in memory
+            activeClient = null;
+            activeAccount = null;
+            
+            // Clear localStorage form state
+            try {
+                localStorage.removeItem('lmpPortal_formState');
+            } catch (e) { /* ignore */ }
             
             // Show notification
             showNotification('Form reset to defaults', 'info');

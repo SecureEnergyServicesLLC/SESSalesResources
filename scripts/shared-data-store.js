@@ -1300,6 +1300,25 @@ const ActivityLog = {
             }
         });
     },
+    
+    // Log a button click activity
+    logButtonClick(data) {
+        const session = UserStore.getSession();
+        const userId = data.userId || session?.id || null;
+        const userName = data.userName || (session ? `${session.firstName} ${session.lastName}` : 'System');
+        const userEmail = data.userEmail || session?.email || null;
+        
+        return this.log('Button Click', {
+            userId: userId,
+            userName: userName,
+            userEmail: userEmail,
+            widget: data.widget || 'portal',
+            data: {
+                button: data.button,
+                context: data.context || null
+            }
+        });
+    },
 
     getAll() { return this.entries; },
     getRecent(count = 50) { return this.entries.slice(0, count); },
