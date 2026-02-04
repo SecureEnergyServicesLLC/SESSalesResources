@@ -20,12 +20,8 @@ on:
         default: 'all'
         type: string
 
-# =====================================================
-# FIX: Added permissions block - this was missing!
-# Without this, git push fails with exit code 128
-# =====================================================
 permissions:
-  contents: write
+  contents: read
   actions: read
 
 env:
@@ -38,8 +34,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -71,23 +65,15 @@ jobs:
           START_DATE: ${{ steps.dates.outputs.start_date }}
           END_DATE: ${{ steps.dates.outputs.end_date }}
           ISO_MARKETS: ${{ github.event.inputs.iso_markets || 'all' }}
-        run: node scripts/fetch-lmp-data.js
+        run: node fetch-lmp-data.js
+        working-directory: scripts
       
-      - name: Update LMP Database
-        run: node scripts/update-lmp-database.js
-      
-      - name: Commit and push changes
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          if git diff --quiet data/lmp-database.json; then
-            echo "No changes to LMP database"
-          else
-            git add data/lmp-database.json
-            git commit -m "Auto-update LMP data"
-            git push
-            echo "LMP database updated successfully"
-          fi
+      - name: Update LMP Database (Azure)
+        env:
+          AZURE_API_ENDPOINT: ${{ secrets.AZURE_API_ENDPOINT }}
+          AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
+        run: node update-lmp-database-azure.js
+        working-directory: scripts
       
       - name: Summary
         run: |
@@ -95,4 +81,5 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Date Range:** ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Markets:** ${{ github.event.inputs.iso_markets || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Storage:** Azure Blob (ses-data-api)" >> $GITHUB_STEP_SUMMARY
           echo "- **Status:** Completed" >> $GITHUB_STEP_SUMMARY
