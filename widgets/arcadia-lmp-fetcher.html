@@ -39,6 +39,7 @@
         .header h2 { font-size: 18px; color: var(--se-light-green); margin-bottom: 6px; }
         .header p { font-size: 12px; color: var(--text-secondary); }
         .header .version { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
+        .header .azure-badge { display: inline-block; background: var(--accent-azure); color: white; padding: 2px 8px; border-radius: 4px; font-size: 10px; margin-left: 8px; }
         
         .mode-tabs {
             display: flex; gap: 0; margin-bottom: 16px;
@@ -63,13 +64,19 @@
         .server-notice h4 { color: var(--accent-purple); font-size: 13px; margin-bottom: 6px; }
         .server-notice p { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
         
+        .azure-notice {
+            background: rgba(0, 120, 212, 0.1); border: 1px solid rgba(0, 120, 212, 0.3);
+            border-radius: 8px; padding: 12px; margin-bottom: 16px;
+        }
+        .azure-notice h4 { color: var(--accent-azure); font-size: 13px; margin-bottom: 6px; }
+        .azure-notice p { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
+        
         .cors-notice {
             background: rgba(255, 179, 0, 0.1); border: 1px solid rgba(255, 179, 0, 0.3);
             border-radius: 8px; padding: 12px; margin-bottom: 16px;
         }
         .cors-notice h4 { color: var(--accent-warning); font-size: 13px; margin-bottom: 6px; }
         .cors-notice p { font-size: 11px; color: var(--text-secondary); line-height: 1.4; }
-        .cors-notice code { background: rgba(255,255,255,0.1); padding: 2px 5px; border-radius: 3px; font-size: 10px; }
         
         .section {
             background: var(--bg-secondary); border: 1px solid var(--border-color);
@@ -92,7 +99,6 @@
             outline: none; border-color: var(--se-light-green);
             box-shadow: 0 0 0 2px rgba(62, 180, 137, 0.1);
         }
-        .form-group input.error { border-color: var(--accent-error); }
         .form-group .helper-text { font-size: 10px; color: var(--text-tertiary); margin-top: 4px; }
         
         button {
@@ -106,6 +112,7 @@
         .btn-purple { background: linear-gradient(135deg, #7C4DFF, #B388FF); color: white; }
         .btn-purple:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(179, 136, 255, 0.3); }
         .btn-azure { background: linear-gradient(135deg, #0078D4, #00BCF2); color: white; }
+        .btn-azure:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 120, 212, 0.3); }
         button:disabled { opacity: 0.5; cursor: not-allowed; }
         .button-group { display: flex; gap: 10px; margin-top: 12px; }
         
@@ -159,6 +166,7 @@
         .debug-line.error { color: var(--accent-error); }
         .debug-line.warning { color: var(--accent-warning); }
         .debug-line.info { color: var(--accent-info); }
+        .debug-line.azure { color: var(--accent-azure); }
         .debug-timestamp { color: var(--text-tertiary); margin-right: 6px; }
         .debug-actions { display: flex; gap: 8px; margin-bottom: 8px; }
         
@@ -194,7 +202,7 @@
         .proxy-toggle input:checked + .proxy-slider:before { transform: translateX(18px); background: white; }
         
         .workflow-status { background: var(--bg-tertiary); border-radius: 8px; padding: 16px; margin-top: 16px; }
-        .workflow-status h4 { font-size: 13px; color: var(--text-primary); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+        .workflow-status h4 { font-size: 13px; color: var(--text-primary); margin-bottom: 12px; }
         .workflow-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
         .workflow-item:last-child { border-bottom: none; }
         .workflow-badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-decoration: none; }
@@ -203,33 +211,29 @@
         .workflow-badge.running { background: rgba(0, 184, 212, 0.2); color: var(--accent-info); }
         .workflow-badge.failed { background: rgba(255, 82, 82, 0.2); color: var(--accent-error); }
 
-        .setup-steps { background: var(--bg-tertiary); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
-        .setup-steps h4 { font-size: 13px; color: var(--accent-info); margin-bottom: 12px; }
-        .setup-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
-        .setup-step:last-child { border-bottom: none; }
-        .step-number {
-            width: 24px; height: 24px; background: var(--se-gradient); border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0;
-        }
-        .step-content { flex: 1; }
-        .step-content strong { color: var(--text-primary); }
-        .step-content p { color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
-        .step-content code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 11px; color: var(--accent-info); }
-        
         .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 8px 0; }
         .collapsible-header:hover { opacity: 0.8; }
         .collapsible-content { display: none; padding-top: 12px; }
         .collapsible-content.active { display: block; }
         .collapse-icon { transition: transform 0.2s; }
         .collapse-icon.rotated { transform: rotate(180deg); }
+        
+        .setup-steps { background: var(--bg-tertiary); border-radius: 8px; padding: 16px; }
+        .setup-step { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color); font-size: 12px; }
+        .setup-step:last-child { border-bottom: none; }
+        .step-number { width: 24px; height: 24px; background: var(--se-gradient); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+        .step-content { flex: 1; }
+        .step-content strong { color: var(--text-primary); }
+        .step-content p { color: var(--text-secondary); margin-top: 4px; line-height: 1.4; }
+        .step-content code { background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 11px; color: var(--accent-info); }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h2>⚡ Arcadia LMP Data Fetcher</h2>
+            <h2>⚡ Arcadia LMP Data Fetcher <span class="azure-badge">☁️ Azure</span></h2>
             <p>Fetch Day-Ahead LMP data from Genability API</p>
-            <div class="version">v2.1.0 • Updated Feb 2026 • Azure Ready</div>
+            <div class="version">v2.2.0 • Feb 2026 • Azure Storage Enabled</div>
         </div>
         
         <div class="mode-tabs">
@@ -243,9 +247,9 @@
         
         <!-- Server Mode -->
         <div id="serverMode" class="mode-content active">
-            <div class="server-notice">
-                <h4>🚀 Server-Side Updates (Recommended)</h4>
-                <p>Trigger GitHub Actions workflow to fetch and update LMP data. Bypasses CORS restrictions and auto-commits to your repository.</p>
+            <div class="azure-notice">
+                <h4>☁️ Azure Storage Integration Active</h4>
+                <p>Data is now stored securely in Azure Blob Storage via the SES Data API. GitHub Actions fetches from Genability and saves directly to Azure.</p>
             </div>
             
             <div class="section">
@@ -272,21 +276,14 @@
                             <div class="step-number">1</div>
                             <div class="step-content">
                                 <strong>Go to GitHub Token Settings</strong>
-                                <p><a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=LMP%20Fetcher%20-%20Secure%20Energy" target="_blank" style="color: var(--se-light-green);">Click here for pre-configured token</a></p>
+                                <p><a href="https://github.com/settings/tokens/new?scopes=repo,workflow&description=LMP%20Fetcher" target="_blank" style="color: var(--se-light-green);">Click here for pre-configured token</a></p>
                             </div>
                         </div>
                         <div class="setup-step">
                             <div class="step-number">2</div>
                             <div class="step-content">
-                                <strong>Set Expiration</strong>
-                                <p>Choose 90 days (recommended) or custom</p>
-                            </div>
-                        </div>
-                        <div class="setup-step">
-                            <div class="step-number">3</div>
-                            <div class="step-content">
-                                <strong>Generate & Copy</strong>
-                                <p>Click "Generate token" and <strong>copy immediately</strong></p>
+                                <strong>Set Expiration → Generate → Copy</strong>
+                                <p>Choose 90 days, click Generate, then <strong>copy immediately</strong></p>
                             </div>
                         </div>
                     </div>
@@ -312,12 +309,10 @@
                         <option value="ISONE">ISO-NE Only</option>
                         <option value="PJM">PJM Only</option>
                         <option value="ERCOT">ERCOT Only</option>
-                        <option value="ISONE,PJM">ISO-NE + PJM</option>
-                        <option value="PJM,ERCOT">PJM + ERCOT</option>
                     </select>
                 </div>
                 <p style="font-size: 11px; color: var(--text-tertiary); margin-top: 8px;">
-                    Leave dates blank to fetch the previous month's data.
+                    Leave dates blank to fetch previous month. Data saves to Azure automatically.
                 </p>
             </div>
             
@@ -343,28 +338,21 @@
                         <div class="setup-step">
                             <div class="step-number" style="background: var(--accent-error);">!</div>
                             <div class="step-content">
-                                <strong>Exit Code 128</strong>
-                                <p>Git push denied. Workflow needs <code>permissions: contents: write</code></p>
-                            </div>
-                        </div>
-                        <div class="setup-step">
-                            <div class="step-number" style="background: var(--accent-error);">!</div>
-                            <div class="step-content">
                                 <strong>401 Unauthorized</strong>
-                                <p>Invalid/expired token. <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--se-light-green);">Regenerate PAT</a></p>
-                            </div>
-                        </div>
-                        <div class="setup-step">
-                            <div class="step-number" style="background: var(--accent-error);">!</div>
-                            <div class="step-content">
-                                <strong>404 Workflow Not Found</strong>
-                                <p>Missing <code>.github/workflows/update-lmp-data.yml</code></p>
+                                <p>Token invalid/expired. <a href="https://github.com/settings/tokens" target="_blank" style="color: var(--se-light-green);">Regenerate PAT</a></p>
                             </div>
                         </div>
                         <div class="setup-step">
                             <div class="step-number" style="background: var(--accent-warning);">!</div>
                             <div class="step-content">
-                                <strong>API Auth Failed</strong>
+                                <strong>Azure API Error</strong>
+                                <p>Check GitHub Secrets: <code>AZURE_API_ENDPOINT</code> and <code>AZURE_API_KEY</code></p>
+                            </div>
+                        </div>
+                        <div class="setup-step">
+                            <div class="step-number" style="background: var(--accent-warning);">!</div>
+                            <div class="step-content">
+                                <strong>Genability Auth Failed</strong>
                                 <p>Check GitHub Secrets: <code>ARCADIA_APP_ID</code> and <code>ARCADIA_APP_KEY</code></p>
                             </div>
                         </div>
@@ -376,8 +364,8 @@
         <!-- Browser Mode -->
         <div id="browserMode" class="mode-content">
             <div class="cors-notice">
-                <h4>⚠️ Browser Security (CORS)</h4>
-                <p>Enable <strong>"Use CORS Proxy"</strong> for browser testing. For production, use Server Mode.</p>
+                <h4>⚠️ Browser Fetch Mode</h4>
+                <p>Fetch directly from Genability API and sync to Azure. Requires CORS proxy for browser testing.</p>
             </div>
             
             <div class="section">
@@ -398,22 +386,19 @@
                 </div>
                 <div class="form-row">
                     <div class="form-group">
-                        <label>App ID</label>
+                        <label>Genability App ID</label>
                         <input type="text" id="appId" placeholder="Your Genability App ID">
                     </div>
                     <div class="form-group">
-                        <label>App Key</label>
+                        <label>Genability App Key</label>
                         <input type="password" id="appKey" placeholder="Your Genability App Key">
                     </div>
                 </div>
                 <div class="button-group">
                     <button class="btn-primary" onclick="testCredentials()">Test Credentials</button>
-                    <button class="btn-secondary" onclick="toggleDebug()">🔍 Debug Console</button>
+                    <button class="btn-secondary" onclick="toggleDebug()">🔍 Debug</button>
                 </div>
                 <div class="status-message" id="credStatus"></div>
-                <p style="margin-top: 10px; font-size: 11px; color: var(--text-tertiary);">
-                    Get credentials: <a href="https://dash.genability.com/org" target="_blank" style="color: var(--se-light-green);">dash.genability.com</a>
-                </p>
             </div>
             
             <div class="section">
@@ -459,7 +444,7 @@
             <div class="debug-console" id="debugConsole">
                 <div class="debug-actions">
                     <button class="btn-secondary" onclick="clearDebug()" style="padding: 4px 8px; font-size: 10px;">Clear</button>
-                    <button class="btn-secondary" onclick="copyDebug()" style="padding: 4px 8px; font-size: 10px;">Copy Log</button>
+                    <button class="btn-secondary" onclick="copyDebug()" style="padding: 4px 8px; font-size: 10px;">Copy</button>
                 </div>
                 <div id="debugLines"></div>
             </div>
@@ -475,18 +460,25 @@
                     </table>
                 </div>
                 <div class="button-group" style="margin-top: 12px;">
+                    <button class="btn-azure" onclick="syncToAzure()">☁️ Save to Azure</button>
                     <button class="btn-primary" onclick="sendToPortal()">📤 Send to Portal</button>
-                    <button class="btn-azure" id="syncToAzureBtn" onclick="syncToAzure()" style="display: none;">☁️ Sync to Azure</button>
                 </div>
             </div>
         </div>
     </div>
     
     <script>
+        // ============================================
+        // CONFIGURATION
+        // ============================================
         const CONFIG = {
-            version: '2.1.0',
+            version: '2.2.0',
             defaultRepo: 'ClemmensSES/SESSalesResources',
-            azureEndpoint: null,
+            azure: {
+                endpoint: 'https://ses-data-api-gpaqghfbehhrb6c2.eastus-01.azurewebsites.net/api/data',
+                apiKey: 'ses-admin-abc123def456',
+                lmpFile: 'lmp-database.json'
+            },
             proxies: {
                 corsproxy: url => 'https://corsproxy.io/?' + encodeURIComponent(url),
                 allorigins: url => 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url)
@@ -524,6 +516,57 @@
         
         let currentISO = null, selectedZones = [], fetchedData = { hourly: [], monthly: [] }, debugVisible = false;
         
+        // ============================================
+        // AZURE DATA SERVICE
+        // ============================================
+        const AzureService = {
+            async get(file) {
+                // Try parent's AzureDataService first (if in iframe)
+                if (window.parent !== window && window.parent.AzureDataService) {
+                    try {
+                        addDebugLine('Using parent AzureDataService...', 'azure');
+                        return await window.parent.AzureDataService.get(file);
+                    } catch (e) {
+                        addDebugLine('Parent service failed, using direct API', 'warning');
+                    }
+                }
+                
+                // Direct API call
+                const res = await fetch(`${CONFIG.azure.endpoint}/${file}`, {
+                    headers: { 'x-api-key': CONFIG.azure.apiKey }
+                });
+                if (!res.ok) throw new Error(`Azure GET failed: ${res.status}`);
+                return res.json();
+            },
+            
+            async save(file, data) {
+                // Try parent's AzureDataService first
+                if (window.parent !== window && window.parent.AzureDataService) {
+                    try {
+                        addDebugLine('Using parent AzureDataService...', 'azure');
+                        return await window.parent.AzureDataService.save(file, data);
+                    } catch (e) {
+                        addDebugLine('Parent service failed, using direct API', 'warning');
+                    }
+                }
+                
+                // Direct API call
+                const res = await fetch(`${CONFIG.azure.endpoint}/${file}`, {
+                    method: 'PUT',
+                    headers: {
+                        'x-api-key': CONFIG.azure.apiKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                if (!res.ok) throw new Error(`Azure PUT failed: ${res.status}`);
+                return res.json();
+            }
+        };
+        
+        // ============================================
+        // UTILITY FUNCTIONS
+        // ============================================
         function getProxyUrl(url) {
             if (!document.getElementById('useProxy').checked) return url;
             return CONFIG.proxies[document.getElementById('proxySelector').value](url);
@@ -542,8 +585,8 @@
             el.scrollTop = el.scrollHeight;
         }
         
-        function clearDebug() { document.getElementById('debugLines').innerHTML = ''; addDebugLine('Cleared', 'info'); }
-        function copyDebug() { navigator.clipboard.writeText(document.getElementById('debugLines').innerText); addDebugLine('Copied', 'success'); }
+        function clearDebug() { document.getElementById('debugLines').innerHTML = ''; }
+        function copyDebug() { navigator.clipboard.writeText(document.getElementById('debugLines').innerText); }
         function toggleDebug() { debugVisible = !debugVisible; document.getElementById('debugConsole').classList.toggle('active', debugVisible); }
         
         function showStatus(msg, type = 'info', id = 'statusMessage') {
@@ -571,6 +614,9 @@
             }
         }
         
+        // ============================================
+        // SERVER MODE - GitHub Actions
+        // ============================================
         async function triggerWorkflow() {
             const token = document.getElementById('githubToken').value.trim();
             const repo = document.getElementById('repoName').value.trim();
@@ -593,32 +639,30 @@
                 });
                 
                 if (res.status === 204) {
-                    showServerStatus('✅ Workflow triggered! Check status below.', 'success');
+                    showServerStatus('✅ Workflow triggered! Data will save to Azure.', 'success');
                     localStorage.setItem('lmpFetcher_githubToken', token);
                     localStorage.setItem('lmpFetcher_repoName', repo);
                     setTimeout(checkWorkflowStatus, 3000);
                 } else if (res.status === 404) {
-                    showServerStatus('❌ Workflow not found. Check .github/workflows/update-lmp-data.yml exists', 'error');
+                    showServerStatus('❌ Workflow not found', 'error');
                 } else if (res.status === 401) {
-                    showServerStatus('❌ Invalid token. Needs repo + workflow scopes', 'error');
+                    showServerStatus('❌ Invalid token', 'error');
                 } else {
-                    const err = await res.json().catch(() => ({}));
-                    showServerStatus(`❌ Error ${res.status}: ${err.message || 'Unknown'}`, 'error');
+                    showServerStatus(`❌ Error ${res.status}`, 'error');
                 }
-            } catch (e) { showServerStatus(`❌ Network error: ${e.message}`, 'error'); }
+            } catch (e) { showServerStatus(`❌ ${e.message}`, 'error'); }
         }
         
         async function checkWorkflowStatus() {
             const token = document.getElementById('githubToken').value.trim();
             const repo = document.getElementById('repoName').value.trim();
-            if (!token || !repo) { showServerStatus('Enter token and repo', 'warning'); return; }
+            if (!token || !repo) return;
             
             try {
                 const res = await fetch(`https://api.github.com/repos/${repo}/actions/workflows/update-lmp-data.yml/runs?per_page=5`, {
                     headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/vnd.github.v3+json' }
                 });
-                
-                if (!res.ok) { showServerStatus(res.status === 404 ? 'Workflow not found' : 'Could not fetch status', 'error'); return; }
+                if (!res.ok) return;
                 
                 const data = await res.json();
                 const card = document.getElementById('workflowStatusCard');
@@ -634,13 +678,13 @@
                         return `<div class="workflow-item"><div><div style="font-weight:600">#${run.run_number}</div><div style="font-size:10px;color:var(--text-tertiary)">${new Date(run.created_at).toLocaleString()}</div></div><a href="${run.html_url}" target="_blank" class="workflow-badge ${badge}">${text}</a></div>`;
                     }).join('');
                     if (data.workflow_runs.some(r => r.status === 'in_progress' || r.status === 'queued')) setTimeout(checkWorkflowStatus, 10000);
-                } else {
-                    card.style.display = 'block';
-                    runs.innerHTML = '<p style="color:var(--text-tertiary);font-size:12px">No runs found</p>';
                 }
-            } catch (e) { showServerStatus(`Error: ${e.message}`, 'error'); }
+            } catch (e) {}
         }
         
+        // ============================================
+        // BROWSER MODE
+        // ============================================
         function init() {
             const savedToken = localStorage.getItem('lmpFetcher_githubToken');
             const savedRepo = localStorage.getItem('lmpFetcher_repoName');
@@ -661,9 +705,8 @@
                 sel.appendChild(btn);
             });
             
-            if (CONFIG.azureEndpoint) document.getElementById('syncToAzureBtn').style.display = 'inline-block';
             window.addEventListener('message', handleMessage);
-            addDebugLine(`LMP Fetcher v${CONFIG.version} ready`, 'success');
+            addDebugLine(`LMP Fetcher v${CONFIG.version} ready (Azure enabled)`, 'success');
         }
         
         function selectISO(key, btn) {
@@ -673,7 +716,6 @@
             btn.classList.add('active');
             document.getElementById('zoneSection').style.display = 'block';
             document.getElementById('zonesGrid').innerHTML = ISO_CONFIG[key].zones.map(z => `<label class="zone-item"><input type="checkbox" value="${z.value}" onchange="updateSelectedZones()">${z.label}</label>`).join('');
-            addDebugLine(`Selected: ${ISO_CONFIG[key].name}`, 'info');
         }
         
         function updateSelectedZones() { selectedZones = Array.from(document.querySelectorAll('.zone-item input:checked')).map(cb => cb.value); }
@@ -690,29 +732,13 @@
             if (!appId || !appKey) { showStatus('Enter credentials', 'error', 'credStatus'); return; }
             
             showStatus('Testing...', 'info', 'credStatus');
-            addDebugLine('Testing credentials...', 'info');
-            
             try {
                 const creds = btoa(`${appId}:${appKey}`);
                 const url = getProxyUrl('https://api.genability.com/rest/echo/hello');
-                addDebugLine(`Proxy: ${document.getElementById('proxySelector').value}`, 'info');
-                
-                const res = await fetch(url, { headers: { 'Authorization': `Basic ${creds}`, 'Accept': 'application/json' } });
-                addDebugLine(`Status: ${res.status}`, res.ok ? 'success' : 'error');
-                
-                if (res.ok) { showStatus('✓ Valid!', 'success', 'credStatus'); addDebugLine('Credentials OK', 'success'); }
-                else if (res.status === 401) { showStatus('✗ Invalid', 'error', 'credStatus'); addDebugLine('Auth failed', 'error'); }
-                else { showStatus(`✗ Error: ${res.status}`, 'error', 'credStatus'); }
-            } catch (e) {
-                addDebugLine(`Error: ${e.message}`, 'error');
-                if (document.getElementById('proxySelector').value === 'corsproxy') {
-                    addDebugLine('Trying allorigins...', 'warning');
-                    document.getElementById('proxySelector').value = 'allorigins';
-                    updateProxyStatus();
-                    return testCredentials();
-                }
-                showStatus('Connection error. Try different proxy.', 'error', 'credStatus');
-            }
+                const res = await fetch(url, { headers: { 'Authorization': `Basic ${creds}` } });
+                if (res.ok) showStatus('✓ Valid!', 'success', 'credStatus');
+                else showStatus('✗ Invalid', 'error', 'credStatus');
+            } catch (e) { showStatus('Connection error', 'error', 'credStatus'); }
         }
         
         async function fetchData() {
@@ -724,7 +750,6 @@
             if (!appId || !appKey) { showStatus('Enter credentials', 'error'); return; }
             if (!currentISO) { showStatus('Select an ISO', 'error'); return; }
             if (!selectedZones.length) { showStatus('Select zones', 'error'); return; }
-            if (!startDate || !endDate) { showStatus('Select dates', 'error'); return; }
             
             document.getElementById('loading').classList.add('active');
             hideStatus();
@@ -739,19 +764,17 @@
             try {
                 for (const zid of selectedZones) {
                     const zname = cfg.zones.find(z => z.value === zid)?.label || zid;
-                    addDebugLine(`${zname}...`, 'info');
-                    
                     const recs = await fetchZoneData(creds, cfg.propertyKey, zid, startDate, endDate);
                     if (recs.length) {
                         fetchedData.hourly.push(...recs.map(r => ({ ...r, zone: zname, zone_id: zid, iso: currentISO })));
                         total += recs.length;
-                        addDebugLine(`  → ${recs.length} records`, 'success');
-                    } else { addDebugLine(`  → No data`, 'warning'); }
+                        addDebugLine(`  ${zname}: ${recs.length} records`, 'success');
+                    }
                 }
                 
                 fetchedData.monthly = calcMonthly(fetchedData.hourly);
                 displayResults();
-                showStatus(`✅ ${total.toLocaleString()} records fetched`, 'success');
+                showStatus(`✅ ${total.toLocaleString()} records`, 'success');
                 document.getElementById('exportBtn').disabled = false;
             } catch (e) {
                 addDebugLine(`Error: ${e.message}`, 'error');
@@ -761,21 +784,19 @@
         
         async function fetchZoneData(creds, propKey, zoneId, start, end) {
             const base = 'https://api.genability.com/rest/public/properties';
-            let all = [], page = 0, count = 1000, more = true;
+            let all = [], page = 0, more = true;
             
             while (more) {
-                const params = new URLSearchParams({ subKeyName: zoneId, fromDateTime: `${start}T00:00:00`, toDateTime: `${end}T23:59:59`, pageStart: page, pageCount: count });
-                const url = getProxyUrl(`${base}/${propKey}/lookups?${params}`);
-                const res = await fetch(url, { headers: { 'Authorization': `Basic ${creds}`, 'Accept': 'application/json' } });
-                
+                const params = new URLSearchParams({ subKeyName: zoneId, fromDateTime: `${start}T00:00:00`, toDateTime: `${end}T23:59:59`, pageStart: page, pageCount: 1000 });
+                const res = await fetch(getProxyUrl(`${base}/${propKey}/lookups?${params}`), { headers: { 'Authorization': `Basic ${creds}` } });
                 if (!res.ok) throw new Error(res.status === 401 ? 'Invalid credentials' : `API error: ${res.status}`);
                 
                 const data = await res.json();
                 if (data.results?.length) {
                     all.push(...data.results.map(i => ({ datetime: i.fromDateTime || i.period, price: parseFloat(i.dataValue || i.lmpTotal || 0) })).filter(r => !isNaN(r.price)));
-                    more = data.count > page + count;
-                    page += count;
-                } else { more = false; }
+                    more = data.count > page + 1000;
+                    page += 1000;
+                } else more = false;
             }
             return all;
         }
@@ -799,63 +820,79 @@
             document.getElementById('resultsSection').classList.add('active');
             const m = fetchedData.monthly, total = fetchedData.hourly.length;
             const avg = m.length ? m.reduce((a, b) => a + b.avg_da_lmp, 0) / m.length : 0;
-            const min = m.length ? Math.min(...m.map(x => x.min_price)) : 0;
-            const max = m.length ? Math.max(...m.map(x => x.max_price)) : 0;
             
             document.getElementById('statsGrid').innerHTML = `
                 <div class="stat-card"><div class="stat-value">${total.toLocaleString()}</div><div class="stat-label">Records</div></div>
                 <div class="stat-card"><div class="stat-value">$${avg.toFixed(2)}</div><div class="stat-label">Avg $/MWh</div></div>
-                <div class="stat-card"><div class="stat-value">$${min.toFixed(2)}</div><div class="stat-label">Min</div></div>
-                <div class="stat-card"><div class="stat-value">$${max.toFixed(2)}</div><div class="stat-label">Max</div></div>
             `;
             document.getElementById('resultsBody').innerHTML = m.slice(0, 15).map(r => `<tr><td>${r.zone}</td><td>${r.month}</td><td>${r.year}</td><td>$${r.avg_da_lmp.toFixed(2)}</td><td>${r.record_count}</td></tr>`).join('');
             document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
         }
         
         function exportCSV() {
-            if (!fetchedData.monthly.length) { showStatus('No data', 'warning'); return; }
+            if (!fetchedData.monthly.length) return;
             const csv = ['ISO,Zone,Month,Year,Avg_DA_LMP,Min,Max,Count', ...fetchedData.monthly.map(r => `${r.iso},${r.zone},${r.month},${r.year},${r.avg_da_lmp.toFixed(4)},${r.min_price.toFixed(4)},${r.max_price.toFixed(4)},${r.record_count}`)].join('\n');
             const a = document.createElement('a');
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
             a.download = `lmp_${currentISO}_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
-            showStatus('CSV exported', 'success');
-        }
-        
-        function sendToPortal() {
-            if (!fetchedData.monthly.length) { showStatus('No data', 'warning'); return; }
-            const data = fetchedData.monthly.map(r => ({ month: r.month, year: r.year, zone: r.zone_id || r.zone, zone_name: r.zone, avg_da_lmp: r.avg_da_lmp }));
-            if (window.parent !== window) window.parent.postMessage({ type: 'LMP_DATA_UPDATE', iso: currentISO, records: data, source: 'arcadia' }, '*');
-            try {
-                const existing = JSON.parse(localStorage.getItem('secureEnergy_LMP_Data') || '{"data":{}}');
-                existing.data[currentISO] = data;
-                existing.meta = { lastUpdate: new Date().toISOString(), source: 'arcadia', version: '1.0' };
-                localStorage.setItem('secureEnergy_LMP_Data', JSON.stringify(existing));
-            } catch (e) {}
-            showStatus('Sent to portal!', 'success');
-            addDebugLine(`Sent ${data.length} records`, 'success');
         }
         
         async function syncToAzure() {
-            if (!CONFIG.azureEndpoint) { showStatus('Azure not configured', 'warning'); return; }
             if (!fetchedData.monthly.length) { showStatus('No data', 'warning'); return; }
-            addDebugLine('Syncing to Azure...', 'info');
+            
+            showStatus('☁️ Syncing to Azure...', 'info');
+            addDebugLine('Starting Azure sync...', 'azure');
+            
             try {
-                const res = await fetch(CONFIG.azureEndpoint, {
-                    method: 'POST', headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ iso: currentISO, records: fetchedData.monthly, timestamp: new Date().toISOString() })
-                });
-                if (res.ok) { showStatus('✅ Synced to Azure!', 'success'); addDebugLine('Azure sync OK', 'success'); }
-                else throw new Error(`Status ${res.status}`);
-            } catch (e) { showStatus(`Azure failed: ${e.message}`, 'error'); addDebugLine(`Azure error: ${e.message}`, 'error'); }
+                // Fetch existing database
+                let database;
+                try {
+                    database = await AzureService.get(CONFIG.azure.lmpFile);
+                    addDebugLine('Loaded existing database from Azure', 'azure');
+                } catch (e) {
+                    addDebugLine('No existing database, creating new', 'warning');
+                    database = { meta: {}, data: { ISONE: [], PJM: [], ERCOT: [] } };
+                }
+                
+                // Merge new data
+                let added = 0, updated = 0;
+                for (const record of fetchedData.monthly) {
+                    if (!database.data[record.iso]) database.data[record.iso] = [];
+                    const key = `${record.iso}_${record.zone_id}_${record.year}_${record.month}`;
+                    const idx = database.data[record.iso].findIndex(r => `${r.iso}_${r.zone_id}_${r.year}_${r.month}` === key);
+                    if (idx === -1) { database.data[record.iso].push(record); added++; }
+                    else { database.data[record.iso][idx] = record; updated++; }
+                }
+                
+                // Update metadata
+                database.meta = {
+                    lastUpdate: new Date().toISOString(),
+                    source: 'arcadia-browser',
+                    version: '2.0',
+                    storage: 'azure'
+                };
+                
+                // Save to Azure
+                await AzureService.save(CONFIG.azure.lmpFile, database);
+                
+                showStatus(`✅ Saved to Azure! Added: ${added}, Updated: ${updated}`, 'success');
+                addDebugLine(`Azure sync complete: +${added} ~${updated}`, 'success');
+            } catch (e) {
+                showStatus(`❌ Azure error: ${e.message}`, 'error');
+                addDebugLine(`Azure error: ${e.message}`, 'error');
+            }
+        }
+        
+        function sendToPortal() {
+            if (!fetchedData.monthly.length) return;
+            const data = fetchedData.monthly.map(r => ({ month: r.month, year: r.year, zone: r.zone_id, zone_name: r.zone, avg_da_lmp: r.avg_da_lmp }));
+            if (window.parent !== window) window.parent.postMessage({ type: 'LMP_DATA_UPDATE', iso: currentISO, records: data, source: 'arcadia' }, '*');
+            showStatus('Sent to portal', 'success');
         }
         
         function handleMessage(e) {
-            if (e.data?.type === 'REQUEST_LMP_DATA' && fetchedData.monthly.length) sendToPortal();
-            if (e.data?.type === 'SET_AZURE_ENDPOINT' && e.data.endpoint) {
-                CONFIG.azureEndpoint = e.data.endpoint;
-                document.getElementById('syncToAzureBtn').style.display = 'inline-block';
-            }
+            if (e.data?.type === 'REQUEST_LMP_DATA') sendToPortal();
         }
         
         document.addEventListener('DOMContentLoaded', init);
