@@ -1581,6 +1581,12 @@
             // Restore form state from localStorage (session persistence)
             restoreFormState();
             
+            // Set up cross-window sync via storage events
+            setupCrossWindowSync();
+            
+            // Set up auto-save on form changes (debounced)
+            setupAutoSave();
+            
             // Save form state when page is hidden (navigating away, minimizing widget)
             document.addEventListener('visibilitychange', function() {
                 if (document.visibilityState === 'hidden') {
@@ -1590,15 +1596,85 @@
             
             // Also save on beforeunload
             window.addEventListener('beforeunload', saveFormState);
+            
+            // Sync when window gains focus (in case other window made changes)
+            window.addEventListener('focus', function() {
+                if (!_isApplyingSync) {
+                    restoreFormState(true); // silent restore
+                }
+            });
         });
         
         // Form state persistence functions
         const FORM_STATE_KEY = 'lmpPortal_formState';
+        const FORM_SYNC_KEY = 'lmpPortal_syncTrigger';
+        let _saveTimeout = null;
+        let _isApplyingSync = false; // Prevent infinite sync loops
+        
+        // Set up cross-window synchronization
+        function setupCrossWindowSync() {
+            // Listen for storage events (fired when another window modifies localStorage)
+            window.addEventListener('storage', function(e) {
+                if (e.key === FORM_STATE_KEY && e.newValue) {
+                    console.log('[LMP Portal] Cross-window sync detected');
+                    _isApplyingSync = true;
+                    try {
+                        const state = JSON.parse(e.newValue);
+                        applyFormState(state);
+                    } catch (err) {
+                        console.warn('[LMP Portal] Failed to apply cross-window sync:', err);
+                    }
+                    _isApplyingSync = false;
+                }
+            });
+            
+            console.log('[LMP Portal] Cross-window sync initialized');
+        }
+        
+        // Set up auto-save on form input changes
+        function setupAutoSave() {
+            const formFields = [
+                'clientName', 'iso', 'zone', 'startDate', 'termMonths',
+                'projectionMethod', 'lmpEscalator', 'fixedPrice', 'capacityCost',
+                'ancillaryCost', 'transmissionCost', 'simpleBlockRate',
+                'simpleHedgeSlider', 'lmpAdjustSlider'
+            ];
+            
+            // Add listeners for main form fields
+            formFields.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) {
+                    el.addEventListener('change', debouncedSave);
+                    el.addEventListener('input', debouncedSave);
+                }
+            });
+            
+            // Add listeners for usage inputs
+            for (let i = 0; i < 12; i++) {
+                const el = document.getElementById(`usage_${i}`);
+                if (el) {
+                    el.addEventListener('change', debouncedSave);
+                    el.addEventListener('input', debouncedSave);
+                }
+            }
+        }
+        
+        // Debounced save function (waits 500ms after last change)
+        function debouncedSave() {
+            if (_isApplyingSync) return; // Don't save if we're applying a sync
+            clearTimeout(_saveTimeout);
+            _saveTimeout = setTimeout(function() {
+                saveFormState();
+            }, 500);
+        }
         
         function saveFormState() {
+            if (_isApplyingSync) return; // Prevent saving during sync application
+            
             try {
                 const state = {
                     timestamp: Date.now(),
+                    windowId: getWindowId(),
                     clientName: document.getElementById('clientName')?.value || '',
                     iso: document.getElementById('iso')?.value || 'ISONE',
                     zone: document.getElementById('zone')?.value || '',
@@ -1614,7 +1690,11 @@
                     simpleHedgeSlider: document.getElementById('simpleHedgeSlider')?.value || '50',
                     lmpAdjustSlider: document.getElementById('lmpAdjustSlider')?.value || '0',
                     usageData: [],
-                    resultsVisible: document.getElementById('resultsCard')?.style.display !== 'none'
+                    resultsVisible: document.getElementById('resultsCard')?.style.display !== 'none',
+                    // Save calculation results for cross-window sync
+                    calculationResults: calculationResults ? JSON.stringify(calculationResults) : null,
+                    projectedMonths: projectedMonths ? JSON.stringify(projectedMonths) : null,
+                    baseLMPData: baseLMPData ? JSON.stringify(baseLMPData) : null
                 };
                 
                 // Save usage data
@@ -1624,13 +1704,21 @@
                 }
                 
                 localStorage.setItem(FORM_STATE_KEY, JSON.stringify(state));
-                console.log('[LMP Portal] Form state saved');
+                console.log('[LMP Portal] Form state saved (window: ' + state.windowId + ')');
             } catch (e) {
                 console.warn('[LMP Portal] Failed to save form state:', e);
             }
         }
         
-        function restoreFormState() {
+        // Get a unique ID for this window instance
+        function getWindowId() {
+            if (!window._lmpWindowId) {
+                window._lmpWindowId = 'win_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+            }
+            return window._lmpWindowId;
+        }
+        
+        function restoreFormState(silent = false) {
             try {
                 const stateJson = localStorage.getItem(FORM_STATE_KEY);
                 if (!stateJson) return;
@@ -1644,9 +1732,26 @@
                     return;
                 }
                 
+                applyFormState(state);
+                
+                if (!silent) {
+                    console.log('[LMP Portal] Form state restored');
+                }
+            } catch (e) {
+                console.warn('[LMP Portal] Failed to restore form state:', e);
+            }
+        }
+        
+        // Apply form state (used by both restore and cross-window sync)
+        function applyFormState(state) {
+            if (!state) return;
+            
+            _isApplyingSync = true;
+            
+            try {
                 // Restore form values
                 const clientNameEl = document.getElementById('clientName');
-                if (clientNameEl && state.clientName) clientNameEl.value = state.clientName;
+                if (clientNameEl && state.clientName !== undefined) clientNameEl.value = state.clientName;
                 
                 const isoEl = document.getElementById('iso');
                 if (isoEl && state.iso) {
@@ -1667,7 +1772,7 @@
                 if (projMethodEl && state.projectionMethod) projMethodEl.value = state.projectionMethod;
                 
                 const escalatorEl = document.getElementById('lmpEscalator');
-                if (escalatorEl && state.lmpEscalator) escalatorEl.value = state.lmpEscalator;
+                if (escalatorEl && state.lmpEscalator !== undefined) escalatorEl.value = state.lmpEscalator;
                 
                 const fixedPriceEl = document.getElementById('fixedPrice');
                 if (fixedPriceEl && state.fixedPrice) fixedPriceEl.value = state.fixedPrice;
@@ -1692,7 +1797,7 @@
                 }
                 
                 const lmpAdjustSliderEl = document.getElementById('lmpAdjustSlider');
-                if (lmpAdjustSliderEl && state.lmpAdjustSlider) {
+                if (lmpAdjustSliderEl && state.lmpAdjustSlider !== undefined) {
                     lmpAdjustSliderEl.value = state.lmpAdjustSlider;
                     const lmpAdjustValue = document.getElementById('lmpAdjustValue');
                     if (lmpAdjustValue) {
@@ -1712,14 +1817,36 @@
                     }
                 }
                 
+                // Restore calculation results for cross-window sync
+                if (state.calculationResults) {
+                    try {
+                        calculationResults = JSON.parse(state.calculationResults);
+                    } catch (e) { /* ignore */ }
+                }
+                if (state.projectedMonths) {
+                    try {
+                        projectedMonths = JSON.parse(state.projectedMonths);
+                    } catch (e) { /* ignore */ }
+                }
+                if (state.baseLMPData) {
+                    try {
+                        baseLMPData = JSON.parse(state.baseLMPData);
+                    } catch (e) { /* ignore */ }
+                }
+                
+                // If results were visible and we have calculation data, redisplay them
+                if (state.resultsVisible && calculationResults) {
+                    displayResults();
+                }
+                
                 // Update term info
                 updateTermInfo();
                 
-                console.log('[LMP Portal] Form state restored');
-            } catch (e) {
-                console.warn('[LMP Portal] Failed to restore form state:', e);
+            } finally {
+                _isApplyingSync = false;
             }
         }
+        
         
         // Initialize Usage Profile Store
         function initializeProfileStore() {
@@ -2845,6 +2972,9 @@
                 
                 // Log analysis to activity tracker
                 logAnalysisToParent();
+                
+                // Save form state to sync results to other windows
+                saveFormState();
             } else {
                 alert('Unable to calculate results. Please check your date range and zone selection.');
             }
@@ -2858,7 +2988,7 @@
             const startDate = document.getElementById('startDate').value;
             const termMonths = parseInt(document.getElementById('termMonths').value);
             const fixedPrice = parseFloat(document.getElementById('fixedPrice').value);
-            const lmpAdjustment = parseFloat(document.getElementById('lmpAdjustment')?.value || 0);
+            const lmpAdjustment = parseFloat(document.getElementById('lmpAdjustSlider')?.value || 0);
             
             // Get usage data
             const usage = [];
@@ -3057,10 +3187,9 @@
             activeClient = null;
             activeAccount = null;
             
-            // Clear localStorage form state
-            try {
-                localStorage.removeItem('lmpPortal_formState');
-            } catch (e) { /* ignore */ }
+            // Save the reset state so it syncs to other windows
+            // (This replaces the old "remove" approach)
+            saveFormState();
             
             // Show notification
             showNotification('Form reset to defaults', 'info');
@@ -4368,9 +4497,15 @@
             }
             
             // Set LMP adjustment if exists
-            const lmpAdjustmentInput = document.getElementById('lmpAdjustment');
+            const lmpAdjustmentInput = document.getElementById('lmpAdjustSlider');
             if (lmpAdjustmentInput && data.lmpAdjustment !== undefined) {
                 lmpAdjustmentInput.value = data.lmpAdjustment;
+                // Also update the display value
+                const lmpAdjustValue = document.getElementById('lmpAdjustValue');
+                if (lmpAdjustValue) {
+                    const val = parseFloat(data.lmpAdjustment);
+                    lmpAdjustValue.textContent = (val >= 0 ? '+' : '') + val.toFixed(1) + '%';
+                }
             }
             
             showNotification('Analysis parameters loaded - click Calculate to run', 'success');
