@@ -1179,13 +1179,16 @@ function renderActivityLog() {
     container.innerHTML = logs.length ? logs.map(log => {
         const hasData = log.data && Object.keys(log.data).length > 0;
         const dataPreview = hasData ? getDataPreview(log) : '';
+        const widgetLabel = getWidgetLabel(log.widget);
+        const actionLabel = getActionLabel(log.action, log.widget);
+        
         return '<div class="activity-item" style="padding:12px;background:var(--bg-secondary);border-radius:8px;margin-bottom:8px;border-left:4px solid ' + getActivityColor(log.action) + ';">' +
             '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
             '<div style="flex:1;">' +
-            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">' +
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">' +
             '<span style="font-size:16px;">' + getActivityIcon(log.action) + '</span>' +
-            '<span style="font-weight:600;color:var(--text-primary);">' + escapeHtml(log.action || 'Action') + '</span>' +
-            '<span style="font-size:11px;padding:2px 8px;background:var(--bg-tertiary);border-radius:4px;color:var(--text-secondary);">' + escapeHtml(log.widget || 'Portal') + '</span>' +
+            '<span style="font-weight:600;color:var(--text-primary);">' + escapeHtml(actionLabel) + '</span>' +
+            '<span style="font-size:11px;padding:2px 8px;background:' + getWidgetBgColor(log.widget) + ';border-radius:4px;color:white;font-weight:500;">' + escapeHtml(widgetLabel) + '</span>' +
             '</div>' +
             '<div style="font-size:13px;color:var(--text-secondary);">' + (isAdmin ? '👤 ' + escapeHtml(log.userName || 'Unknown') : '') + (log.clientName ? (isAdmin ? ' • ' : '') + '<span style="color:var(--accent-primary);">Client: ' + escapeHtml(log.clientName) + '</span>' : '') + '</div>' +
             (dataPreview ? '<div style="font-size:11px;color:var(--text-tertiary);margin-top:4px;">' + dataPreview + '</div>' : '') +
@@ -1195,11 +1198,104 @@ function renderActivityLog() {
     }).join('') : '<div style="text-align:center;color:var(--text-tertiary);padding:40px;">No activity found</div>';
 }
 
+// Get friendly widget label
+function getWidgetLabel(widget) {
+    const labels = {
+        'portal': 'Portal',
+        'user-admin': 'User Admin',
+        'client-admin': 'Client Admin',
+        'client-lookup': 'Client Lookup',
+        'lmp-comparison': 'LMP Comparison',
+        'lmp-analytics': 'LMP Analytics',
+        'energy-utilization': 'Energy Utilization',
+        'bid-management': 'Bid Management',
+        'ai-assistant': 'AI Assistant',
+        'aei-intelligence': 'AE Intelligence',
+        'data-manager': 'Data Manager',
+        'analysis-history': 'Analysis History',
+        'peak-demand': 'Peak Demand',
+        'feedback': 'Feedback'
+    };
+    return labels[widget] || widget || 'Portal';
+}
+
+// Get widget background color for badge
+function getWidgetBgColor(widget) {
+    const colors = {
+        'portal': '#6b7280',
+        'user-admin': '#8b5cf6',
+        'client-admin': '#8b5cf6',
+        'client-lookup': '#3b82f6',
+        'lmp-comparison': '#3b82f6',
+        'lmp-analytics': '#0ea5e9',
+        'energy-utilization': '#f59e0b',
+        'bid-management': '#10b981',
+        'ai-assistant': '#ec4899',
+        'aei-intelligence': '#14b8a6',
+        'data-manager': '#6366f1',
+        'analysis-history': '#64748b',
+        'peak-demand': '#ef4444',
+        'feedback': '#f97316'
+    };
+    return colors[widget] || '#6b7280';
+}
+
+// Get friendly action label
+function getActionLabel(action, widget) {
+    // Return more descriptive labels for common actions
+    if (action === 'Login') return 'User Login';
+    if (action === 'Logout') return 'User Logout';
+    if (action === 'Session Timeout') return 'Session Timed Out';
+    if (action === 'LMP Analysis') return 'Analysis Created';
+    if (action === 'LMP Export') return 'Data Exported';
+    if (action === 'Bid Sheet Generated') return 'Bid Sheet Created';
+    if (action === 'Client Create') return 'Client Created';
+    if (action === 'Client Update') return 'Client Updated';
+    if (action === 'Client Delete') return 'Client Deleted';
+    if (action === 'User Created') return 'User Created';
+    if (action === 'User Updated') return 'User Updated';
+    if (action === 'User Deleted') return 'User Deleted';
+    if (action === 'AI Query') return 'AI Query';
+    if (action === 'Usage Data Entry') return 'Usage Data Saved';
+    if (action === 'Utilization Data Saved') return 'Utilization Saved';
+    if (action === 'History Export') return 'History Exported';
+    if (action === 'Data Upload') return 'Data Uploaded';
+    if (action === 'Data Update') return 'Data Updated';
+    if (action === 'Ticket Created') return 'Ticket Submitted';
+    if (action === 'Ticket Reply') return 'Ticket Reply';
+    return action || 'Activity';
+}
+
 function getActivityColor(action) {
     const colors = {
-        'Login': '#10b981', 'Logout': '#6b7280', 'LMP Analysis': '#3b82f6', 'LMP Export': '#8b5cf6',
-        'Bid Sheet Generated': '#f59e0b', 'Client Create': '#10b981', 'Client Update': '#3b82f6', 'Client Delete': '#ef4444',
-        'AI Query': '#8b5cf6', 'Data Upload': '#06b6d4', 'History Export': '#f59e0b', 'Widget Expand': '#6b7280'
+        'Login': '#10b981', 
+        'Logout': '#6b7280', 
+        'Session Timeout': '#f59e0b',
+        'LMP Analysis': '#3b82f6', 
+        'LMP Export': '#8b5cf6',
+        'Bid Sheet Generated': '#f59e0b', 
+        'Client Create': '#10b981', 
+        'Client Update': '#3b82f6', 
+        'Client Delete': '#ef4444',
+        'User Created': '#10b981',
+        'User Updated': '#3b82f6',
+        'User Deleted': '#ef4444',
+        'AI Query': '#ec4899', 
+        'Data Upload': '#06b6d4', 
+        'Data Update': '#0ea5e9',
+        'History Export': '#f59e0b', 
+        'Export Users': '#8b5cf6',
+        'Export Activity': '#8b5cf6',
+        'Export LMP Data': '#8b5cf6',
+        'Usage Data Entry': '#f59e0b',
+        'Utilization Data Saved': '#f59e0b',
+        'Widget Expand': '#6b7280',
+        'Widget Collapse': '#6b7280',
+        'Widget Resize': '#6b7280',
+        'Widget Reorder': '#6b7280',
+        'Ticket Created': '#f97316',
+        'Ticket Reply': '#f97316',
+        'Ticket Updated': '#f97316'
     };
     return colors[action] || '#6b7280';
 }
@@ -1212,6 +1308,14 @@ function getDataPreview(log) {
     }
     if (log.action === 'AI Query') return 'Query: "' + (d.query || '').substring(0, 50) + (d.query?.length > 50 ? '...' : '') + '"';
     if (log.action === 'Bid Sheet Generated') return 'Client: ' + (d.clientName || log.clientName || 'N/A');
+    if (log.action === 'LMP Export') return 'Format: ' + (d.format || 'Excel') + (d.iso ? ' | ISO: ' + d.iso : '') + (d.zone ? ' | Zone: ' + d.zone : '');
+    if (log.action === 'Login' || log.action === 'Logout' || log.action === 'Session Timeout') return '';
+    if (log.action === 'Client Create' || log.action === 'Client Update') return 'Client: ' + (log.clientName || d.clientName || 'N/A');
+    if (log.action === 'User Created' || log.action === 'User Updated') return 'Email: ' + (d.email || 'N/A') + (d.role ? ' | Role: ' + d.role : '');
+    if (log.action === 'Data Upload' || log.action === 'Data Update') return (d.records ? d.records + ' records' : '') + (d.iso ? ' | ISO: ' + d.iso : '');
+    if (log.action === 'History Export' || log.action === 'Export Activity') return (d.count ? d.count + ' records' : '');
+    if (log.action === 'Usage Data Entry' || log.action === 'Utilization Data Saved') return (log.clientName || d.clientName ? 'Client: ' + (log.clientName || d.clientName) : '') + (d.accountName ? ' → ' + d.accountName : '');
+    if (log.action === 'Ticket Created') return d.subject ? 'Subject: ' + d.subject.substring(0, 40) + (d.subject.length > 40 ? '...' : '') : '';
     return '';
 }
 

@@ -1224,6 +1224,82 @@ const ActivityLog = {
         
         return entry;
     },
+    
+    // Log an LMP Analysis activity
+    logLMPAnalysis(data) {
+        // Use passed user info OR fall back to session
+        const session = UserStore.getSession();
+        const userId = data.userId || session?.id || null;
+        const userName = data.userName || (session ? `${session.firstName} ${session.lastName}` : 'System');
+        const userEmail = data.userEmail || session?.email || null;
+        
+        return this.log('LMP Analysis', {
+            userId: userId,
+            userName: userName,
+            userEmail: userEmail,
+            widget: 'lmp-comparison',
+            clientName: data.clientName || 'Unnamed Analysis',
+            clientId: data.clientId || null,
+            accountName: data.accountName || null,
+            accountId: data.accountId || null,
+            data: {
+                clientName: data.clientName || 'Unnamed Analysis',
+                iso: data.iso,
+                zone: data.zone,
+                startDate: data.startDate,
+                termMonths: data.termMonths,
+                fixedPrice: data.fixedPrice,
+                lmpAdjustment: data.lmpAdjustment,
+                totalAnnualUsage: data.usage,
+                results: data.results
+            }
+        });
+    },
+    
+    // Log an LMP Export activity
+    logLMPExport(data) {
+        const session = UserStore.getSession();
+        const userId = data.userId || session?.id || null;
+        const userName = data.userName || (session ? `${session.firstName} ${session.lastName}` : 'System');
+        const userEmail = data.userEmail || session?.email || null;
+        
+        return this.log('LMP Export', {
+            userId: userId,
+            userName: userName,
+            userEmail: userEmail,
+            widget: 'lmp-comparison',
+            data: {
+                exportType: data.exportType,
+                iso: data.iso,
+                zone: data.zone,
+                format: data.format
+            }
+        });
+    },
+    
+    // Log a Usage Entry activity (from Energy Utilization widget)
+    logUsageEntry(data) {
+        const session = UserStore.getSession();
+        const userId = data.userId || session?.id || null;
+        const userName = data.userName || (session ? `${session.firstName} ${session.lastName}` : 'System');
+        const userEmail = data.userEmail || session?.email || null;
+        
+        return this.log('Usage Data Entry', {
+            userId: userId,
+            userName: userName,
+            userEmail: userEmail,
+            widget: 'energy-utilization',
+            clientName: data.clientName || null,
+            clientId: data.clientId || null,
+            accountName: data.accountName || null,
+            accountId: data.accountId || null,
+            data: {
+                clientName: data.clientName,
+                accountName: data.accountName,
+                months: data.months || 12
+            }
+        });
+    },
 
     getAll() { return this.entries; },
     getRecent(count = 50) { return this.entries.slice(0, count); },
