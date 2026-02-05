@@ -2095,41 +2095,20 @@
                 return allClients;
             }
 
-            // Build match identifiers for current user
+            // Non-admin: match client's assignedGroup against user's full name
             const userFullName = ((currentUser.firstName || '') + ' ' + (currentUser.lastName || '')).trim().toLowerCase();
-            const userEmail = (currentUser.email || '').toLowerCase();
-            const userGroup = (currentUser.assignedGroup || currentUser.group || '').toLowerCase();
 
-            // If no identifying info, fall back to showing all (safety net)
-            if (!userFullName && !userEmail) {
-                console.warn('[CommandCenter] Access: No user identity found - showing all as fallback');
-                return allClients;
+            if (!userFullName) {
+                console.warn('[CommandCenter] Access: No user name found - showing none');
+                return [];
             }
 
             const filtered = allClients.filter(c => {
-                // Match parent-level owner fields (salesRepName / salesRepEmail)
-                const repName = (c.salesRepName || '').toLowerCase();
-                const repEmail = (c.salesRepEmail || '').toLowerCase();
-                if (userEmail && repEmail && repEmail === userEmail) return true;
-                if (userFullName && repName && repName === userFullName) return true;
-
-                // Match child account-level accountOwner field
-                if (c.accounts?.length > 0) {
-                    const ownsAccount = c.accounts.some(a => {
-                        const acctOwner = (a.accountOwner || '').toLowerCase();
-                        if (!acctOwner) return false;
-                        return acctOwner === userFullName || acctOwner === userEmail;
-                    });
-                    if (ownsAccount) return true;
-                }
-
-                // Match assigned group (existing legacy support)
-                if (userGroup && c.assignedGroup && c.assignedGroup.toLowerCase() === userGroup) return true;
-
-                return false;
+                const group = (c.assignedGroup || '').toLowerCase();
+                return group === userFullName;
             });
 
-            console.log('[CommandCenter] Access: OWNER filter -', filtered.length, '/', allClients.length, 'clients for', userFullName || userEmail);
+            console.log('[CommandCenter] Access: USER filter - assignedGroup "' + userFullName + '" matched', filtered.length, '/', allClients.length, 'clients');
             return filtered;
         }
 
