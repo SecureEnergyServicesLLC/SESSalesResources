@@ -4524,10 +4524,14 @@
         
         // Configuration
         const DATA_CONFIG = {
-            GITHUB_RAW_URL: 'https://raw.githubusercontent.com/SecureEnergyServicesLLC/SESSalesResources/main/data/lmp-database.json',
+            AZURE_API: 'https://ses-data-api-gpaqghfbehhrb6c2.eastus-01.azurewebsites.net/api/data',
+            LMP_FILE: 'lmp-database.json',
+            GITHUB_RAW_URL: 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json',
             STORAGE_KEY: 'secureEnergy_LMP_Data',
+            CACHE_KEY: 'lmp-comparison-cache',
+            CACHE_TTL: 30 * 60 * 1000, // 30 min
             FALLBACK_URLS: [
-                'https://raw.githubusercontent.com/SecureEnergyServicesLLC/SESSalesResources/main/data/lmp-database.json',
+                'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json',
                 'data/lmp-database.json',
                 '../data/lmp-database.json',
                 './data/lmp-database.json'
@@ -4537,6 +4541,36 @@
         // Data loading state
         let dataLoadAttempted = false;
         let dataSource = 'none';
+
+        // Get API key from parent portal if available
+        function getApiKey() {
+            try {
+                if (window.parent !== window) {
+                    if (window.parent.AzureDataService?.apiKey) return window.parent.AzureDataService.apiKey;
+                    if (window.parent.AzureDataService?.getApiKey?.()) return window.parent.AzureDataService.getApiKey();
+                    if (window.parent.AZURE_CONFIG?.apiKey) return window.parent.AZURE_CONFIG.apiKey;
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        // SessionStorage cache for maximize/minimize persistence
+        function getCachedComparison() {
+            try {
+                const cached = sessionStorage.getItem(DATA_CONFIG.CACHE_KEY);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (Date.now() - parsed.timestamp < DATA_CONFIG.CACHE_TTL) return parsed.data;
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        function setCachedComparison(data) {
+            try {
+                sessionStorage.setItem(DATA_CONFIG.CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+            } catch (e) {}
+        }
         
         // Listen for data updates from parent portal
         window.addEventListener('message', function(event) {
@@ -4900,17 +4934,111 @@
             return groupedData;
         }
         
-        // Load from GitHub JSON
+        // Convert Azure format { data: { ISONE: [...], PJM: [...] } } to records for this widget
+        function convertAzureToGrouped(azureData) {
+            const groupedData = {};
+            if (azureData.data) {
+                for (const [iso, records] of Object.entries(azureData.data)) {
+                    if (!groupedData[iso]) groupedData[iso] = [];
+                    records.forEach(r => {
+                        groupedData[iso].push({
+                            month: String(r.month).padStart(2, '0'),
+                            year: String(r.year),
+                            zone: r.zone_id || r.zoneId || r.zone || '',
+                            zone_name: r.zone || r.zone_id || r.zoneId || '',
+                            avg_da_lmp: parseFloat(r.avg_da_lmp || r.lmp) || 0
+                        });
+                    });
+                }
+            }
+            return groupedData;
+        }
+
+        // Load from Azure API
+        async function loadFromAzure() {
+            console.log('[LMP Portal] Attempting to load from Azure...');
+            
+            // Try parent AzureDataService first (when in iframe)
+            try {
+                if (window.parent !== window && window.parent.AzureDataService) {
+                    const azureData = await window.parent.AzureDataService.get(DATA_CONFIG.LMP_FILE);
+                    if (azureData) {
+                        const grouped = convertAzureToGrouped(azureData);
+                        if (Object.keys(grouped).length > 0) {
+                            Object.assign(ISO_DATA, grouped);
+                            console.log('[LMP Portal] Loaded from parent AzureDataService');
+                            dataSource = 'azure';
+                            setCachedComparison(azureData);
+                            return true;
+                        }
+                    }
+                }
+            } catch (e) { console.log('[LMP Portal] Parent AzureDataService unavailable:', e.message); }
+            
+            // Try direct Azure API with available keys
+            const parentKey = getApiKey();
+            const keysToTry = [parentKey, 'ses-widget-mno345pqr678', 'ses-admin-abc123def456'].filter(Boolean);
+            
+            for (const apiKey of keysToTry) {
+                try {
+                    const response = await fetch(`${DATA_CONFIG.AZURE_API}/${DATA_CONFIG.LMP_FILE}`, {
+                        headers: { 'X-API-Key': apiKey }
+                    });
+                    if (response.ok) {
+                        const azureData = await response.json();
+                        const grouped = convertAzureToGrouped(azureData);
+                        if (Object.keys(grouped).length > 0) {
+                            Object.assign(ISO_DATA, grouped);
+                            console.log('[LMP Portal] Loaded from Azure API');
+                            dataSource = 'azure';
+                            setCachedComparison(azureData);
+                            return true;
+                        }
+                    }
+                } catch (e) { continue; }
+            }
+            
+            return false;
+        }
+
+        // Load from sessionStorage cache (survives maximize/minimize)
+        function loadFromCache() {
+            const cached = getCachedComparison();
+            if (cached) {
+                const grouped = convertAzureToGrouped(cached);
+                if (Object.keys(grouped).length > 0) {
+                    Object.assign(ISO_DATA, grouped);
+                    console.log('[LMP Portal] Loaded from session cache');
+                    dataSource = 'cache';
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Load from GitHub JSON (fallback)
         async function loadFromGitHub() {
             console.log('[LMP Portal] Attempting to load from GitHub JSON...');
             
             for (const url of DATA_CONFIG.FALLBACK_URLS) {
                 try {
-                    const response = await fetch(url + '?t=' + Date.now()); // Cache bust
+                    const response = await fetch(url + '?t=' + Date.now());
                     if (!response.ok) continue;
                     
                     const jsonData = await response.json();
                     
+                    // Handle Azure-style format from GitHub
+                    if (jsonData && jsonData.data) {
+                        const grouped = convertAzureToGrouped(jsonData);
+                        if (Object.keys(grouped).length > 0) {
+                            Object.assign(ISO_DATA, grouped);
+                            console.log(`[LMP Portal] Loaded from GitHub - Azure format (${url})`);
+                            dataSource = 'github';
+                            return true;
+                        }
+                    }
+                    
+                    // Handle legacy records format
                     if (jsonData && jsonData.records && jsonData.records.length > 0) {
                         const groupedData = convertRecordsToISOData(jsonData.records);
                         
@@ -4981,38 +5109,32 @@
             dataLoadAttempted = true;
             
             console.log('[LMP Portal] Initializing data...');
+
+            // 1. Try session cache first (instant, survives maximize/minimize)
+            if (loadFromCache()) {
+                finalizeDataLoad();
+                return;
+            }
             
-            // Try GitHub first (authoritative source)
-            const githubLoaded = await loadFromGitHub();
+            // 2. Try Azure (authoritative source)
+            const azureLoaded = await loadFromAzure();
             
-            // Fall back to localStorage if GitHub fails
-            if (!githubLoaded) {
-                console.log('[LMP Portal] GitHub load failed, trying localStorage...');
-                loadFromStorage();
-            } else {
-                // Cache GitHub data to localStorage for offline access
-                try {
-                    const cacheData = { records: [] };
-                    Object.keys(ISO_DATA).forEach(iso => {
-                        if (ISO_DATA[iso] && ISO_DATA[iso].length > 0) {
-                            ISO_DATA[iso].forEach(item => {
-                                cacheData.records.push({
-                                    iso: iso,
-                                    zone: item.zone_name,
-                                    year: item.year,
-                                    month: item.month,
-                                    lmp: item.avg_da_lmp
-                                });
-                            });
-                        }
-                    });
-                    localStorage.setItem(DATA_CONFIG.STORAGE_KEY, JSON.stringify(cacheData));
-                    console.log('[LMP Portal] Cached GitHub data to localStorage');
-                } catch (cacheErr) {
-                    console.warn('[LMP Portal] Could not cache data:', cacheErr);
+            // 3. Fall back to GitHub
+            if (!azureLoaded) {
+                console.log('[LMP Portal] Azure load failed, trying GitHub...');
+                const githubLoaded = await loadFromGitHub();
+                
+                // 4. Fall back to localStorage
+                if (!githubLoaded) {
+                    console.log('[LMP Portal] GitHub load failed, trying localStorage...');
+                    loadFromStorage();
                 }
             }
             
+            finalizeDataLoad();
+        }
+
+        function finalizeDataLoad() {
             // Check if we have any data
             const hasData = Object.keys(ISO_DATA).some(iso => ISO_DATA[iso] && ISO_DATA[iso].length > 0);
             
@@ -5033,8 +5155,8 @@
                     }
                 });
                 
-                const sourceLabel = dataSource === 'github' ? 'GitHub Repository' : 
-                                   dataSource === 'localStorage' ? 'Local Cache' : 'Unknown';
+                const sourceLabels = { azure: 'Azure Blob Storage', cache: 'Session Cache', github: 'GitHub Repository', localStorage: 'Local Cache' };
+                const sourceLabel = sourceLabels[dataSource] || 'Unknown';
                 showNotification(`Loaded ${totalRecords.toLocaleString()} records from ${isoCount} ISOs (${sourceLabel})`, 'success');
             } else {
                 console.log('[LMP Portal] No data available from any source');
