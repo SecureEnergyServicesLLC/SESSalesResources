@@ -593,12 +593,62 @@
         // ============================================
         // DATA LOADING
         // ============================================
+        // Cache key for sessionStorage
+        const LMP_CACHE_KEY = 'lmp-analytics-cache';
+        const LMP_CACHE_TTL = 30 * 60 * 1000; // 30 min cache
+
+        function getCachedData() {
+            try {
+                const cached = sessionStorage.getItem(LMP_CACHE_KEY);
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    if (Date.now() - parsed.timestamp < LMP_CACHE_TTL) {
+                        console.log('[LMP Analytics] Using cached data');
+                        return parsed.data;
+                    }
+                }
+            } catch (e) {}
+            return null;
+        }
+
+        function setCachedData(data) {
+            try {
+                sessionStorage.setItem(LMP_CACHE_KEY, JSON.stringify({ data, timestamp: Date.now() }));
+            } catch (e) { console.warn('[LMP Analytics] Cache save failed:', e); }
+        }
+
+        // Get API key from parent portal if available
+        function getApiKey() {
+            try {
+                if (window.parent !== window) {
+                    // Try parent AzureDataService config
+                    if (window.parent.AzureDataService?.apiKey) return window.parent.AzureDataService.apiKey;
+                    if (window.parent.AZURE_CONFIG?.apiKey) return window.parent.AZURE_CONFIG.apiKey;
+                    // Try parent's shared data store
+                    if (window.parent.SharedDataStore?.getAzureApiKey) return window.parent.SharedDataStore.getAzureApiKey();
+                }
+            } catch (e) {}
+            // Fallback keys to try
+            return null;
+        }
+
         async function loadData() {
             console.log('[LMP Analytics] Loading data...');
             
             try {
-                // Try Azure first
-                let apiKey = 'ses-readonly-portal2026';
+                // 1. Check sessionStorage cache first (survives maximize/minimize)
+                const cached = getCachedData();
+                if (cached) {
+                    lmpDatabase = cached;
+                    const flattened = LMPProcessor.flattenDatabase(lmpDatabase);
+                    monthlyData = flattened.monthly;
+                    hourlyData = flattened.hourly;
+                    console.log(`[LMP Analytics] From cache - Monthly: ${monthlyData.length}, Hourly: ${hourlyData.length}`);
+                    initializeUI();
+                    return;
+                }
+
+                // 2. Try parent AzureDataService (works when embedded in portal iframe)
                 try {
                     if (window.parent !== window && window.parent.AzureDataService) {
                         const db = await window.parent.AzureDataService.get(AZURE_CONFIG.lmpFile);
@@ -607,30 +657,47 @@
                             console.log('[LMP Analytics] Loaded from parent AzureDataService');
                         }
                     }
-                } catch (e) {}
+                } catch (e) { console.log('[LMP Analytics] Parent service unavailable:', e.message); }
 
+                // 3. Try direct Azure fetch with available API keys
                 if (!lmpDatabase) {
-                    const response = await fetch(`${AZURE_CONFIG.endpoint}/${AZURE_CONFIG.lmpFile}`, {
-                        headers: { 'X-API-Key': apiKey }
-                    });
-                    if (response.ok) {
-                        lmpDatabase = await response.json();
-                        console.log('[LMP Analytics] Loaded from Azure API');
+                    const parentKey = getApiKey();
+                    const keysToTry = [
+                        parentKey,
+                        'ses-widget-mno345pqr678',
+                        'ses-readonly-portal2026',
+                        'ses-admin-abc123def456'
+                    ].filter(Boolean);
+
+                    for (const apiKey of keysToTry) {
+                        try {
+                            const response = await fetch(`${AZURE_CONFIG.endpoint}/${AZURE_CONFIG.lmpFile}`, {
+                                headers: { 'X-API-Key': apiKey }
+                            });
+                            if (response.ok) {
+                                lmpDatabase = await response.json();
+                                console.log('[LMP Analytics] Loaded from Azure API');
+                                break;
+                            }
+                        } catch (e) { continue; }
                     }
                 }
 
-                // Fallback to GitHub
+                // 4. Fallback to GitHub
                 if (!lmpDatabase) {
                     const ghResponse = await fetch('https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json?t=' + Date.now());
                     if (ghResponse.ok) {
                         lmpDatabase = await ghResponse.json();
-                        console.log('[LMP Analytics] Loaded from GitHub');
+                        console.log('[LMP Analytics] Loaded from GitHub fallback');
                     }
                 }
 
                 if (!lmpDatabase) {
                     throw new Error('Could not load LMP data from any source');
                 }
+
+                // Cache for future loads (maximize/minimize, refresh)
+                setCachedData(lmpDatabase);
 
                 // Flatten the data
                 const flattened = LMPProcessor.flattenDatabase(lmpDatabase);
@@ -651,6 +718,19 @@
                 `;
             }
         }
+
+        // Listen for data from parent portal via postMessage
+        window.addEventListener('message', function(event) {
+            if (event.data?.type === 'lmp-data' && event.data.database) {
+                console.log('[LMP Analytics] Received data via postMessage');
+                lmpDatabase = event.data.database;
+                setCachedData(lmpDatabase);
+                const flattened = LMPProcessor.flattenDatabase(lmpDatabase);
+                monthlyData = flattened.monthly;
+                hourlyData = flattened.hourly;
+                initializeUI();
+            }
+        });
 
         // ============================================
         // UI INITIALIZATION
@@ -1256,6 +1336,7 @@
                 <div class="loading"><div class="loading-spinner"></div><p>Refreshing...</p></div>
             `;
             lmpDatabase = null;
+            try { sessionStorage.removeItem(LMP_CACHE_KEY); } catch(e) {}
             loadData();
         }
 
