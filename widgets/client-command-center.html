@@ -1,0 +1,2441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Command Center</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #003366;
+            --primary-light: #004080;
+            --accent: #FF6B35;
+            --accent-hover: #e85a28;
+            --success: #28a745;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --account-active: #3b82f6;
+            --profile-active: #0d9488;
+            --bg-dark: #0d0f17;
+            --bg-card: #141824;
+            --bg-input: #0a0e1a;
+            --bg-elevated: #1a1f30;
+            --text-primary: #e8ecf4;
+            --text-secondary: #7a8599;
+            --text-muted: #4a5568;
+            --border: #1e2538;
+            --border-light: #2a3348;
+            --glow-accent: rgba(255, 107, 53, 0.12);
+            --glow-blue: rgba(59, 130, 246, 0.1);
+            --glow-green: rgba(40, 167, 69, 0.1);
+            --shadow: 0 4px 24px rgba(0,0,0,0.4);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ============================================
+           SEARCH BANNER — Full width, top of screen
+           ============================================ */
+        .search-banner {
+            position: sticky;
+            top: 0;
+            z-index: 500;
+            background: linear-gradient(180deg, var(--bg-card) 0%, rgba(20, 24, 36, 0.97) 100%);
+            border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(16px);
+            padding: 0;
+        }
+
+        .search-banner-inner {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 12px 20px;
+        }
+
+        .search-banner-top {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .banner-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .banner-brand-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #ff8f5e);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 12px rgba(255,107,53,0.3);
+        }
+
+        .banner-brand-text {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+            font-weight: 600;
+        }
+
+        .search-bar-wrapper {
+            flex: 1;
+            position: relative;
+            max-width: 680px;
+        }
+
+        .search-bar {
+            width: 100%;
+            padding: 11px 16px 11px 44px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 0.92rem;
+            transition: all 0.2s;
+            letter-spacing: 0.01em;
+        }
+
+        .search-bar:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255,107,53,0.12);
+            background: var(--bg-dark);
+        }
+
+        .search-bar::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-bar-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            transition: color 0.2s;
+        }
+
+        .search-bar-wrapper:focus-within .search-bar-icon {
+            color: var(--accent);
+        }
+
+        .search-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: var(--bg-card);
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            max-height: 420px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+            display: none;
+        }
+
+        .dropdown-section-label {
+            padding: 8px 14px 4px;
+            font-size: 0.62rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+            background: var(--bg-elevated);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .dropdown-item {
+            padding: 10px 14px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            transition: background 0.12s;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .dropdown-item:last-child { border-bottom: none; }
+        .dropdown-item:hover { background: var(--glow-accent); }
+        .dropdown-item.selected { background: var(--glow-green); }
+
+        .dropdown-item-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .dropdown-item-icon.parent {
+            background: linear-gradient(135deg, rgba(255,107,53,0.15), rgba(255,107,53,0.05));
+            color: var(--accent);
+        }
+
+        .dropdown-item-icon.account {
+            background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05));
+            color: var(--account-active);
+        }
+
+        .dropdown-item-content { flex: 1; min-width: 0; }
+
+        .dropdown-item-name {
+            font-weight: 600;
+            font-size: 0.88rem;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .dropdown-item-meta {
+            font-size: 0.73rem;
+            color: var(--text-secondary);
+        }
+
+        .dropdown-badges {
+            display: flex;
+            gap: 4px;
+            margin-top: 4px;
+            flex-wrap: wrap;
+        }
+
+        /* Banner quick stats on right */
+        .banner-stats {
+            display: flex;
+            gap: 12px;
+            flex-shrink: 0;
+            align-items: center;
+        }
+
+        .banner-stat {
+            text-align: center;
+            padding: 4px 10px;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+
+        .banner-stat-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--accent);
+            line-height: 1.2;
+        }
+
+        .banner-stat-label {
+            font-size: 0.58rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .banner-user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+
+        .banner-user-badge .role-tag {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-tag.admin {
+            background: rgba(255,107,53,0.2);
+            color: var(--accent);
+        }
+
+        .role-tag.user {
+            background: rgba(59,130,246,0.2);
+            color: var(--account-active);
+        }
+
+        /* ============================================
+           ACTIVE CONTEXT BAR — below search
+           ============================================ */
+        .context-bar {
+            display: none;
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 20px 12px;
+        }
+
+        .context-bar.visible { display: block; }
+
+        .context-cards {
+            display: flex;
+            gap: 10px;
+            align-items: stretch;
+        }
+
+        .context-card {
+            flex: 1;
+            border-radius: var(--radius-md);
+            padding: 12px 16px;
+            position: relative;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .context-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 3px;
+            height: 100%;
+        }
+
+        .context-card.parent-card {
+            background: linear-gradient(135deg, rgba(40,167,69,0.08) 0%, rgba(40,167,69,0.02) 100%);
+            border: 1px solid rgba(40,167,69,0.25);
+        }
+
+        .context-card.parent-card::before { background: var(--success); }
+
+        .context-card.account-card {
+            background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, rgba(59,130,246,0.02) 100%);
+            border: 1px solid rgba(59,130,246,0.25);
+        }
+
+        .context-card.account-card::before { background: var(--account-active); }
+
+        .context-card.profile-card {
+            background: linear-gradient(135deg, rgba(13,148,136,0.08) 0%, rgba(13,148,136,0.02) 100%);
+            border: 1px solid rgba(13,148,136,0.25);
+        }
+
+        .context-card.profile-card::before { background: var(--profile-active); }
+
+        .context-card-label {
+            font-size: 0.58rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .context-card.parent-card .context-card-label { color: var(--success); }
+        .context-card.account-card .context-card-label { color: var(--account-active); }
+        .context-card.profile-card .context-card-label { color: var(--profile-active); }
+
+        .context-card-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .context-card-meta {
+            font-size: 0.73rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .context-card-actions {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        /* ============================================
+           MAIN CONTENT AREA
+           ============================================ */
+        .main-content {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 16px 20px 24px;
+            display: grid;
+            grid-template-columns: 340px 1fr;
+            gap: 16px;
+            min-height: calc(100vh - 120px);
+        }
+
+        /* ============================================
+           LEFT SIDEBAR — Accounts Tree
+           ============================================ */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-header {
+            padding: 10px 14px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .panel-count {
+            font-size: 0.68rem;
+            padding: 2px 7px;
+            border-radius: 10px;
+            background: var(--bg-input);
+            color: var(--text-muted);
+        }
+
+        .panel-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        /* Account tree items */
+        .account-tree-item {
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.15s;
+            margin-bottom: 6px;
+        }
+
+        .account-tree-item:hover {
+            border-color: rgba(59,130,246,0.3);
+            background: rgba(59,130,246,0.04);
+        }
+
+        .account-tree-item.active {
+            border-color: var(--account-active);
+            background: rgba(59,130,246,0.1);
+        }
+
+        .account-tree-name {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 2px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .account-tree-meta {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .no-accounts-msg {
+            text-align: center;
+            padding: 24px 14px;
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+
+        .no-accounts-msg svg {
+            width: 36px;
+            height: 36px;
+            margin-bottom: 8px;
+            opacity: 0.4;
+        }
+
+        /* ============================================
+           RIGHT CONTENT — Actions + Widgets Grid
+           ============================================ */
+        .content-area {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Actions / Task History Window */
+        .actions-window {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .actions-header {
+            padding: 10px 16px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .actions-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .actions-filters {
+            display: flex;
+            gap: 6px;
+        }
+
+        .filter-chip {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .filter-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+        .filter-chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        .actions-body {
+            padding: 12px 16px;
+            max-height: 280px;
+            overflow-y: auto;
+        }
+
+        .action-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .action-item:last-child { border-bottom: none; }
+
+        .action-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.85rem;
+        }
+
+        .action-icon.completed {
+            background: rgba(40,167,69,0.15);
+            color: var(--success);
+        }
+
+        .action-icon.pending {
+            background: rgba(255,193,7,0.15);
+            color: var(--warning);
+        }
+
+        .action-icon.analysis {
+            background: rgba(59,130,246,0.15);
+            color: var(--account-active);
+        }
+
+        .action-content { flex: 1; min-width: 0; }
+
+        .action-title-text {
+            font-size: 0.82rem;
+            font-weight: 500;
+        }
+
+        .action-meta-text {
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+        }
+
+        .action-badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .action-badge.done { background: rgba(40,167,69,0.15); color: var(--success); }
+        .action-badge.in-progress { background: rgba(59,130,246,0.15); color: var(--account-active); }
+        .action-badge.not-started { background: rgba(108,117,125,0.15); color: #6c757d; }
+
+        /* ============================================
+           WIDGET ANALYTICS GRID
+           ============================================ */
+        .widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .widget-stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px 16px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.2s;
+            cursor: default;
+        }
+
+        .widget-stat-card:hover {
+            border-color: var(--border-light);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .widget-stat-card::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+        }
+
+        .widget-stat-card.complete::after { background: var(--success); }
+        .widget-stat-card.partial::after { background: var(--warning); }
+        .widget-stat-card.empty::after { background: var(--border); }
+
+        .widget-stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .widget-stat-name {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .widget-stat-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-top: 3px;
+        }
+
+        .widget-stat-status.done { background: var(--success); box-shadow: 0 0 6px rgba(40,167,69,0.4); }
+        .widget-stat-status.pending { background: var(--warning); box-shadow: 0 0 6px rgba(255,193,7,0.4); }
+        .widget-stat-status.none { background: var(--text-muted); }
+
+        .widget-stat-metrics {
+            display: flex;
+            gap: 12px;
+        }
+
+        .widget-metric {
+            flex: 1;
+        }
+
+        .widget-metric-value {
+            font-size: 1.15rem;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .widget-metric-label {
+            font-size: 0.6rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .widget-stat-footer {
+            margin-top: 8px;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+        }
+
+        /* ============================================
+           ADMIN PANEL (hidden for standard users)
+           ============================================ */
+        .admin-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            display: none;
+        }
+
+        .admin-panel.visible { display: flex; flex-direction: column; }
+
+        .admin-tabs {
+            display: flex;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .admin-tab {
+            flex: 1;
+            padding: 9px 14px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.78rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            border-bottom: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .admin-tab:hover { color: var(--text-primary); background: rgba(255,255,255,0.02); }
+        .admin-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        .admin-tab-content {
+            display: none;
+            padding: 16px;
+        }
+
+        .admin-tab-content.active { display: block; }
+
+        /* ============================================
+           SHARED UI COMPONENTS
+           ============================================ */
+        .badge {
+            display: inline-block;
+            padding: 2px 7px;
+            border-radius: 3px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-iso { background: rgba(0,51,102,0.3); color: #4da6ff; }
+        .badge-active { background: rgba(40,167,69,0.2); color: var(--success); }
+        .badge-account { background: rgba(59,130,246,0.2); color: var(--account-active); }
+        .badge-profile { background: rgba(13,148,136,0.2); color: var(--profile-active); }
+        .badge-prospect { background: rgba(255,193,7,0.2); color: var(--warning); }
+        .badge-inactive { background: rgba(108,117,125,0.2); color: #6c757d; }
+
+        .btn {
+            padding: 7px 14px;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 0.76rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            white-space: nowrap;
+        }
+
+        .btn-sm { padding: 4px 9px; font-size: 0.7rem; }
+
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-accent:hover { background: var(--accent-hover); }
+        .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--bg-input); color: var(--text-primary); }
+        .btn-success { background: rgba(40,167,69,0.15); color: var(--success); border: 1px solid rgba(40,167,69,0.3); }
+        .btn-success:hover { background: rgba(40,167,69,0.25); }
+        .btn-blue { background: rgba(59,130,246,0.15); color: var(--account-active); border: 1px solid rgba(59,130,246,0.3); }
+        .btn-blue:hover { background: rgba(59,130,246,0.25); }
+        .btn-danger { background: rgba(220,53,69,0.15); color: var(--danger); border: 1px solid rgba(220,53,69,0.3); }
+        .btn-danger:hover { background: rgba(220,53,69,0.25); }
+        .btn-teal { background: rgba(13,148,136,0.15); color: var(--profile-active); border: 1px solid rgba(13,148,136,0.3); }
+        .btn-teal:hover { background: rgba(13,148,136,0.25); }
+
+        /* Form elements */
+        .form-group { margin-bottom: 10px; }
+        .form-label { display: block; font-size: 0.7rem; color: var(--text-secondary); margin-bottom: 3px; }
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            color: var(--text-primary);
+            font-size: 0.82rem;
+            transition: border-color 0.15s;
+        }
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .form-textarea { resize: vertical; min-height: 55px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .form-row-3 { grid-template-columns: 1fr 1fr 1fr; }
+
+        /* Import zone */
+        .import-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 12px;
+        }
+        .import-zone:hover, .import-zone.dragover {
+            border-color: var(--accent);
+            background: rgba(255,107,53,0.04);
+        }
+        .import-zone p { color: var(--text-secondary); font-size: 0.82rem; margin-bottom: 4px; }
+        .import-options {
+            display: flex;
+            gap: 12px;
+            margin-top: 10px;
+            font-size: 0.78rem;
+            color: var(--text-secondary);
+        }
+        .import-option { display: flex; align-items: center; gap: 4px; }
+
+        /* Detail grid for client info */
+        .detail-section { margin-bottom: 14px; }
+        .detail-section-title {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .detail-item { padding: 6px 8px; background: var(--bg-input); border-radius: 4px; }
+        .detail-label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 1px; }
+        .detail-value { font-size: 0.82rem; word-break: break-word; }
+        .detail-value.empty { color: var(--text-muted); font-style: italic; }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            padding: 12px 16px;
+            background: var(--bg-elevated);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .modal-title { font-size: 0.95rem; font-weight: 600; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; font-size: 1.2rem; }
+        .modal-body { padding: 16px; overflow-y: auto; flex: 1; }
+        .modal-footer { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 18px;
+            border-radius: var(--radius-sm);
+            color: white;
+            font-weight: 500;
+            z-index: 2000;
+            animation: toastIn 0.3s ease;
+            font-size: 0.82rem;
+        }
+        .toast.success { background: var(--success); }
+        .toast.error { background: var(--danger); }
+        .toast.info { background: var(--account-active); }
+        @keyframes toastIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        /* Empty states */
+        .empty-state {
+            text-align: center;
+            padding: 30px 16px;
+            color: var(--text-muted);
+        }
+        .empty-state svg { width: 40px; height: 40px; margin-bottom: 10px; opacity: 0.35; }
+        .empty-state p { font-size: 0.82rem; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--border-light); }
+
+        /* No client selected state */
+        .welcome-state {
+            text-align: center;
+            padding: 60px 30px;
+        }
+        .welcome-icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, rgba(255,107,53,0.1), rgba(255,107,53,0.03));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+        }
+        .welcome-state h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+        .welcome-state p {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            max-width: 400px;
+            margin: 0 auto;
+            line-height: 1.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .banner-stats { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            .search-banner-inner { padding: 10px 12px; }
+            .main-content { padding: 12px; }
+            .context-cards { flex-direction: column; }
+            .banner-brand-text { display: none; }
+            .banner-user-badge { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ==========================================
+         SEARCH BANNER — Always on top
+         ========================================== -->
+    <div class="search-banner">
+        <div class="search-banner-inner">
+            <div class="search-banner-top">
+                <div class="banner-brand">
+                    <div class="banner-brand-icon">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </div>
+                    <div class="banner-brand-text">Client Hub</div>
+                </div>
+
+                <div class="search-bar-wrapper">
+                    <svg class="search-bar-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <input type="text" class="search-bar" id="searchInput" placeholder="Search parents, accounts, locations..." autocomplete="off">
+                    <div class="search-dropdown" id="searchDropdown"></div>
+                </div>
+
+                <div class="banner-stats" id="bannerStats">
+                    <div class="banner-stat">
+                        <div class="banner-stat-value" id="statParents">0</div>
+                        <div class="banner-stat-label">Parents</div>
+                    </div>
+                    <div class="banner-stat">
+                        <div class="banner-stat-value" id="statAccounts">0</div>
+                        <div class="banner-stat-label">Accounts</div>
+                    </div>
+                </div>
+
+                <div class="banner-user-badge" id="userBadge">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    <span id="userName">Loading...</span>
+                    <span class="role-tag user" id="userRole">USER</span>
+                </div>
+            </div>
+
+            <!-- Active Context Bar -->
+            <div class="context-bar" id="contextBar">
+                <div class="context-cards" id="contextCards"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MAIN CONTENT
+         ========================================== -->
+    <div class="main-content" id="mainContent">
+
+        <!-- LEFT SIDEBAR — Accounts Tree / Client List -->
+        <div class="sidebar" id="sidebar">
+            <div class="panel" id="accountsPanel" style="flex: 1; max-height: calc(100vh - 200px);">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="8.5" cy="7" r="4"/>
+                            <path d="M20 8v6M23 11h-6"/>
+                        </svg>
+                        Accounts
+                    </div>
+                    <span class="panel-count" id="accountsCount">0</span>
+                </div>
+                <div class="panel-body" id="accountsList">
+                    <div class="no-accounts-msg">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <p>Search above to select a client</p>
+                        <p style="font-size: 0.72rem; margin-top: 4px;">Accounts will appear here</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Usage Profile Panel -->
+            <div class="panel" id="profilePanel" style="display: none;">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                        </svg>
+                        Usage Profile
+                    </div>
+                </div>
+                <div class="panel-body" id="profileBody"></div>
+            </div>
+        </div>
+
+        <!-- RIGHT CONTENT -->
+        <div class="content-area" id="contentArea">
+
+            <!-- Welcome state when no client selected -->
+            <div id="welcomeState">
+                <div class="welcome-state">
+                    <div class="welcome-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                    </div>
+                    <h3>Client Command Center</h3>
+                    <p>Search for a parent client or account above. Once selected, you'll see accounts, portal activity, widget analytics, and task history here.</p>
+                </div>
+            </div>
+
+            <!-- Actions Window (hidden until client selected) -->
+            <div class="actions-window" id="actionsWindow" style="display: none;">
+                <div class="actions-header">
+                    <div class="actions-title">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        Portal Activity &amp; Task History
+                    </div>
+                    <div class="actions-filters">
+                        <button class="filter-chip active" data-filter="all" onclick="filterActions('all', this)">All</button>
+                        <button class="filter-chip" data-filter="analysis" onclick="filterActions('analysis', this)">Analysis</button>
+                        <button class="filter-chip" data-filter="completed" onclick="filterActions('completed', this)">Completed</button>
+                        <button class="filter-chip" data-filter="pending" onclick="filterActions('pending', this)">Pending</button>
+                    </div>
+                </div>
+                <div class="actions-body" id="actionsBody">
+                    <div class="empty-state"><p>No activity yet for this client</p></div>
+                </div>
+            </div>
+
+            <!-- Widget Analytics Grid (hidden until client selected) -->
+            <div id="widgetAnalytics" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div class="panel-title" style="padding: 0;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+                            <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+                        </svg>
+                        Widget Status
+                    </div>
+                    <span id="widgetSummary" style="font-size: 0.7rem; color: var(--text-muted);"></span>
+                </div>
+                <div class="widget-grid" id="widgetGrid"></div>
+            </div>
+
+            <!-- Admin Panel (only visible for admin users) -->
+            <div class="admin-panel" id="adminPanel">
+                <div class="admin-tabs">
+                    <button class="admin-tab active" data-admintab="create" onclick="switchAdminTab('create', this)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        Add Client
+                    </button>
+                    <button class="admin-tab" data-admintab="import" onclick="switchAdminTab('import', this)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Import
+                    </button>
+                    <button class="admin-tab" data-admintab="export" onclick="switchAdminTab('export', this)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        Export
+                    </button>
+                    <button class="admin-tab" data-admintab="details" onclick="switchAdminTab('details', this)">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Client Details
+                    </button>
+                </div>
+
+                <!-- Create Tab -->
+                <div class="admin-tab-content active" id="admintab-create">
+                    <h3 style="font-size: 0.95rem; margin-bottom: 12px;">Add New Client</h3>
+                    <form id="createClientForm" onsubmit="handleCreateClient(event)">
+                        <div class="detail-section">
+                            <div class="detail-section-title">Basic Information</div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label">Client Name *</label><input type="text" class="form-input" name="name" required></div>
+                                <div class="form-group"><label class="form-label">Salesforce ID</label><input type="text" class="form-input" name="salesforceId"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Account Type</label>
+                                    <select class="form-select" name="accountType">
+                                        <option value="Prospect">Prospect</option>
+                                        <option value="Customer">Customer</option>
+                                        <option value="Former Customer">Former Customer</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Status</label>
+                                    <select class="form-select" name="status"><option value="Active">Active</option><option value="Inactive">Inactive</option></select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-section">
+                            <div class="detail-section-title">Location & Contact</div>
+                            <div class="form-group"><label class="form-label">Address</label><input type="text" class="form-input" name="address"></div>
+                            <div class="form-row form-row-3">
+                                <div class="form-group"><label class="form-label">City</label><input type="text" class="form-input" name="city"></div>
+                                <div class="form-group"><label class="form-label">State</label><input type="text" class="form-input" name="state"></div>
+                                <div class="form-group"><label class="form-label">ZIP</label><input type="text" class="form-input" name="zip"></div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" name="phone"></div>
+                                <div class="form-group"><label class="form-label">Website</label><input type="url" class="form-input" name="website"></div>
+                            </div>
+                        </div>
+                        <div class="detail-section">
+                            <div class="detail-section-title">Energy Details</div>
+                            <div class="form-row form-row-3">
+                                <div class="form-group">
+                                    <label class="form-label">ISO</label>
+                                    <select class="form-select" name="iso">
+                                        <option value="">Select...</option>
+                                        <option value="PJM">PJM</option><option value="ISO-NE">ISO-NE</option>
+                                        <option value="NYISO">NYISO</option><option value="ERCOT">ERCOT</option>
+                                        <option value="MISO">MISO</option><option value="CAISO">CAISO</option>
+                                    </select>
+                                </div>
+                                <div class="form-group"><label class="form-label">Utility</label><input type="text" class="form-input" name="utility"></div>
+                                <div class="form-group"><label class="form-label">Load Zone</label><input type="text" class="form-input" name="loadZone"></div>
+                            </div>
+                            <div class="form-row form-row-3">
+                                <div class="form-group"><label class="form-label">Annual Usage (MWh)</label><input type="number" class="form-input" name="annualUsageMWh" step="0.01"></div>
+                                <div class="form-group"><label class="form-label">Contract End Date</label><input type="date" class="form-input" name="contractEndDate"></div>
+                                <div class="form-group"><label class="form-label">Current Supplier</label><input type="text" class="form-input" name="currentSupplier"></div>
+                            </div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" name="notes"></textarea></div>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="submit" class="btn btn-accent">Create Client</button>
+                            <button type="reset" class="btn btn-ghost">Clear</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Import Tab -->
+                <div class="admin-tab-content" id="admintab-import">
+                    <!-- Parent Import -->
+                    <div style="margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border);">
+                        <h4 style="font-size: 0.88rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                            <span style="background: var(--accent); color: white; padding: 2px 7px; border-radius: 3px; font-size: 0.65rem;">1</span>
+                            Import Parent Clients
+                        </h4>
+                        <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 10px;">Upload contract-level data from Salesforce to create parent client records.</p>
+                        <div class="import-zone" id="importZone" onclick="document.getElementById('importFile').click()">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom: 6px;">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                            </svg>
+                            <p><strong>Click to upload</strong> or drag & drop</p>
+                            <p style="font-size: 0.72rem;">Excel, CSV or JSON</p>
+                            <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.json" style="display:none;" onchange="handleFileSelect(event)">
+                        </div>
+                        <div class="import-options">
+                            <label class="import-option"><input type="checkbox" id="optUpdateExisting" checked> Update existing</label>
+                            <label class="import-option"><input type="checkbox" id="optMatchByName"> Match by name</label>
+                        </div>
+                        <div id="importPreview" style="display:none; margin-top: 12px;"></div>
+                        <div id="importResults" style="display:none; margin-top: 12px;"></div>
+                    </div>
+
+                    <!-- Account Import -->
+                    <div>
+                        <h4 style="font-size: 0.88rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                            <span style="background: var(--account-active); color: white; padding: 2px 7px; border-radius: 3px; font-size: 0.65rem;">2</span>
+                            Import Account Tree (Enrichment)
+                        </h4>
+                        <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 10px;">Upload account-level data to add child accounts under parents. <strong>Requires "Parent Account" column.</strong></p>
+                        <div class="import-zone" id="accountImportZone" onclick="document.getElementById('accountImportFile').click()" style="border-color: rgba(59,130,246,0.3);">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--account-active)" stroke-width="1.5" style="margin-bottom: 6px;">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="8.5" cy="7" r="4"/>
+                                <path d="M20 8v6M23 11h-6"/>
+                            </svg>
+                            <p><strong>Click to upload</strong> account data</p>
+                            <p style="font-size: 0.72rem;">Excel, CSV or JSON with Parent Account column</p>
+                            <input type="file" id="accountImportFile" accept=".xlsx,.xls,.csv,.json" style="display:none;" onchange="handleAccountFileSelect(event)">
+                        </div>
+                        <div class="import-options">
+                            <label class="import-option"><input type="checkbox" id="optAcctUpdateExisting" checked> Update existing</label>
+                            <label class="import-option"><input type="checkbox" id="optCreateOrphans"> Create missing parents</label>
+                        </div>
+                        <div id="accountImportPreview" style="display:none; margin-top: 12px;"></div>
+                        <div id="accountImportResults" style="display:none; margin-top: 12px;"></div>
+                    </div>
+                </div>
+
+                <!-- Export Tab -->
+                <div class="admin-tab-content" id="admintab-export">
+                    <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Export & Save</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 16px;">
+                        Client data is stored in <code style="background: var(--bg-input); padding: 2px 5px; border-radius: 3px;">data/clients.json</code> on GitHub.
+                    </p>
+                    <div id="storageInfo" style="background: var(--bg-input); padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;"></div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+                        <button class="btn btn-success" style="padding: 12px; justify-content: center;" onclick="downloadForGitHub()">
+                            ⬇️ Download clients.json
+                        </button>
+                        <button class="btn btn-ghost" style="padding: 12px; justify-content: center;" onclick="exportClients('csv')">
+                            📊 Export as CSV
+                        </button>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-muted); padding: 10px; background: var(--bg-input); border-radius: var(--radius-sm);">
+                        <strong>How to save:</strong> Download → Go to GitHub repo → data/ folder → Upload/replace clients.json → Commit
+                    </div>
+                </div>
+
+                <!-- Client Details Tab -->
+                <div class="admin-tab-content" id="admintab-details">
+                    <div id="clientDetailsPanel">
+                        <div class="empty-state"><p>Select a client to view details</p></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="editModal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Edit Client</span>
+                <button class="modal-close" onclick="closeEditModal()">×</button>
+            </div>
+            <div class="modal-body" id="editModalBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-ghost" onclick="closeEditModal()">Cancel</button>
+                <button class="btn btn-accent" onclick="saveEditedClient()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================================
+        // STATE
+        // ========================================
+        let ClientStore = null;
+        let ProfileStore = null;
+        let allClients = [];
+        let activeAccount = null;
+        let currentUser = null;
+        let isAdmin = false;
+        let pendingImportData = null;
+        let pendingAccountData = null;
+        let currentFilter = 'all';
+
+        // Widget definitions for the portal
+        const PORTAL_WIDGETS = [
+            { id: 'energy-utilization', name: 'Energy Utilization', icon: '⚡' },
+            { id: 'lmp-analysis', name: 'LMP Analysis', icon: '📊' },
+            { id: 'budget-tracker', name: 'Budget Tracker', icon: '💰' },
+            { id: 'contract-comparison', name: 'Contract Comparison', icon: '📋' },
+            { id: 'index-vs-fixed', name: 'Index vs Fixed', icon: '📈' },
+            { id: 'rate-analysis', name: 'Rate Analysis', icon: '🔍' }
+        ];
+
+        // ========================================
+        // STORES INIT
+        // ========================================
+        function initStores() {
+            if (window.parent?.SecureEnergyClients) {
+                ClientStore = window.parent.SecureEnergyClients;
+            } else if (window.SecureEnergyClients) {
+                ClientStore = window.SecureEnergyClients;
+            }
+
+            if (window.parent?.UsageProfileStore) ProfileStore = window.parent.UsageProfileStore;
+            else if (window.UsageProfileStore) ProfileStore = window.UsageProfileStore;
+
+            console.log('[CommandCenter] Stores init - Client:', !!ClientStore, 'Profile:', !!ProfileStore);
+            return !!ClientStore;
+        }
+
+        // ========================================
+        // INITIALIZATION
+        // ========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'GET_CURRENT_USER' }, '*');
+                window.parent.postMessage({ type: 'REQUEST_ACTIVE_CLIENT' }, '*');
+            }
+
+            // Retry initialization with delays
+            [50, 150, 400, 800, 1500].forEach(delay => {
+                setTimeout(() => {
+                    if (initStores()) {
+                        allClients = ClientStore.getAllClients();
+                        activeAccount = ClientStore.getActiveAccount?.() || null;
+                        updateAll();
+
+                        // Only subscribe once
+                        if (delay === 50 || (delay > 50 && !ClientStore._commandCenterSubscribed)) {
+                            ClientStore._commandCenterSubscribed = true;
+                            ClientStore.subscribe((event, data) => {
+                                allClients = ClientStore.getAllClients();
+                                if (event === 'activeClientChanged' || event === 'activeAccountChanged') {
+                                    activeAccount = data?.account || ClientStore.getActiveAccount?.() || null;
+                                }
+                                updateAll();
+                            });
+
+                            if (ProfileStore) {
+                                ProfileStore.subscribe(() => updateUsageProfile());
+                            }
+                        }
+                    }
+                }, delay);
+            });
+
+            initSearch();
+            initDragDrop();
+        });
+
+        // ========================================
+        // MESSAGE HANDLING
+        // ========================================
+        window.addEventListener('message', function(e) {
+            if (e.data?.type === 'CURRENT_USER') {
+                currentUser = e.data.user;
+                isAdmin = currentUser?.role === 'admin' || currentUser?.role === 'super_admin';
+                updateUserBadge();
+                updateAdminVisibility();
+            }
+            if (e.data?.type === 'ACTIVE_CLIENT_CHANGED' || e.data?.type === 'ACTIVE_CLIENT_RESPONSE') {
+                activeAccount = e.data.account || null;
+                updateAll();
+            }
+            if (e.data?.type === 'ACTIVE_ACCOUNT_CHANGED') {
+                activeAccount = e.data.account || null;
+                updateAll();
+            }
+            if (e.data?.type === 'USAGE_PROFILE_CHANGED') {
+                updateUsageProfile();
+            }
+            if (e.data?.type === 'clientsReady' || e.data?.type === 'CLIENTS_LOADED') {
+                if (!ClientStore) initStores();
+                if (ClientStore) {
+                    allClients = ClientStore.getAllClients();
+                    updateAll();
+                }
+            }
+        });
+
+        // ========================================
+        // MASTER UPDATE
+        // ========================================
+        function updateAll() {
+            updateBannerStats();
+            updateContextBar();
+            updateAccountsList();
+            updateUsageProfile();
+            updateActionsWindow();
+            updateWidgetAnalytics();
+            updateClientDetails();
+        }
+
+        // ========================================
+        // USER & ADMIN
+        // ========================================
+        function updateUserBadge() {
+            if (!currentUser) return;
+            document.getElementById('userName').textContent = currentUser.displayName || currentUser.username || 'User';
+            const roleEl = document.getElementById('userRole');
+            roleEl.textContent = isAdmin ? 'ADMIN' : 'USER';
+            roleEl.className = 'role-tag ' + (isAdmin ? 'admin' : 'user');
+        }
+
+        function updateAdminVisibility() {
+            const panel = document.getElementById('adminPanel');
+            if (isAdmin) {
+                panel.classList.add('visible');
+            } else {
+                panel.classList.remove('visible');
+            }
+        }
+
+        // ========================================
+        // BANNER STATS
+        // ========================================
+        function updateBannerStats() {
+            if (!ClientStore) return;
+            const clients = allClients;
+            const totalAccounts = clients.reduce((sum, c) => sum + (c.accounts?.length || 0), 0);
+            document.getElementById('statParents').textContent = clients.length;
+            document.getElementById('statAccounts').textContent = totalAccounts;
+        }
+
+        // ========================================
+        // CONTEXT BAR
+        // ========================================
+        function updateContextBar() {
+            const bar = document.getElementById('contextBar');
+            const cards = document.getElementById('contextCards');
+            const client = ClientStore?.getActiveClient();
+
+            if (!client) {
+                bar.classList.remove('visible');
+                document.getElementById('welcomeState').style.display = 'block';
+                document.getElementById('actionsWindow').style.display = 'none';
+                document.getElementById('widgetAnalytics').style.display = 'none';
+                return;
+            }
+
+            bar.classList.add('visible');
+            document.getElementById('welcomeState').style.display = 'none';
+            document.getElementById('actionsWindow').style.display = 'block';
+            document.getElementById('widgetAnalytics').style.display = 'block';
+
+            const hasAccounts = client.accounts && client.accounts.length > 0;
+            const hasUsageProfile = client.usageProfile &&
+                (client.usageProfile.electric?.some(v => v > 0) || client.usageProfile.gas?.some(v => v > 0));
+
+            let html = '';
+
+            // Parent card
+            html += `
+                <div class="context-card parent-card">
+                    <div class="context-card-label">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Active Parent
+                    </div>
+                    <div class="context-card-name">
+                        ${client.name}
+                        ${client.iso ? ' <span class="badge badge-iso">' + client.iso + '</span>' : ''}
+                    </div>
+                    <div class="context-card-meta">
+                        ${client.city ? client.city + ', ' + client.state : 'No location'}
+                        ${client.annualUsageMWh ? ' · ' + Number(client.annualUsageMWh).toLocaleString() + ' MWh/yr' : ''}
+                        ${hasAccounts ? ' · ' + client.accounts.length + ' account' + (client.accounts.length > 1 ? 's' : '') : ''}
+                    </div>
+                    <div class="context-card-actions">
+                        <button class="btn btn-ghost btn-sm" onclick="clearActiveClient()">Clear</button>
+                        ${hasUsageProfile ? '<button class="btn btn-teal btn-sm" onclick="loadClientProfile()">Load Profile</button>' : ''}
+                    </div>
+                </div>
+            `;
+
+            // Account card (if account selected)
+            if (activeAccount) {
+                html += `
+                    <div class="context-card account-card">
+                        <div class="context-card-label">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="8.5" cy="7" r="4"/>
+                            </svg>
+                            Active Account
+                        </div>
+                        <div class="context-card-name">${activeAccount.accountName || activeAccount.id}</div>
+                        <div class="context-card-meta">
+                            ${activeAccount.accountNumber ? '#' + activeAccount.accountNumber : ''}
+                            ${activeAccount.serviceZip ? ' · 📍 ' + activeAccount.serviceZip : ''}
+                            ${activeAccount.electricUtility ? ' · ⚡ ' + activeAccount.electricUtility : ''}
+                        </div>
+                        <div class="context-card-actions">
+                            <button class="btn btn-ghost btn-sm" onclick="clearActiveAccount()">Clear Account</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Profile card
+            let activeProfile = ProfileStore?.getActiveProfile?.();
+            if (activeProfile) {
+                const electricTotal = activeProfile.electricUsage?.reduce((a, b) => a + b, 0) || 0;
+                html += `
+                    <div class="context-card profile-card">
+                        <div class="context-card-label">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                            </svg>
+                            Usage Profile
+                        </div>
+                        <div class="context-card-name">${activeProfile.name}</div>
+                        <div class="context-card-meta">${(electricTotal / 1000).toLocaleString(undefined, {maximumFractionDigits: 0})} MWh annual</div>
+                        <div class="context-card-actions">
+                            <button class="btn btn-ghost btn-sm" onclick="clearProfile()">Clear</button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            cards.innerHTML = html;
+        }
+
+        // ========================================
+        // ACCOUNTS LIST (Sidebar)
+        // ========================================
+        function updateAccountsList() {
+            const container = document.getElementById('accountsList');
+            const countEl = document.getElementById('accountsCount');
+            const client = ClientStore?.getActiveClient();
+
+            if (!client) {
+                countEl.textContent = '0';
+                container.innerHTML = `
+                    <div class="no-accounts-msg">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                        </svg>
+                        <p>Search above to select a client</p>
+                        <p style="font-size: 0.72rem; margin-top: 4px;">Accounts will appear here</p>
+                    </div>`;
+                return;
+            }
+
+            const accounts = client.accounts || [];
+            countEl.textContent = accounts.length;
+            const activeAccId = activeAccount?.id;
+
+            if (accounts.length === 0) {
+                container.innerHTML = `
+                    <div class="no-accounts-msg">
+                        <p>No child accounts</p>
+                        <p style="font-size: 0.72rem; margin-top: 4px;">This parent has no linked accounts</p>
+                    </div>`;
+                return;
+            }
+
+            container.innerHTML = accounts.map(acc => {
+                const isActive = acc.id === activeAccId;
+                return `
+                    <div class="account-tree-item${isActive ? ' active' : ''}" onclick="${isActive ? 'clearActiveAccount()' : "setAccountAsActive('" + acc.id + "')"}">
+                        <div class="account-tree-name">
+                            ${acc.accountName || 'Unnamed Account'}
+                            ${isActive ? '<span class="badge badge-active">ACTIVE</span>' : ''}
+                            ${acc.accountNumber ? '<span class="badge badge-account">#' + acc.accountNumber + '</span>' : ''}
+                        </div>
+                        <div class="account-tree-meta">
+                            ${acc.serviceZip ? '<span>📍 ' + acc.serviceZip + '</span>' : ''}
+                            ${acc.electricUtility ? '<span>⚡ ' + acc.electricUtility + '</span>' : ''}
+                            ${acc.supplierAnnualKwh ? '<span style="color:#10b981;">' + Number(acc.supplierAnnualKwh).toLocaleString() + ' kWh</span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ========================================
+        // USAGE PROFILE
+        // ========================================
+        function updateUsageProfile() {
+            const panel = document.getElementById('profilePanel');
+            const body = document.getElementById('profileBody');
+            const client = ClientStore?.getActiveClient();
+            let activeProfile = ProfileStore?.getActiveProfile?.();
+
+            const hasClientProfile = client?.usageProfile &&
+                (client.usageProfile.electric?.some(v => v > 0) || client.usageProfile.gas?.some(v => v > 0));
+
+            if (!activeProfile && !hasClientProfile) {
+                panel.style.display = 'none';
+                return;
+            }
+
+            panel.style.display = 'block';
+
+            if (activeProfile) {
+                const electricTotal = activeProfile.electricUsage?.reduce((a, b) => a + b, 0) || 0;
+                const gasTotal = activeProfile.gasUsage?.reduce((a, b) => a + b, 0) || 0;
+                body.innerHTML = `
+                    <div style="background: linear-gradient(135deg, rgba(13,148,136,0.1), rgba(13,148,136,0.03)); border: 1px solid rgba(13,148,136,0.25); border-radius: var(--radius-sm); padding: 10px;">
+                        <div style="font-size: 0.6rem; color: var(--profile-active); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;">Active Profile</div>
+                        <div style="font-size: 0.88rem; font-weight: 600; margin-bottom: 6px;">${activeProfile.name}</div>
+                        <div style="display: flex; gap: 8px;">
+                            <div style="flex: 1; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px; text-align: center;">
+                                <div style="font-size: 0.6rem; color: var(--text-muted);">ELECTRIC</div>
+                                <div style="font-size: 0.82rem; font-weight: 600;">${(electricTotal / 1000).toLocaleString(undefined, {maximumFractionDigits: 0})} MWh</div>
+                            </div>
+                            ${gasTotal > 0 ? `
+                            <div style="flex: 1; background: rgba(0,0,0,0.2); padding: 5px 8px; border-radius: 4px; text-align: center;">
+                                <div style="font-size: 0.6rem; color: var(--text-muted);">GAS</div>
+                                <div style="font-size: 0.82rem; font-weight: 600;">${gasTotal.toLocaleString(undefined, {maximumFractionDigits: 0})} Therms</div>
+                            </div>` : ''}
+                        </div>
+                        <button class="btn btn-ghost btn-sm" style="width: 100%; margin-top: 8px; justify-content: center;" onclick="clearProfile()">Clear Profile</button>
+                    </div>`;
+            } else if (hasClientProfile) {
+                const electricTotal = client.usageProfile.electric?.reduce((a, b) => a + b, 0) || 0;
+                body.innerHTML = `
+                    <div style="text-align: center; padding: 12px; background: var(--bg-input); border: 1px dashed var(--border); border-radius: var(--radius-sm);">
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">⚡ Client has usage data</p>
+                        <button class="btn btn-teal btn-sm" style="margin-top: 6px;" onclick="loadClientProfile()">
+                            Load ${(electricTotal / 1000).toLocaleString(undefined, {maximumFractionDigits: 0})} MWh Profile
+                        </button>
+                    </div>`;
+            }
+        }
+
+        // ========================================
+        // ACTIONS WINDOW
+        // ========================================
+        function updateActionsWindow() {
+            const body = document.getElementById('actionsBody');
+            const client = ClientStore?.getActiveClient();
+            if (!client) return;
+
+            // Gather task history from the portal for this parent + accounts
+            // This connects to the activity log / task history system
+            const contextKey = getContextKey();
+            const actions = getPortalActions(client);
+
+            if (actions.length === 0) {
+                body.innerHTML = '<div class="empty-state" style="padding: 20px;"><p>No portal activity recorded for this client yet</p></div>';
+                return;
+            }
+
+            const filtered = currentFilter === 'all' ? actions :
+                actions.filter(a => a.category === currentFilter);
+
+            body.innerHTML = filtered.map(action => `
+                <div class="action-item">
+                    <div class="action-icon ${action.category}">
+                        ${action.icon}
+                    </div>
+                    <div class="action-content">
+                        <div class="action-title-text">${action.title}</div>
+                        <div class="action-meta-text">${action.widget} · ${action.context} · ${action.date}</div>
+                    </div>
+                    <span class="action-badge ${action.status}">${action.statusLabel}</span>
+                </div>
+            `).join('');
+        }
+
+        function getPortalActions(client) {
+            // Build actions from activity log stored in client/account data
+            // This aggregates across parent and all child accounts
+            const actions = [];
+            const now = new Date();
+
+            // Check for activity log data in parent
+            if (client.activityLog) {
+                client.activityLog.forEach(log => {
+                    actions.push({
+                        title: log.action || log.description,
+                        widget: log.widget || 'Portal',
+                        context: client.name,
+                        date: log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'Unknown',
+                        icon: getWidgetIcon(log.widget),
+                        category: log.status === 'done' ? 'completed' : log.type === 'analysis' ? 'analysis' : 'pending',
+                        status: log.status === 'done' ? 'done' : log.status === 'in-progress' ? 'in-progress' : 'not-started',
+                        statusLabel: log.status === 'done' ? 'Done' : log.status === 'in-progress' ? 'In Progress' : 'Not Started'
+                    });
+                });
+            }
+
+            // Check child accounts for activity
+            if (client.accounts) {
+                client.accounts.forEach(acc => {
+                    if (acc.activityLog) {
+                        acc.activityLog.forEach(log => {
+                            actions.push({
+                                title: log.action || log.description,
+                                widget: log.widget || 'Portal',
+                                context: acc.accountName || acc.id,
+                                date: log.timestamp ? new Date(log.timestamp).toLocaleDateString() : 'Unknown',
+                                icon: getWidgetIcon(log.widget),
+                                category: log.status === 'done' ? 'completed' : log.type === 'analysis' ? 'analysis' : 'pending',
+                                status: log.status === 'done' ? 'done' : log.status === 'in-progress' ? 'in-progress' : 'not-started',
+                                statusLabel: log.status === 'done' ? 'Done' : log.status === 'in-progress' ? 'In Progress' : 'Not Started'
+                            });
+                        });
+                    }
+                });
+            }
+
+            // If no activity logs exist, check for evidence of widget usage via stored data
+            if (actions.length === 0) {
+                // Check for usage profile as evidence of Energy Utilization widget usage
+                if (client.usageProfile && (client.usageProfile.electric?.some(v => v > 0))) {
+                    actions.push({
+                        title: 'Usage profile data entered',
+                        widget: 'Energy Utilization',
+                        context: client.name,
+                        date: client.updatedAt ? new Date(client.updatedAt).toLocaleDateString() : 'Unknown',
+                        icon: '⚡',
+                        category: 'completed',
+                        status: 'done',
+                        statusLabel: 'Done'
+                    });
+                }
+
+                // Check aggregates as evidence
+                if (client.aggregates?.totalAnnualKwh > 0) {
+                    actions.push({
+                        title: 'Account aggregation computed (' + (client.aggregates.accountCount || 0) + ' accounts)',
+                        widget: 'Client Admin',
+                        context: client.name,
+                        date: client.updatedAt ? new Date(client.updatedAt).toLocaleDateString() : 'Unknown',
+                        icon: '📊',
+                        category: 'analysis',
+                        status: 'done',
+                        statusLabel: 'Done'
+                    });
+                }
+            }
+
+            return actions;
+        }
+
+        function getWidgetIcon(widgetName) {
+            const map = {
+                'Energy Utilization': '⚡',
+                'LMP Analysis': '📊',
+                'Budget Tracker': '💰',
+                'Contract Comparison': '📋',
+                'Index vs Fixed': '📈',
+                'Rate Analysis': '🔍',
+                'Client Admin': '👥',
+                'Portal': '🏠'
+            };
+            return map[widgetName] || '📌';
+        }
+
+        function filterActions(filter, el) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            updateActionsWindow();
+        }
+
+        // ========================================
+        // WIDGET ANALYTICS GRID
+        // ========================================
+        function updateWidgetAnalytics() {
+            const grid = document.getElementById('widgetGrid');
+            const summary = document.getElementById('widgetSummary');
+            const client = ClientStore?.getActiveClient();
+            if (!client) return;
+
+            // Determine which widgets the current user has turned on
+            const userWidgets = currentUser?.widgets || PORTAL_WIDGETS.map(w => w.id);
+
+            let completedCount = 0;
+            let totalWidgets = 0;
+
+            const html = PORTAL_WIDGETS.filter(w => userWidgets.includes(w.id)).map(widget => {
+                totalWidgets++;
+                const status = getWidgetStatus(widget.id, client);
+                if (status.done > 0) completedCount++;
+
+                const statusClass = status.done > 0 ? 'complete' : status.inProgress > 0 ? 'partial' : 'empty';
+                const dotClass = status.done > 0 ? 'done' : status.inProgress > 0 ? 'pending' : 'none';
+
+                return `
+                    <div class="widget-stat-card ${statusClass}">
+                        <div class="widget-stat-header">
+                            <div class="widget-stat-name">${widget.icon} ${widget.name}</div>
+                            <div class="widget-stat-status ${dotClass}"></div>
+                        </div>
+                        <div class="widget-stat-metrics">
+                            <div class="widget-metric">
+                                <div class="widget-metric-value" style="color: var(--success);">${status.done}</div>
+                                <div class="widget-metric-label">Completed</div>
+                            </div>
+                            <div class="widget-metric">
+                                <div class="widget-metric-value" style="color: var(--warning);">${status.inProgress}</div>
+                                <div class="widget-metric-label">Pending</div>
+                            </div>
+                            <div class="widget-metric">
+                                <div class="widget-metric-value" style="color: var(--text-muted);">${status.total}</div>
+                                <div class="widget-metric-label">Total</div>
+                            </div>
+                        </div>
+                        ${status.lastUpdated ? '<div class="widget-stat-footer">Last: ' + status.lastUpdated + '</div>' : '<div class="widget-stat-footer" style="color: var(--warning);">No entries yet</div>'}
+                    </div>
+                `;
+            }).join('');
+
+            grid.innerHTML = html;
+            const missing = totalWidgets - completedCount;
+            summary.textContent = completedCount + '/' + totalWidgets + ' active' + (missing > 0 ? ' · ' + missing + ' need entries' : '');
+        }
+
+        function getWidgetStatus(widgetId, client) {
+            // Check client and account activity for this widget
+            const result = { done: 0, inProgress: 0, total: 0, lastUpdated: null };
+
+            const checkLogs = (logs) => {
+                if (!logs) return;
+                logs.forEach(log => {
+                    if (log.widget?.toLowerCase().replace(/\s+/g, '-') === widgetId ||
+                        log.widgetId === widgetId) {
+                        result.total++;
+                        if (log.status === 'done') result.done++;
+                        else result.inProgress++;
+                        if (log.timestamp && (!result.lastUpdated || new Date(log.timestamp) > new Date(result.lastUpdated))) {
+                            result.lastUpdated = new Date(log.timestamp).toLocaleDateString();
+                        }
+                    }
+                });
+            };
+
+            checkLogs(client.activityLog);
+            if (client.accounts) {
+                client.accounts.forEach(acc => checkLogs(acc.activityLog));
+            }
+
+            // Heuristic checks for widget evidence
+            if (widgetId === 'energy-utilization' && client.usageProfile?.electric?.some(v => v > 0)) {
+                result.done = Math.max(result.done, 1);
+                result.total = Math.max(result.total, 1);
+                if (!result.lastUpdated && client.updatedAt) {
+                    result.lastUpdated = new Date(client.updatedAt).toLocaleDateString();
+                }
+            }
+
+            return result;
+        }
+
+        // ========================================
+        // CLIENT DETAILS (Admin)
+        // ========================================
+        function updateClientDetails() {
+            if (!isAdmin) return;
+            const panel = document.getElementById('clientDetailsPanel');
+            const client = ClientStore?.getActiveClient();
+
+            if (!client) {
+                panel.innerHTML = '<div class="empty-state"><p>Select a client to view full details</p></div>';
+                return;
+            }
+
+            let usageDisplay = 'N/A';
+            if (client.annualUsageMWh) usageDisplay = Number(client.annualUsageMWh).toLocaleString() + ' MWh';
+            else if (client.annualUsageKwh) usageDisplay = Number(client.annualUsageKwh).toLocaleString() + ' kWh';
+
+            let aggregateInfo = '';
+            if (client.aggregates?.accountCount > 0) {
+                aggregateInfo = `
+                    <div style="background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.2); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 14px;">
+                        <div style="font-size: 0.7rem; color: var(--account-active); font-weight: 600; margin-bottom: 6px;">📊 Aggregated from ${client.aggregates.accountCount} Accounts</div>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="detail-label">Total kWh</div><div class="detail-value">${(client.aggregates.totalAnnualKwh?.toLocaleString() || 0)}</div></div>
+                            <div class="detail-item"><div class="detail-label">Total MWh</div><div class="detail-value">${(client.aggregates.totalAnnualMWh?.toLocaleString(undefined, {maximumFractionDigits: 1}) || 0)}</div></div>
+                        </div>
+                    </div>`;
+            }
+
+            panel.innerHTML = `
+                <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+                    <button class="btn btn-ghost btn-sm" onclick="editActiveClient()">✏️ Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteActiveClient()">🗑 Delete</button>
+                </div>
+                ${aggregateInfo}
+                <div class="detail-section">
+                    <div class="detail-section-title">Account Info</div>
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="detail-label">Client ID</div><div class="detail-value" style="font-size: 0.72rem;">${client.id}</div></div>
+                        <div class="detail-item"><div class="detail-label">Salesforce ID</div><div class="detail-value ${!client.salesforceId ? 'empty' : ''}">${client.salesforceId || 'Not linked'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Parent Account</div><div class="detail-value">${client.parentAccountCustomer || client.name}</div></div>
+                        <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">${client.contractStatus || client.status || 'Active'}</div></div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title">Contract Details</div>
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="detail-label">Contract Name</div><div class="detail-value">${client.contractName || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Product Category</div><div class="detail-value">${client.productCategory || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Contract Start</div><div class="detail-value">${client.contractStartDate || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Contract End</div><div class="detail-value">${client.contractEndDate || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Current Supplier</div><div class="detail-value">${client.currentSupplier || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Contract Margin</div><div class="detail-value">${client.contractMargin ? '$' + Number(client.contractMargin).toLocaleString() : 'N/A'}</div></div>
+                    </div>
+                </div>
+                <div class="detail-section">
+                    <div class="detail-section-title">Energy Details</div>
+                    <div class="detail-grid">
+                        <div class="detail-item"><div class="detail-label">ISO</div><div class="detail-value">${client.iso || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Utility</div><div class="detail-value">${client.utility || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Load Zone</div><div class="detail-value">${client.loadZone || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Assigned Group</div><div class="detail-value">${client.assignedGroup || 'N/A'}</div></div>
+                        <div class="detail-item"><div class="detail-label">Annual Usage</div><div class="detail-value">${usageDisplay}</div></div>
+                        <div class="detail-item"><div class="detail-label"># of Meters</div><div class="detail-value">${client.numberOfMeters || 'N/A'}</div></div>
+                    </div>
+                </div>
+                ${client.notes ? '<div class="detail-section"><div class="detail-section-title">Notes</div><div style="padding: 8px; background: var(--bg-input); border-radius: 4px; font-size: 0.82rem;">' + client.notes + '</div></div>' : ''}
+                <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 10px;">
+                    Created: ${client.createdAt ? new Date(client.createdAt).toLocaleDateString() : 'N/A'} | Updated: ${client.updatedAt ? new Date(client.updatedAt).toLocaleDateString() : 'N/A'}
+                </div>
+            `;
+        }
+
+        // ========================================
+        // SEARCH
+        // ========================================
+        function initSearch() {
+            const input = document.getElementById('searchInput');
+            const dropdown = document.getElementById('searchDropdown');
+            let debounceTimer;
+
+            input.addEventListener('focus', () => showDropdown());
+            input.addEventListener('input', () => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => showDropdown(input.value), 150);
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.search-bar-wrapper')) {
+                    dropdown.style.display = 'none';
+                }
+            });
+        }
+
+        function showDropdown(query = '') {
+            const dropdown = document.getElementById('searchDropdown');
+            const activeId = ClientStore?.getActiveClientId();
+
+            // Filter clients based on assigned group for the current user
+            let filtered = getAccessibleClients();
+
+            if (query) {
+                const q = query.toLowerCase();
+                filtered = filtered.filter(c =>
+                    c.name?.toLowerCase().includes(q) ||
+                    c.city?.toLowerCase().includes(q) ||
+                    c.state?.toLowerCase().includes(q) ||
+                    c.iso?.toLowerCase().includes(q) ||
+                    c.salesforceId?.toLowerCase().includes(q) ||
+                    c.parentAccountCustomer?.toLowerCase().includes(q) ||
+                    c.accounts?.some(a =>
+                        a.accountName?.toLowerCase().includes(q) ||
+                        a.accountNumber?.toLowerCase().includes(q) ||
+                        a.serviceZip?.includes(q)
+                    )
+                );
+            }
+
+            if (filtered.length === 0) {
+                dropdown.innerHTML = '<div style="padding: 16px; text-align: center; color: var(--text-muted); font-size: 0.82rem;">No clients found</div>';
+            } else {
+                const MAX_DISPLAY = 40;
+                let html = '<div class="dropdown-section-label">Parent Clients</div>';
+
+                html += filtered.slice(0, MAX_DISPLAY).map(c => {
+                    const accountCount = c.accounts?.length || 0;
+                    const hasProfile = c.usageProfile &&
+                        (c.usageProfile.electric?.some(v => v > 0) || c.usageProfile.gas?.some(v => v > 0));
+
+                    return `
+                        <div class="dropdown-item${c.id === activeId ? ' selected' : ''}" onclick="selectClient('${c.id}')">
+                            <div class="dropdown-item-icon parent">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                                </svg>
+                            </div>
+                            <div class="dropdown-item-content">
+                                <div class="dropdown-item-name">
+                                    ${c.name || 'Unnamed Client'}
+                                </div>
+                                <div class="dropdown-item-meta">
+                                    ${c.city ? c.city + ', ' + c.state : 'No location'}
+                                    ${c.annualUsageMWh ? ' · ' + Number(c.annualUsageMWh).toLocaleString() + ' MWh/yr' : ''}
+                                </div>
+                                <div class="dropdown-badges">
+                                    ${c.iso ? '<span class="badge badge-iso">' + c.iso + '</span>' : ''}
+                                    ${accountCount > 0 ? '<span class="badge badge-account">' + accountCount + ' acct' + (accountCount > 1 ? 's' : '') + '</span>' : ''}
+                                    ${hasProfile ? '<span class="badge badge-profile">Profile</span>' : ''}
+                                    ${c.contractStatus ? '<span class="badge badge-' + c.contractStatus.toLowerCase().replace(/\s+/g, '-') + '">' + c.contractStatus + '</span>' : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                if (filtered.length > MAX_DISPLAY) {
+                    html += '<div style="padding: 10px; text-align: center; font-size: 0.72rem; color: var(--text-muted);">Showing ' + MAX_DISPLAY + ' of ' + filtered.length + ' — type to narrow</div>';
+                }
+
+                dropdown.innerHTML = html;
+            }
+
+            dropdown.style.display = 'block';
+        }
+
+        function getAccessibleClients() {
+            // Filter by assigned group for the current user
+            if (!currentUser || isAdmin) return allClients;
+
+            const userGroup = currentUser.assignedGroup || currentUser.group;
+            if (!userGroup) return allClients;
+
+            return allClients.filter(c =>
+                !c.assignedGroup || c.assignedGroup === userGroup
+            );
+        }
+
+        // ========================================
+        // CLIENT ACTIONS
+        // ========================================
+        function selectClient(id) {
+            if (ClientStore) {
+                ClientStore.setActiveClient(id);
+                activeAccount = null;
+                document.getElementById('searchInput').value = '';
+                document.getElementById('searchDropdown').style.display = 'none';
+                showToast('Client selected', 'success');
+            }
+        }
+
+        function clearActiveClient() {
+            if (ClientStore) {
+                ClientStore.clearActiveClient();
+                activeAccount = null;
+                showToast('Client cleared', 'info');
+            }
+        }
+
+        function setAccountAsActive(accountId) {
+            if (ClientStore && accountId) {
+                if (ClientStore.setActiveAccount) {
+                    ClientStore.setActiveAccount(accountId);
+                } else {
+                    const client = ClientStore.getActiveClient();
+                    if (client?.accounts) {
+                        activeAccount = client.accounts.find(a => a.id === accountId) || null;
+                        if (window.parent !== window) {
+                            window.parent.postMessage({
+                                type: 'ACTIVE_ACCOUNT_CHANGED',
+                                client: client,
+                                clientId: client.id,
+                                account: activeAccount,
+                                accountId: activeAccount?.id || null
+                            }, '*');
+                        }
+                    }
+                }
+                updateAll();
+                showToast('Account selected', 'success');
+            }
+        }
+
+        function clearActiveAccount() {
+            if (ClientStore) {
+                if (ClientStore.clearActiveAccount) {
+                    ClientStore.clearActiveAccount();
+                } else {
+                    activeAccount = null;
+                    const client = ClientStore.getActiveClient();
+                    if (window.parent !== window) {
+                        window.parent.postMessage({
+                            type: 'ACTIVE_ACCOUNT_CHANGED',
+                            client: client,
+                            clientId: client?.id || null,
+                            account: null,
+                            accountId: null
+                        }, '*');
+                    }
+                }
+                updateAll();
+                showToast('Account cleared', 'info');
+            }
+        }
+
+        // ========================================
+        // PROFILE ACTIONS
+        // ========================================
+        function getContextKey() {
+            const client = ClientStore?.getActiveClient();
+            if (activeAccount && client) return client.id + '_' + activeAccount.id;
+            else if (client) return client.id;
+            return null;
+        }
+
+        function getContextDisplayName() {
+            const client = ClientStore?.getActiveClient();
+            if (activeAccount && client) return client.name + ' → ' + (activeAccount.accountName || activeAccount.id);
+            else if (client) return client.name;
+            return null;
+        }
+
+        async function loadClientProfile() {
+            const client = ClientStore?.getActiveClient();
+            if (!client || !client.usageProfile) return;
+
+            const displayName = getContextDisplayName() || client.name;
+
+            if (ProfileStore) {
+                const result = await ProfileStore.createFromClient(client);
+                if (result.success && result.profile) {
+                    ProfileStore.setActiveProfile(result.profile.id);
+                }
+            }
+
+            const message = {
+                type: 'USAGE_PROFILE_LOADED',
+                profile: {
+                    name: displayName + ' - Usage Profile',
+                    clientId: client.id,
+                    clientName: client.name,
+                    accountId: activeAccount?.id || null,
+                    accountName: activeAccount?.accountName || null,
+                    contextKey: getContextKey(),
+                    electricUsage: client.usageProfile.electric || Array(12).fill(0),
+                    gasUsage: client.usageProfile.gas || Array(12).fill(0)
+                }
+            };
+
+            if (window.parent !== window) {
+                window.parent.postMessage(message, '*');
+            }
+
+            updateUsageProfile();
+            updateContextBar();
+            showToast('Profile loaded', 'success');
+        }
+
+        function clearProfile() {
+            if (ProfileStore) ProfileStore.clearActiveProfile();
+            if (window.parent !== window) {
+                window.parent.postMessage({ type: 'USAGE_PROFILE_CHANGED', profile: null, profileId: null }, '*');
+            }
+            updateUsageProfile();
+            updateContextBar();
+            showToast('Profile cleared', 'info');
+        }
+
+        // ========================================
+        // ADMIN ACTIONS
+        // ========================================
+        function switchAdminTab(tab, el) {
+            document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+            el.classList.add('active');
+            document.getElementById('admintab-' + tab).classList.add('active');
+
+            if (tab === 'export') updateStorageInfo();
+            if (tab === 'details') updateClientDetails();
+        }
+
+        function handleCreateClient(e) {
+            e.preventDefault();
+            if (!ClientStore) return;
+            const f = new FormData(e.target);
+            const d = {};
+            f.forEach((v, k) => d[k] = v);
+            const c = ClientStore.createClient(d);
+            e.target.reset();
+            selectClient(c.id);
+            showToast('Client created', 'success');
+        }
+
+        function editActiveClient() {
+            const client = ClientStore?.getActiveClient();
+            if (!client) return;
+            const m = document.getElementById('editModalBody');
+            m.innerHTML = `
+                <form id="editForm">
+                    <input type="hidden" name="id" value="${client.id}">
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">Name</label><input class="form-input" name="name" value="${client.name || ''}"></div>
+                        <div class="form-group"><label class="form-label">Salesforce ID</label><input class="form-input" name="salesforceId" value="${client.salesforceId || ''}"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">City</label><input class="form-input" name="city" value="${client.city || ''}"></div>
+                        <div class="form-group"><label class="form-label">State</label><input class="form-input" name="state" value="${client.state || ''}"></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label class="form-label">ISO</label><input class="form-input" name="iso" value="${client.iso || ''}"></div>
+                        <div class="form-group"><label class="form-label">Annual Usage (MWh)</label><input class="form-input" name="annualUsageMWh" value="${client.annualUsageMWh || ''}"></div>
+                    </div>
+                    <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" name="notes">${client.notes || ''}</textarea></div>
+                </form>`;
+            document.getElementById('editModal').style.display = 'flex';
+        }
+
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+        function saveEditedClient() {
+            const f = document.getElementById('editForm');
+            const d = new FormData(f);
+            const u = {};
+            d.forEach((v, k) => { if (k !== 'id') u[k] = v; });
+            ClientStore.updateClient(d.get('id'), u);
+            closeEditModal();
+            updateAll();
+            showToast('Client updated', 'success');
+        }
+
+        function deleteActiveClient() {
+            const client = ClientStore?.getActiveClient();
+            if (!client) return;
+            if (confirm('Delete "' + client.name + '"? This cannot be undone.')) {
+                ClientStore.deleteClient(client.id);
+                showToast('Client deleted', 'info');
+            }
+        }
+
+        // ========================================
+        // IMPORT FUNCTIONS
+        // ========================================
+        function initDragDrop() {
+            const zones = [
+                { el: document.getElementById('importZone'), handler: handleFile },
+                { el: document.getElementById('accountImportZone'), handler: handleAccountFile }
+            ];
+            zones.forEach(({ el, handler }) => {
+                if (!el) return;
+                ['dragenter', 'dragover'].forEach(e => el.addEventListener(e, ev => { ev.preventDefault(); el.classList.add('dragover'); }));
+                ['dragleave', 'drop'].forEach(e => el.addEventListener(e, ev => { ev.preventDefault(); el.classList.remove('dragover'); }));
+                el.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handler(ev.dataTransfer.files[0]); });
+            });
+        }
+
+        function handleFileSelect(e) { if (e.target.files.length) handleFile(e.target.files[0]); }
+        function handleAccountFileSelect(e) { if (e.target.files.length) handleAccountFile(e.target.files[0]); }
+
+        function handleFile(file) {
+            const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+            const isCSV = file.name.endsWith('.csv');
+            const isJSON = file.name.endsWith('.json');
+
+            const r = new FileReader();
+            r.onload = (e) => {
+                try {
+                    let data;
+                    if (isJSON) { data = JSON.parse(e.target.result); }
+                    else if (isExcel) { const wb = XLSX.read(e.target.result, { type: 'array' }); data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); }
+                    else if (isCSV) { const wb = XLSX.read(e.target.result, { type: 'string' }); data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); }
+                    else { data = e.target.result; }
+
+                    pendingImportData = data;
+                    const count = Array.isArray(data) ? data.length : 1;
+                    document.getElementById('importPreview').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;">' +
+                        '<strong>' + (count > 0 ? '✓' : '⚠') + '</strong> ' + count + ' records from ' + file.name +
+                        '<div style="margin-top:10px;"><button class="btn btn-accent btn-sm" onclick="executeImport()">Import Now</button> <button class="btn btn-ghost btn-sm" onclick="cancelImport()">Cancel</button></div></div>';
+                    document.getElementById('importPreview').style.display = 'block';
+                } catch (err) { showToast('Parse error: ' + err.message, 'error'); }
+            };
+            if (isExcel) r.readAsArrayBuffer(file); else r.readAsText(file);
+        }
+
+        function handleAccountFile(file) {
+            const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+            const isCSV = file.name.endsWith('.csv');
+            const isJSON = file.name.endsWith('.json');
+
+            const r = new FileReader();
+            r.onload = (e) => {
+                try {
+                    let data;
+                    if (isJSON) { data = JSON.parse(e.target.result); }
+                    else if (isExcel) { const wb = XLSX.read(e.target.result, { type: 'array' }); data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); }
+                    else if (isCSV) { const wb = XLSX.read(e.target.result, { type: 'string' }); data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); }
+                    else { data = e.target.result; }
+
+                    pendingAccountData = data;
+                    const count = Array.isArray(data) ? data.length : 1;
+                    document.getElementById('accountImportPreview').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;">' +
+                        '<strong>' + (count > 0 ? '✓' : '⚠') + '</strong> ' + count + ' account records from ' + file.name +
+                        '<div style="margin-top:10px;"><button class="btn btn-blue btn-sm" onclick="executeAccountImport()">Import Accounts</button> <button class="btn btn-ghost btn-sm" onclick="cancelAccountImport()">Cancel</button></div></div>';
+                    document.getElementById('accountImportPreview').style.display = 'block';
+                } catch (err) { showToast('Parse error: ' + err.message, 'error'); }
+            };
+            if (isExcel) r.readAsArrayBuffer(file); else r.readAsText(file);
+        }
+
+        function executeImport() {
+            if (!pendingImportData || !ClientStore) { showToast('No data or store unavailable', 'error'); return; }
+            const opts = { updateExisting: document.getElementById('optUpdateExisting').checked, matchByName: document.getElementById('optMatchByName').checked };
+            try {
+                const r = ClientStore.importFromSalesforce(pendingImportData, opts);
+                document.getElementById('importResults').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;"><strong>Done:</strong> ' + r.imported + ' imported, ' + r.updated + ' updated, ' + r.skipped + ' skipped</div>';
+                document.getElementById('importResults').style.display = 'block';
+                document.getElementById('importPreview').style.display = 'none';
+                allClients = ClientStore.getAllClients();
+                updateBannerStats();
+                if (r.imported > 0 || r.updated > 0) showToast('Imported ' + r.imported + ', updated ' + r.updated, 'success');
+            } catch (e) { showToast('Import failed: ' + e.message, 'error'); }
+            pendingImportData = null;
+            document.getElementById('importFile').value = '';
+        }
+
+        function cancelImport() { pendingImportData = null; document.getElementById('importPreview').style.display = 'none'; document.getElementById('importFile').value = ''; }
+
+        function executeAccountImport() {
+            if (!pendingAccountData || !ClientStore?.importAccounts) { showToast('No data or import not supported', 'error'); return; }
+            const opts = { updateExisting: document.getElementById('optAcctUpdateExisting')?.checked, createOrphans: document.getElementById('optCreateOrphans')?.checked };
+            try {
+                const r = ClientStore.importAccounts(pendingAccountData, opts);
+                document.getElementById('accountImportResults').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;"><strong>Done:</strong> ' + r.imported + ' added, ' + r.updated + ' updated, ' + r.skipped + ' skipped, ' + r.orphaned + ' orphaned</div>';
+                document.getElementById('accountImportResults').style.display = 'block';
+                document.getElementById('accountImportPreview').style.display = 'none';
+                allClients = ClientStore.getAllClients();
+                updateBannerStats();
+                showToast('Imported ' + r.imported + ' accounts', 'success');
+            } catch (e) { showToast('Import failed: ' + e.message, 'error'); }
+            pendingAccountData = null;
+            document.getElementById('accountImportFile').value = '';
+        }
+
+        function cancelAccountImport() { pendingAccountData = null; document.getElementById('accountImportPreview').style.display = 'none'; document.getElementById('accountImportFile').value = ''; }
+
+        function downloadForGitHub() {
+            if (!ClientStore) { showToast('Store not available', 'error'); return; }
+            if (ClientStore.downloadClientsJSON) { ClientStore.downloadClientsJSON(); }
+            else if (ClientStore.exportForGitHub) {
+                const data = ClientStore.exportForGitHub();
+                const blob = new Blob([data], { type: 'application/json' });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clients.json'; a.click();
+            } else { exportClients('json'); }
+            showToast('Downloaded clients.json', 'success');
+        }
+
+        function exportClients(fmt) {
+            if (!ClientStore) return;
+            const data = ClientStore.exportClients(fmt);
+            const blob = new Blob([data], { type: fmt === 'json' ? 'application/json' : 'text/csv' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'clients.' + fmt; a.click();
+            showToast('Exported', 'success');
+        }
+
+        function updateStorageInfo() {
+            const el = document.getElementById('storageInfo');
+            if (!el || !ClientStore) return;
+            const info = ClientStore.getStorageInfo ? ClientStore.getStorageInfo() : { clientCount: 0, accountCount: 0, sizeKB: 0 };
+            el.innerHTML = `
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center;">
+                    <div><div style="font-size: 1.3rem; font-weight: 700; color: var(--accent);">${info.clientCount || 0}</div><div style="font-size: 0.68rem; color: var(--text-muted);">Clients</div></div>
+                    <div><div style="font-size: 1.3rem; font-weight: 700; color: var(--account-active);">${info.accountCount || 0}</div><div style="font-size: 0.68rem; color: var(--text-muted);">Accounts</div></div>
+                    <div><div style="font-size: 1.3rem; font-weight: 700; color: var(--profile-active);">${info.sizeKB || 0}</div><div style="font-size: 0.68rem; color: var(--text-muted);">KB</div></div>
+                </div>`;
+        }
+
+        // ========================================
+        // TOAST
+        // ========================================
+        function showToast(msg, type = 'info') {
+            const existing = document.querySelector('.toast');
+            if (existing) existing.remove();
+            const t = document.createElement('div');
+            t.className = 'toast ' + type;
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2500);
+        }
+    </script>
+</body>
+</html>
