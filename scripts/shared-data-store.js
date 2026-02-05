@@ -1,7 +1,14 @@
 /**
- * Secure Energy Shared Data Store v3.2 (Azure Integration + Password Security)
+ * Secure Energy Shared Data Store v3.3 (Azure Integration + Password Security)
  * Centralized data management for LMP data, user authentication, activity logging,
  * widget layout preferences, usage profiles, and support tickets
+ * 
+ * v3.3 Updates:
+ * - Added logHistoryExport() - tracks analysis history CSV exports (was called but missing)
+ * - Added logDataExport() - generic export tracker for any widget (Excel, CSV, PPTX, etc.)
+ * - Added logDataImport() - tracks ALL data imports with validation audit trail
+ *   Records: fileName, fileSize, recordsTotal/Imported/Skipped/Rejected, validationErrors
+ *   Enables admin visibility into what data users bring in and any bad data attempts
  * 
  * v3.2 Updates:
  * - Added SHA-256 password hashing (hashPassword utility)
@@ -1444,6 +1451,78 @@ const ActivityLog = {
             data: {
                 button: data.button,
                 context: data.context || null
+            }
+        });
+    },
+    
+    // Log analysis history export (called from main.js exportMyAnalysisRecords)
+    logHistoryExport(data) {
+        const session = UserStore.getSession();
+        const userId = data.userId || session?.id || null;
+        const userName = data.userName || (session ? `${session.firstName} ${session.lastName}` : 'System');
+        const userEmail = data.userEmail || session?.email || null;
+        
+        return this.log('History Export', {
+            userId: userId,
+            userName: userName,
+            userEmail: userEmail,
+            widget: data.widget || 'portal',
+            data: {
+                recordCount: data.recordCount || 0,
+                format: data.format || 'csv',
+                scope: data.scope || 'user' // 'user' or 'all' (admin)
+            }
+        });
+    },
+    
+    // Log a generic data export from any widget (Excel, CSV, PPTX, etc.)
+    logDataExport(data) {
+        const session = UserStore.getSession();
+        const userId = data.userId || session?.id || null;
+        const userName = data.userName || (session ? `${session.firstName} ${session.lastName}` : 'System');
+        const userEmail = data.userEmail || session?.email || null;
+        
+        return this.log('Data Export', {
+            userId: userId,
+            userName: userName,
+            userEmail: userEmail,
+            widget: data.widget || 'unknown',
+            clientName: data.clientName || null,
+            clientId: data.clientId || null,
+            data: {
+                exportType: data.exportType || 'unknown', // 'excel', 'csv', 'pptx', 'json', 'pdf'
+                fileName: data.fileName || null,
+                recordCount: data.recordCount || 0,
+                description: data.description || null
+            }
+        });
+    },
+    
+    // Log a data import attempt (tracks what users bring IN, including validation results)
+    logDataImport(data) {
+        const session = UserStore.getSession();
+        const userId = data.userId || session?.id || null;
+        const userName = data.userName || (session ? `${session.firstName} ${session.lastName}` : 'System');
+        const userEmail = data.userEmail || session?.email || null;
+        
+        return this.log('Data Import', {
+            userId: userId,
+            userName: userName,
+            userEmail: userEmail,
+            widget: data.widget || 'unknown',
+            clientName: data.clientName || null,
+            clientId: data.clientId || null,
+            data: {
+                importType: data.importType || 'unknown', // 'salesforce-csv', 'usage-profile', 'client-data', 'lmp-data', 'excel'
+                fileName: data.fileName || null,
+                fileSize: data.fileSize || null,
+                recordsTotal: data.recordsTotal || 0,    // total rows in file
+                recordsImported: data.recordsImported || 0, // rows successfully imported
+                recordsSkipped: data.recordsSkipped || 0,   // rows skipped (dupes, etc.)
+                recordsRejected: data.recordsRejected || 0, // rows rejected (bad data)
+                validationErrors: data.validationErrors || [], // array of error descriptions
+                success: data.success !== false,  // overall success flag
+                description: data.description || null
             }
         });
     },
