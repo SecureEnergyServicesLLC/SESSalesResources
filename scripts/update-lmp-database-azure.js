@@ -1,10 +1,14 @@
 /**
- * update-lmp-database-azure.js
- * Merges newly fetched LMP data and saves to Azure Blob Storage
+ * update-lmp-database-azure-v2.js
+ * Merges newly fetched LMP data (HOURLY + MONTHLY) and saves to Azure Blob Storage
  * Uses the SES Data API gateway
  * 
- * Reads from: ../temp/fetched-lmp-data.json (created by fetch-lmp-data.js)
- * Saves to: Azure API -> lmp-database.json
+ * Reads from: 
+ *   ../temp/fetched-lmp-hourly.json (hourly data)
+ *   ../temp/fetched-lmp-data.json (monthly summaries)
+ * 
+ * Saves to Azure API:
+ *   lmp-database.json (combined: monthly summaries + hourly data)
  */
 
 const fs = require('fs');
@@ -16,8 +20,9 @@ const AZURE_API_ENDPOINT = process.env.AZURE_API_ENDPOINT || 'https://ses-data-a
 const AZURE_API_KEY = process.env.AZURE_API_KEY;
 const LMP_FILE = 'lmp-database.json';
 
-// Temp file location (matches fetch-lmp-data.js output)
-const TEMP_DATA_PATH = path.join(__dirname, '..', 'temp', 'fetched-lmp-data.json');
+// Temp file locations
+const HOURLY_DATA_PATH = path.join(__dirname, '..', 'temp', 'fetched-lmp-hourly.json');
+const MONTHLY_DATA_PATH = path.join(__dirname, '..', 'temp', 'fetched-lmp-data.json');
 
 // Make HTTPS request
 function apiRequest(method, file, data = null) {
@@ -65,60 +70,65 @@ function apiRequest(method, file, data = null) {
     });
 }
 
-// Load temp data from fetch script
+// Load temp data files
 function loadTempData() {
-    console.log(`Looking for temp file at: ${TEMP_DATA_PATH}`);
+    let hourlyData = null;
+    let monthlyData = null;
     
-    if (!fs.existsSync(TEMP_DATA_PATH)) {
-        console.error('ERROR: fetched-lmp-data.json not found at expected path');
-        console.error(`Expected: ${TEMP_DATA_PATH}`);
-        
-        // Try alternate location (same directory)
-        const altPath = path.join(__dirname, 'temp-lmp-data.json');
-        if (fs.existsSync(altPath)) {
-            console.log(`Found at alternate path: ${altPath}`);
-            return JSON.parse(fs.readFileSync(altPath, 'utf8'));
-        }
-        
-        console.error('Make sure fetch-lmp-data.js ran successfully first');
+    // Try to load hourly data
+    if (fs.existsSync(HOURLY_DATA_PATH)) {
+        console.log(`Loading hourly data from: ${HOURLY_DATA_PATH}`);
+        hourlyData = JSON.parse(fs.readFileSync(HOURLY_DATA_PATH, 'utf8'));
+        console.log(`  Hourly records: ${hourlyData.hourlyRecordCount?.toLocaleString() || 'unknown'}`);
+    } else {
+        console.log('No hourly data file found (optional)');
+    }
+    
+    // Try to load monthly data
+    if (fs.existsSync(MONTHLY_DATA_PATH)) {
+        console.log(`Loading monthly data from: ${MONTHLY_DATA_PATH}`);
+        monthlyData = JSON.parse(fs.readFileSync(MONTHLY_DATA_PATH, 'utf8'));
+        console.log(`  Monthly records: ${monthlyData.recordCount?.toLocaleString() || monthlyData.records?.length || 'unknown'}`);
+    } else {
+        console.error('ERROR: Monthly data file not found');
+        console.error(`Expected: ${MONTHLY_DATA_PATH}`);
         process.exit(1);
     }
     
-    return JSON.parse(fs.readFileSync(TEMP_DATA_PATH, 'utf8'));
+    return { hourlyData, monthlyData };
 }
 
-// Generate unique key for a record
-function recordKey(record) {
-    // Handle both formats: zone_id or zoneId
+// Generate unique key for a monthly record
+function monthlyRecordKey(record) {
     const zoneId = record.zone_id || record.zoneId || record.zone;
     return `${record.iso}_${zoneId}_${record.year}_${record.month}`;
 }
 
-// Normalize record to consistent format
-function normalizeRecord(record) {
+// Normalize monthly record to consistent format
+function normalizeMonthlyRecord(record) {
     return {
         iso: record.iso,
         zone: record.zone,
-        zone_id: record.zoneId || record.zone_id || record.zone,
+        zone_id: record.zone_id || record.zoneId || record.zone,
         year: record.year.toString(),
         month: record.month.toString().padStart(2, '0'),
-        avg_da_lmp: record.lmp || record.avg_da_lmp || 0,
+        avg_da_lmp: record.avg_da_lmp || record.lmp || 0,
         min_price: record.min_price || record.lmp || 0,
         max_price: record.max_price || record.lmp || 0,
-        record_count: record.recordCount || record.record_count || 0
+        record_count: record.record_count || record.recordCount || 0
     };
 }
 
-// Merge new data into database
-function mergeData(database, newRecords) {
+// Merge new monthly data into database
+function mergeMonthlyData(database, newRecords) {
     let added = 0;
     let updated = 0;
     let unchanged = 0;
 
     for (const rawRecord of newRecords) {
-        const record = normalizeRecord(rawRecord);
+        const record = normalizeMonthlyRecord(rawRecord);
         const iso = record.iso;
-        const key = recordKey(record);
+        const key = monthlyRecordKey(record);
 
         // Initialize ISO array if needed
         if (!database.data[iso]) {
@@ -126,14 +136,12 @@ function mergeData(database, newRecords) {
         }
 
         // Find existing record
-        const existingIndex = database.data[iso].findIndex(r => recordKey(r) === key);
+        const existingIndex = database.data[iso].findIndex(r => monthlyRecordKey(r) === key);
 
         if (existingIndex === -1) {
-            // New record
             database.data[iso].push(record);
             added++;
         } else {
-            // Check if data changed
             const existing = database.data[iso][existingIndex];
             const existingLmp = existing.avg_da_lmp || existing.lmp || 0;
             const newLmp = record.avg_da_lmp || 0;
@@ -147,7 +155,7 @@ function mergeData(database, newRecords) {
         }
     }
 
-    // Sort each ISO's data by zone, year, month
+    // Sort each ISO's data
     for (const iso of Object.keys(database.data)) {
         database.data[iso].sort((a, b) => {
             const zoneA = a.zone || a.zone_id || '';
@@ -161,29 +169,86 @@ function mergeData(database, newRecords) {
     return { added, updated, unchanged };
 }
 
+// Merge new hourly data into database
+function mergeHourlyData(database, newHourlyData) {
+    if (!newHourlyData || !newHourlyData.data) {
+        return { added: 0, updated: 0 };
+    }
+    
+    let addedMonths = 0;
+    let updatedMonths = 0;
+    let totalRecords = 0;
+    
+    // Ensure hourly structure exists
+    if (!database.hourly) {
+        database.hourly = {};
+    }
+    
+    for (const [iso, monthData] of Object.entries(newHourlyData.data)) {
+        if (!database.hourly[iso]) {
+            database.hourly[iso] = {};
+        }
+        
+        for (const [yearMonth, records] of Object.entries(monthData)) {
+            const isNew = !database.hourly[iso][yearMonth];
+            
+            // Replace entire month's hourly data (newer fetch wins)
+            database.hourly[iso][yearMonth] = records;
+            totalRecords += records.length;
+            
+            if (isNew) {
+                addedMonths++;
+            } else {
+                updatedMonths++;
+            }
+        }
+    }
+    
+    return { addedMonths, updatedMonths, totalRecords };
+}
+
+// Calculate storage size estimates
+function calculateStorageStats(database) {
+    let monthlyCount = 0;
+    let hourlyCount = 0;
+    
+    // Count monthly records
+    for (const iso of Object.keys(database.data || {})) {
+        monthlyCount += database.data[iso]?.length || 0;
+    }
+    
+    // Count hourly records
+    for (const iso of Object.keys(database.hourly || {})) {
+        for (const yearMonth of Object.keys(database.hourly[iso] || {})) {
+            hourlyCount += database.hourly[iso][yearMonth]?.length || 0;
+        }
+    }
+    
+    return { monthlyCount, hourlyCount };
+}
+
 // Main execution
 async function main() {
-    console.log('='.repeat(60));
-    console.log('LMP Database Update (Azure)');
-    console.log('='.repeat(60));
+    console.log('═'.repeat(60));
+    console.log('LMP Database Update - HOURLY + MONTHLY (Azure)');
+    console.log('═'.repeat(60));
     
     // Validate API key
     if (!AZURE_API_KEY) {
         console.error('ERROR: AZURE_API_KEY environment variable not set');
-        console.error('Add it as a GitHub Secret: AZURE_API_KEY');
         process.exit(1);
     }
     
     console.log(`Azure Endpoint: ${AZURE_API_ENDPOINT}`);
     console.log(`Target File: ${LMP_FILE}`);
 
-    // Load temp data from fetch script
-    const tempData = loadTempData();
+    // Load temp data files
+    const { hourlyData, monthlyData } = loadTempData();
+    
     console.log(`\nFetch info:`);
-    console.log(`  Date: ${tempData.fetchedAt}`);
-    console.log(`  Range: ${tempData.dateRange.start} to ${tempData.dateRange.end}`);
-    console.log(`  Markets: ${tempData.markets.join(', ')}`);
-    console.log(`  Records: ${tempData.recordCount || tempData.records.length}`);
+    console.log(`  Date: ${monthlyData.fetchedAt}`);
+    console.log(`  Range: ${monthlyData.dateRange.start} to ${monthlyData.dateRange.end}`);
+    console.log(`  Markets: ${monthlyData.markets.join(', ')}`);
 
     // Fetch existing database from Azure
     console.log(`\nFetching existing database from Azure...`);
@@ -195,72 +260,68 @@ async function main() {
         if (!database || !database.data) {
             console.log('  No existing database found, creating new one...');
             database = {
-                meta: {
-                    lastUpdate: null,
-                    source: 'arcadia-genability',
-                    version: '2.0',
-                    storage: 'azure'
-                },
-                data: {
-                    ISONE: [],
-                    PJM: [],
-                    ERCOT: []
-                }
+                meta: {},
+                data: {},
+                hourly: {}
             };
         } else {
             console.log('  Existing database loaded');
-            let existingCount = 0;
-            for (const iso of Object.keys(database.data)) {
-                existingCount += database.data[iso]?.length || 0;
-            }
-            console.log(`  Existing records: ${existingCount}`);
+            const stats = calculateStorageStats(database);
+            console.log(`  Existing monthly records: ${stats.monthlyCount.toLocaleString()}`);
+            console.log(`  Existing hourly records: ${stats.hourlyCount.toLocaleString()}`);
         }
     } catch (err) {
         console.error(`  Error fetching from Azure: ${err.message}`);
         console.log('  Creating new database...');
         database = {
-            meta: {
-                lastUpdate: null,
-                source: 'arcadia-genability',
-                version: '2.0',
-                storage: 'azure'
-            },
-            data: {
-                ISONE: [],
-                PJM: [],
-                ERCOT: []
-            }
+            meta: {},
+            data: {},
+            hourly: {}
         };
     }
 
-    // Merge new data
-    console.log(`\nMerging new data...`);
-    const stats = mergeData(database, tempData.records);
-    console.log(`  Added: ${stats.added}`);
-    console.log(`  Updated: ${stats.updated}`);
-    console.log(`  Unchanged: ${stats.unchanged}`);
+    // Merge monthly data
+    console.log(`\nMerging monthly data...`);
+    const monthlyStats = mergeMonthlyData(database, monthlyData.records);
+    console.log(`  Added: ${monthlyStats.added}`);
+    console.log(`  Updated: ${monthlyStats.updated}`);
+    console.log(`  Unchanged: ${monthlyStats.unchanged}`);
+
+    // Merge hourly data (if available)
+    let hourlyStats = { addedMonths: 0, updatedMonths: 0, totalRecords: 0 };
+    if (hourlyData) {
+        console.log(`\nMerging hourly data...`);
+        hourlyStats = mergeHourlyData(database, hourlyData);
+        console.log(`  New months: ${hourlyStats.addedMonths}`);
+        console.log(`  Updated months: ${hourlyStats.updatedMonths}`);
+        console.log(`  Total hourly records: ${hourlyStats.totalRecords.toLocaleString()}`);
+    }
 
     // Update metadata
-    database.meta = database.meta || {};
-    database.meta.lastUpdate = new Date().toISOString();
-    database.meta.lastFetchRange = tempData.dateRange;
-    database.meta.storage = 'azure';
-    database.meta.version = '2.0';
-    database.meta.source = 'arcadia-genability';
+    const finalStats = calculateStorageStats(database);
+    database.meta = {
+        lastUpdate: new Date().toISOString(),
+        lastFetchRange: monthlyData.dateRange,
+        storage: 'azure',
+        version: '3.0',
+        source: 'arcadia-genability',
+        hasHourlyData: !!hourlyData,
+        totalMonthlyRecords: finalStats.monthlyCount,
+        totalHourlyRecords: finalStats.hourlyCount
+    };
 
-    // Count total records
-    let totalRecords = 0;
-    for (const iso of Object.keys(database.data)) {
-        totalRecords += database.data[iso].length;
-    }
-    database.meta.totalRecords = totalRecords;
+    // Determine if we need to save
+    const hasChanges = monthlyStats.added > 0 || monthlyStats.updated > 0 || 
+                       hourlyStats.addedMonths > 0 || hourlyStats.updatedMonths > 0;
 
-    // Save to Azure
-    if (stats.added > 0 || stats.updated > 0) {
+    if (hasChanges) {
         console.log(`\nSaving to Azure...`);
+        console.log(`  Total monthly records: ${finalStats.monthlyCount.toLocaleString()}`);
+        console.log(`  Total hourly records: ${finalStats.hourlyCount.toLocaleString()}`);
+        
         try {
             await apiRequest('PUT', LMP_FILE, database);
-            console.log(`  ✅ Database saved: ${totalRecords} total records`);
+            console.log(`  ✅ Database saved successfully!`);
         } catch (err) {
             console.error(`  ❌ Error saving to Azure: ${err.message}`);
             process.exit(1);
@@ -269,16 +330,21 @@ async function main() {
         console.log(`\nNo changes to save.`);
     }
 
-    // Clean up temp file
+    // Clean up temp files
     try {
-        fs.unlinkSync(TEMP_DATA_PATH);
-        console.log('Temp file cleaned up');
+        if (fs.existsSync(MONTHLY_DATA_PATH)) {
+            fs.unlinkSync(MONTHLY_DATA_PATH);
+        }
+        if (fs.existsSync(HOURLY_DATA_PATH)) {
+            fs.unlinkSync(HOURLY_DATA_PATH);
+        }
+        console.log('Temp files cleaned up');
     } catch (e) {
-        console.log('Note: Could not delete temp file');
+        console.log('Note: Could not delete temp files');
     }
 
-    console.log('='.repeat(60));
-    console.log(stats.added > 0 || stats.updated > 0 ? '✅ Database updated successfully!' : 'No changes needed.');
+    console.log('═'.repeat(60));
+    console.log(hasChanges ? '✅ Database updated successfully!' : 'No changes needed.');
 }
 
 main().catch(error => {

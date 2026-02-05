@@ -3,11 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LMP Analytics - Secure Energy</title>
+    <title>LMP Analytics - Secure Energy (Hourly + Monthly)</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <!-- SheetJS for Excel export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- PptxGenJS for PowerPoint export -->
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
     <style>
         :root {
@@ -26,6 +24,7 @@
             --accent-warning: #f59e0b;
             --accent-error: #ef4444;
             --accent-info: #3b82f6;
+            --accent-hourly: #8b5cf6;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -38,10 +37,7 @@
             padding: 20px;
         }
 
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-        }
+        .container { max-width: 1600px; margin: 0 auto; }
 
         .header {
             background: var(--se-gradient);
@@ -55,41 +51,89 @@
             gap: 16px;
         }
 
-        .header-left h1 {
-            font-size: 24px;
-            margin-bottom: 4px;
-        }
+        .header-left h1 { font-size: 24px; margin-bottom: 4px; }
+        .header-left p { opacity: 0.9; font-size: 13px; }
 
-        .header-left p {
-            opacity: 0.9;
-            font-size: 13px;
-        }
+        .header-stats { display: flex; gap: 24px; }
+        .header-stat { text-align: center; padding: 0 16px; border-left: 1px solid rgba(255,255,255,0.2); }
+        .header-stat:first-child { border-left: none; }
+        .header-stat-value { font-size: 24px; font-weight: 700; }
+        .header-stat-label { font-size: 11px; text-transform: uppercase; opacity: 0.8; }
 
-        .header-stats {
+        /* Data Mode Toggle - NEW */
+        .data-mode-toggle {
             display: flex;
-            gap: 24px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+        
+        .data-mode-btn {
+            flex: 1;
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .data-mode-btn:hover { color: var(--text-primary); }
+        
+        .data-mode-btn.active {
+            background: var(--se-gradient);
+            color: white;
+        }
+        
+        .data-mode-btn.active.hourly-active {
+            background: linear-gradient(135deg, #7c3aed, #8b5cf6);
+        }
+        
+        .data-mode-btn .mode-icon { font-size: 18px; }
+        .data-mode-btn .mode-badge {
+            font-size: 10px;
+            padding: 2px 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
         }
 
-        .header-stat {
+        /* Hourly Data Notice */
+        .hourly-notice {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .hourly-notice.hidden { display: none; }
+        .hourly-notice .icon { font-size: 20px; }
+        .hourly-notice .text { flex: 1; font-size: 13px; color: var(--accent-hourly); }
+        .hourly-notice .stats { font-size: 12px; color: var(--text-secondary); }
+
+        /* No Hourly Data Warning */
+        .no-hourly-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 16px;
             text-align: center;
-            padding: 0 16px;
-            border-left: 1px solid rgba(255,255,255,0.2);
         }
-
-        .header-stat:first-child {
-            border-left: none;
-        }
-
-        .header-stat-value {
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .header-stat-label {
-            font-size: 11px;
-            text-transform: uppercase;
-            opacity: 0.8;
-        }
+        .no-hourly-warning.hidden { display: none; }
+        .no-hourly-warning h4 { color: var(--accent-warning); margin-bottom: 8px; }
+        .no-hourly-warning p { font-size: 13px; color: var(--text-secondary); }
 
         .controls-bar {
             background: var(--bg-secondary);
@@ -103,44 +147,13 @@
             align-items: center;
         }
 
-        /* Client Context */
-        .client-context-bar {
-            background: linear-gradient(135deg, rgba(40, 167, 69, 0.12) 0%, rgba(40, 167, 69, 0.06) 100%);
-            border: 1px solid rgba(40, 167, 69, 0.35);
-            border-radius: 10px;
-            padding: 10px 16px;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .client-context-bar svg { color: #28a745; flex-shrink: 0; }
-        .client-context-bar .info { flex: 1; }
-        .client-context-bar .label { font-size: 0.65rem; color: #28a745; text-transform: uppercase; letter-spacing: 0.5px; }
-        .client-context-bar .name { font-weight: 600; color: #28a745; font-size: 0.95rem; }
-        .client-context-bar .account { font-size: 0.85rem; color: #3b82f6; margin-top: 2px; }
-        .client-context-bar .badge { background: rgba(62, 180, 137, 0.2); color: var(--se-light-green); padding: 4px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: 600; }
-        .client-context-bar.has-account { background: linear-gradient(135deg, rgba(59, 130, 246, 0.12) 0%, rgba(59, 130, 246, 0.06) 100%); border-color: rgba(59, 130, 246, 0.35); }
-        .client-context-bar.has-account svg { color: #3b82f6; }
-        .client-context-bar.has-account .label { color: #3b82f6; }
-        .client-context-bar.has-account .name { color: #1e40af; }
-        .no-client-bar { background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.25); border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; text-align: center; color: #d4a200; font-size: 0.85rem; }
-        .no-client-bar a { color: #f59e0b; text-decoration: underline; cursor: pointer; }
-
-
-        .control-group {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-        }
-
+        .control-group { display: flex; flex-direction: column; gap: 4px; }
         .control-group label {
             font-size: 11px;
             color: var(--text-tertiary);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-
         .control-group select, .control-group input {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
@@ -150,11 +163,14 @@
             font-size: 13px;
             min-width: 150px;
         }
-
         .control-group select:focus, .control-group input:focus {
             outline: none;
             border-color: var(--se-light-green);
         }
+
+        /* Hourly-specific controls */
+        .hourly-controls { display: none; }
+        .hourly-controls.active { display: flex; gap: 16px; flex-wrap: wrap; }
 
         .btn {
             background: var(--se-gradient);
@@ -170,105 +186,9 @@
             align-items: center;
             gap: 6px;
         }
-
-        .btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(62, 180, 137, 0.3);
-        }
-
-        .btn-secondary {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-        }
-
-        .btn-secondary:hover {
-            background: var(--bg-elevated);
-            box-shadow: none;
-        }
-
-        .btn-export {
-            background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
-        }
-
-        .btn-export:hover {
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-        }
-
-        .btn-pptx {
-            background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
-        }
-
-        .btn-pptx:hover {
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-        }
-
-        /* Export Dropdown */
-        .export-dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .export-dropdown-content {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 100%;
-            margin-top: 4px;
-            background: var(--bg-elevated);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            min-width: 200px;
-            z-index: 1000;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
-            overflow: hidden;
-        }
-
-        .export-dropdown-content.show {
-            display: block;
-        }
-
-        .export-dropdown-item {
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            transition: background 0.2s;
-            color: var(--text-primary);
-            font-size: 13px;
-        }
-
-        .export-dropdown-item:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .export-dropdown-item svg {
-            width: 18px;
-            height: 18px;
-            flex-shrink: 0;
-        }
-
-        .export-dropdown-item .export-icon-excel {
-            color: #10b981;
-        }
-
-        .export-dropdown-item .export-icon-pptx {
-            color: #ef4444;
-        }
-
-        .export-dropdown-divider {
-            height: 1px;
-            background: var(--border-color);
-            margin: 4px 0;
-        }
-
-        .export-dropdown-header {
-            padding: 8px 16px;
-            font-size: 10px;
-            text-transform: uppercase;
-            color: var(--text-tertiary);
-            letter-spacing: 0.5px;
-        }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(62, 180, 137, 0.3); }
+        .btn-secondary { background: var(--bg-tertiary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { background: var(--bg-elevated); box-shadow: none; }
 
         .grid {
             display: grid;
@@ -276,10 +196,7 @@
             gap: 20px;
             margin-bottom: 20px;
         }
-
-        .grid-full {
-            grid-column: 1 / -1;
-        }
+        .grid-full { grid-column: 1 / -1; }
 
         .card {
             background: var(--bg-secondary);
@@ -287,7 +204,6 @@
             border-radius: 12px;
             overflow: hidden;
         }
-
         .card-header {
             background: var(--bg-tertiary);
             padding: 14px 20px;
@@ -296,29 +212,63 @@
             justify-content: space-between;
             align-items: center;
         }
+        .card-title { font-size: 14px; font-weight: 600; color: var(--se-light-green); }
+        .card-body { padding: 20px; }
 
-        .card-title {
-            font-size: 14px;
+        .chart-container { position: relative; height: 350px; }
+        .chart-container.tall { height: 450px; }
+
+        /* Hourly Analysis Cards */
+        .hourly-analysis-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .analysis-card {
+            background: var(--bg-tertiary);
+            border-radius: 10px;
+            padding: 16px;
+        }
+        
+        .analysis-card h4 {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+        
+        .analysis-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-hourly);
+        }
+        
+        .analysis-label { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+        
+        .peak-hours-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 4px;
+            margin-top: 12px;
+        }
+        
+        .hour-cell {
+            aspect-ratio: 1;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
             font-weight: 600;
-            color: var(--se-light-green);
         }
+        
+        .hour-cell.peak { background: rgba(239, 68, 68, 0.3); color: var(--accent-error); }
+        .hour-cell.off-peak { background: rgba(16, 185, 129, 0.3); color: var(--accent-success); }
+        .hour-cell.normal { background: var(--bg-elevated); color: var(--text-tertiary); }
 
-        .card-body {
-            padding: 20px;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 350px;
-        }
-
-        /* Trends Table */
-        .trends-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
-
+        .trends-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .trends-table th {
             background: var(--bg-tertiary);
             padding: 12px 16px;
@@ -328,84 +278,13 @@
             font-size: 11px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            position: sticky;
-            top: 0;
         }
+        .trends-table td { padding: 12px 16px; border-bottom: 1px solid var(--border-color); }
+        .trends-table tr:hover { background: var(--bg-tertiary); }
 
-        .trends-table td {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--border-color);
-        }
+        .table-scroll { max-height: 400px; overflow-y: auto; }
 
-        .trends-table tr:hover {
-            background: var(--bg-tertiary);
-        }
-
-        .trend-positive {
-            color: var(--accent-success);
-            font-weight: 600;
-        }
-
-        .trend-negative {
-            color: var(--accent-error);
-            font-weight: 600;
-        }
-
-        .trend-neutral {
-            color: var(--text-tertiary);
-        }
-
-        .trend-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .trend-badge.up {
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--accent-success);
-        }
-
-        .trend-badge.down {
-            background: rgba(239, 68, 68, 0.15);
-            color: var(--accent-error);
-        }
-
-        .zone-tag {
-            background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .zone-tag.average {
-            background: rgba(62, 180, 137, 0.2);
-            color: var(--se-light-green);
-            font-weight: 600;
-        }
-
-        .table-scroll {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-
-        .mini-chart {
-            width: 100px;
-            height: 30px;
-        }
-
-        /* Tabs */
-        .tabs {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 16px;
-        }
-
+        .tabs { display: flex; gap: 4px; margin-bottom: 16px; }
         .tab {
             padding: 8px 16px;
             background: var(--bg-tertiary);
@@ -416,18 +295,9 @@
             cursor: pointer;
             transition: all 0.2s;
         }
+        .tab.active { background: var(--se-light-green); color: white; border-color: var(--se-light-green); }
+        .tab:hover:not(.active) { background: var(--bg-elevated); }
 
-        .tab.active {
-            background: var(--se-light-green);
-            color: white;
-            border-color: var(--se-light-green);
-        }
-
-        .tab:hover:not(.active) {
-            background: var(--bg-elevated);
-        }
-
-        /* Loading State */
         .loading {
             display: flex;
             flex-direction: column;
@@ -436,7 +306,6 @@
             padding: 60px 20px;
             color: var(--text-tertiary);
         }
-
         .loading-spinner {
             width: 40px;
             height: 40px;
@@ -446,24 +315,8 @@
             animation: spin 1s linear infinite;
             margin-bottom: 16px;
         }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        /* No Data State */
-        .no-data {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-tertiary);
-        }
-
-        .no-data svg {
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        /* Toast notification */
         .toast {
             position: fixed;
             bottom: 24px;
@@ -481,43 +334,14 @@
             opacity: 0;
             transition: all 0.3s ease;
         }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 3px solid var(--accent-success); }
+        .toast.error { border-left: 3px solid var(--accent-error); }
 
-        .toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        .toast.success {
-            border-left: 3px solid var(--accent-success);
-        }
-
-        .toast.error {
-            border-left: 3px solid var(--accent-error);
-        }
-
-        /* Responsive */
-        @media (max-width: 1200px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
+        @media (max-width: 1200px) { .grid { grid-template-columns: 1fr; } }
         @media (max-width: 768px) {
-            .header {
-                flex-direction: column;
-                text-align: center;
-            }
-            .header-stats {
-                flex-wrap: wrap;
-                justify-content: center;
-            }
-            .controls-bar {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .control-group select {
-                width: 100%;
-            }
+            .header { flex-direction: column; text-align: center; }
+            .controls-bar { flex-direction: column; align-items: stretch; }
         }
     </style>
 </head>
@@ -527,20 +351,20 @@
         <div class="header">
             <div class="header-left">
                 <h1>📊 LMP Analytics Dashboard</h1>
-                <p>Historical trend analysis and price movement insights</p>
+                <p>Historical trend analysis with hourly granularity</p>
             </div>
             <div class="header-stats">
                 <div class="header-stat">
                     <div class="header-stat-value" id="totalRecords">--</div>
-                    <div class="header-stat-label">Data Points</div>
+                    <div class="header-stat-label">Monthly Records</div>
+                </div>
+                <div class="header-stat">
+                    <div class="header-stat-value" id="hourlyRecords">--</div>
+                    <div class="header-stat-label">Hourly Records</div>
                 </div>
                 <div class="header-stat">
                     <div class="header-stat-value" id="totalISOs">--</div>
                     <div class="header-stat-label">ISOs</div>
-                </div>
-                <div class="header-stat">
-                    <div class="header-stat-value" id="totalZones">--</div>
-                    <div class="header-stat-label">Zones</div>
                 </div>
                 <div class="header-stat">
                     <div class="header-stat-value" id="yearRange">--</div>
@@ -549,8 +373,34 @@
             </div>
         </div>
 
-        <!-- Client Context Banner -->
-        <div id="clientContextBanner"></div>
+        <!-- Data Mode Toggle - NEW -->
+        <div class="data-mode-toggle">
+            <button class="data-mode-btn active" onclick="setDataMode('monthly')" id="monthlyModeBtn">
+                <span class="mode-icon">📅</span>
+                <span>Monthly Averages</span>
+                <span class="mode-badge" id="monthlyBadge">--</span>
+            </button>
+            <button class="data-mode-btn" onclick="setDataMode('hourly')" id="hourlyModeBtn">
+                <span class="mode-icon">⏰</span>
+                <span>Hourly Data</span>
+                <span class="mode-badge" id="hourlyBadge">--</span>
+            </button>
+        </div>
+
+        <!-- Hourly Data Notice -->
+        <div class="hourly-notice hidden" id="hourlyNotice">
+            <span class="icon">⚡</span>
+            <div class="text">
+                <strong>Hourly Data Mode Active</strong> - Viewing raw hourly LMP prices for detailed analysis
+            </div>
+            <div class="stats" id="hourlyStats">-- records loaded</div>
+        </div>
+
+        <!-- No Hourly Data Warning -->
+        <div class="no-hourly-warning hidden" id="noHourlyWarning">
+            <h4>⚠️ No Hourly Data Available</h4>
+            <p>Hourly data has not been fetched yet. Run the LMP fetcher with hourly mode to populate this data.</p>
+        </div>
 
         <!-- Controls -->
         <div class="controls-bar">
@@ -573,795 +423,271 @@
                     <option value="5y">Last 5 Years</option>
                     <option value="3y">Last 3 Years</option>
                     <option value="1y">Last Year</option>
+                    <option value="6m">Last 6 Months</option>
+                    <option value="1m">Last Month</option>
                 </select>
             </div>
-            <div class="control-group">
-                <label>Compare By</label>
-                <select id="compareSelect" onchange="updateAnalytics()">
-                    <option value="yoy">Year over Year</option>
-                    <option value="mom">Month over Month</option>
-                </select>
-            </div>
-            <div style="flex: 1;"></div>
             
-            <!-- Export Dropdown -->
-            <div class="export-dropdown">
-                <button class="btn btn-secondary" onclick="toggleExportDropdown(event)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                        <polyline points="7 10 12 15 17 10"/>
-                        <line x1="12" y1="15" x2="12" y2="3"/>
-                    </svg>
-                    Export
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="6 9 12 15 18 9"/>
-                    </svg>
-                </button>
-                <div class="export-dropdown-content" id="exportDropdown">
-                    <div class="export-dropdown-header">Export Data</div>
-                    <div class="export-dropdown-item" onclick="exportToExcel('filtered')">
-                        <svg class="export-icon-excel" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                            <text x="7" y="17" font-size="7" fill="white" font-weight="bold">XLS</text>
-                        </svg>
-                        <span>Export Filtered Data to Excel</span>
-                    </div>
-                    <div class="export-dropdown-item" onclick="exportToExcel('all')">
-                        <svg class="export-icon-excel" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                            <text x="7" y="17" font-size="7" fill="white" font-weight="bold">XLS</text>
-                        </svg>
-                        <span>Export All Data to Excel</span>
-                    </div>
-                    <div class="export-dropdown-item" onclick="exportSummaryToExcel()">
-                        <svg class="export-icon-excel" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                            <text x="7" y="17" font-size="7" fill="white" font-weight="bold">XLS</text>
-                        </svg>
-                        <span>Export Summary Statistics</span>
-                    </div>
-                    <div class="export-dropdown-divider"></div>
-                    <div class="export-dropdown-header">Export Charts</div>
-                    <div class="export-dropdown-item" onclick="exportChartsToPowerPoint()">
-                        <svg class="export-icon-pptx" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                            <text x="6" y="17" font-size="6" fill="white" font-weight="bold">PPT</text>
-                        </svg>
-                        <span>Export Charts to PowerPoint</span>
-                    </div>
-                    <div class="export-dropdown-item" onclick="exportAllToPowerPoint()">
-                        <svg class="export-icon-pptx" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
-                            <text x="6" y="17" font-size="6" fill="white" font-weight="bold">PPT</text>
-                        </svg>
-                        <span>Export Full Report to PowerPoint</span>
-                    </div>
+            <!-- Hourly-specific controls -->
+            <div class="hourly-controls" id="hourlyControls">
+                <div class="control-group">
+                    <label>Aggregation</label>
+                    <select id="aggregationSelect" onchange="updateHourlyAnalytics()">
+                        <option value="hour">Hourly</option>
+                        <option value="day">Daily Average</option>
+                        <option value="week">Weekly Average</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Specific Month</label>
+                    <select id="hourlyMonthSelect" onchange="updateHourlyAnalytics()">
+                        <option value="all">All Available</option>
+                    </select>
                 </div>
             </div>
             
-            <button class="btn" onclick="refreshData()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle;">
-                    <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/>
-                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                </svg>
-                Refresh
-            </button>
+            <div style="flex: 1;"></div>
+            <button class="btn btn-secondary" onclick="refreshData()">🔄 Refresh</button>
+            <button class="btn" onclick="exportToExcel()">📥 Export</button>
         </div>
 
         <!-- Main Content -->
         <div id="mainContent">
             <div class="loading">
                 <div class="loading-spinner"></div>
-                <p>Loading LMP data...</p>
+                <p>Loading LMP Data...</p>
             </div>
         </div>
     </div>
 
-    <!-- Toast Container -->
-    <div id="toast" class="toast"></div>
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
 
     <script>
-        // Data storage
-        let lmpData = [];
-        let trendChart = null;
-        let comparisonChart = null;
-
-        // Azure API Configuration
+        // ============================================
+        // CONFIGURATION
+        // ============================================
         const AZURE_CONFIG = {
             endpoint: 'https://ses-data-api-gpaqghfbehhrb6c2.eastus-01.azurewebsites.net/api/data',
             lmpFile: 'lmp-database.json'
         };
 
-        // Convert Azure format { data: { ISONE: [...], PJM: [...] } } to flat records array
-        function convertAzureToRecords(azureData) {
-            const records = [];
-            if (azureData && azureData.data) {
-                Object.keys(azureData.data).forEach(iso => {
-                    if (Array.isArray(azureData.data[iso])) {
-                        azureData.data[iso].forEach(item => {
-                            records.push({
-                                iso: iso,
-                                zone: item.zone || item.zone_name || '',
-                                zone_id: item.zone_id || '',
-                                year: item.year || '',
-                                month: item.month || '',
-                                lmp: parseFloat(item.avg_da_lmp || item.lmp || 0)
+        // ============================================
+        // STATE
+        // ============================================
+        let lmpDatabase = null;     // Raw database with hourly + monthly
+        let monthlyData = [];       // Flattened monthly records
+        let hourlyData = [];        // Flattened hourly records
+        let currentMode = 'monthly'; // 'monthly' or 'hourly'
+        let trendChart = null;
+        let comparisonChart = null;
+        let hourlyChart = null;
+
+        // ============================================
+        // LMP DATA PROCESSOR (inline for standalone use)
+        // ============================================
+        const LMPProcessor = {
+            flattenDatabase(database) {
+                const monthly = [];
+                const hourly = [];
+
+                if (database.data) {
+                    for (const [iso, records] of Object.entries(database.data)) {
+                        records.forEach(r => {
+                            monthly.push({
+                                iso, zone: r.zone, zone_id: r.zone_id,
+                                year: r.year, month: r.month,
+                                lmp: r.avg_da_lmp || r.lmp || 0,
+                                min_price: r.min_price || 0,
+                                max_price: r.max_price || 0,
+                                record_count: r.record_count || 0
                             });
                         });
                     }
-                });
-            }
-            return records;
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', function() {
-            loadData();
-            
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!e.target.closest('.export-dropdown')) {
-                    document.getElementById('exportDropdown')?.classList.remove('show');
                 }
-            });
-        });
 
-        // Listen for data broadcasts from parent
-        window.addEventListener('message', function(event) {
-            if (event.data?.type === 'LMP_DATA_BROADCAST') {
-                console.log('[LMP Analytics] Received data broadcast');
-                processExternalData(event.data.data);
-            }
-        });
-
-        // Show toast notification
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${type === 'success' ? '#10b981' : '#ef4444'}" stroke-width="2">
-                    ${type === 'success' 
-                        ? '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>'
-                        : '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>'
+                if (database.hourly) {
+                    for (const [iso, monthData] of Object.entries(database.hourly)) {
+                        for (const [yearMonth, records] of Object.entries(monthData)) {
+                            records.forEach(r => {
+                                hourly.push({
+                                    iso, datetime: r.dt, price: r.p, zone: r.z
+                                });
+                            });
+                        }
                     }
-                </svg>
-                <span>${message}</span>
-            `;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // Toggle export dropdown
-        function toggleExportDropdown(event) {
-            event.stopPropagation();
-            document.getElementById('exportDropdown').classList.toggle('show');
-        }
-
-        // ===========================================
-        // EXCEL EXPORT FUNCTIONS
-        // ===========================================
-        
-        function exportToExcel(scope) {
-            const data = scope === 'all' ? lmpData : getFilteredData();
-            
-            if (data.length === 0) {
-                showToast('No data to export', 'error');
-                return;
-            }
-
-            // Prepare data for export
-            const exportData = data.map(r => ({
-                'ISO': r.iso,
-                'Zone': r.zone,
-                'Year': r.year,
-                'Month': r.month,
-                'LMP ($/MWh)': r.lmp.toFixed(2)
-            }));
-
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(exportData);
-
-            // Set column widths
-            ws['!cols'] = [
-                { wch: 10 },  // ISO
-                { wch: 30 },  // Zone
-                { wch: 8 },   // Year
-                { wch: 8 },   // Month
-                { wch: 15 }   // LMP
-            ];
-
-            XLSX.utils.book_append_sheet(wb, ws, 'LMP Data');
-
-            // Generate filename
-            const iso = document.getElementById('isoSelect').value;
-            const zone = document.getElementById('zoneSelect').value;
-            const timestamp = new Date().toISOString().split('T')[0];
-            const filename = `LMP_Data_${scope === 'all' ? 'All' : (iso !== 'all' ? iso : 'Filtered')}_${timestamp}.xlsx`;
-
-            // Download
-            XLSX.writeFile(wb, filename);
-            showToast(`Exported ${data.length.toLocaleString()} records to Excel`);
-            document.getElementById('exportDropdown').classList.remove('show');
-        }
-
-        function exportSummaryToExcel() {
-            const data = getFilteredData();
-            
-            if (data.length === 0) {
-                showToast('No data to export', 'error');
-                return;
-            }
-
-            // Calculate statistics
-            const zoneStats = {};
-            data.forEach(r => {
-                const key = `${r.iso}|${r.zone}`;
-                if (!zoneStats[key]) {
-                    zoneStats[key] = {
-                        iso: r.iso,
-                        zone: r.zone,
-                        values: [],
-                        years: new Set()
-                    };
                 }
-                zoneStats[key].values.push(r.lmp);
-                zoneStats[key].years.add(r.year);
-            });
 
-            const summaryData = Object.values(zoneStats).map(s => {
-                const sorted = [...s.values].sort((a, b) => a - b);
+                return { monthly, hourly };
+            },
+
+            hasHourlyData(database) {
+                if (!database?.hourly) return false;
+                for (const iso of Object.keys(database.hourly)) {
+                    for (const ym of Object.keys(database.hourly[iso])) {
+                        if (database.hourly[iso][ym]?.length > 0) return true;
+                    }
+                }
+                return false;
+            },
+
+            getAvailableHourlyMonths(database, iso = null) {
+                const months = new Set();
+                if (!database?.hourly) return [];
+                const isos = iso && iso !== 'all' ? [iso] : Object.keys(database.hourly);
+                for (const isoKey of isos) {
+                    if (database.hourly[isoKey]) {
+                        Object.keys(database.hourly[isoKey]).forEach(ym => months.add(ym));
+                    }
+                }
+                return [...months].sort();
+            },
+
+            aggregateByInterval(records, interval) {
+                const groups = {};
+                records.forEach(r => {
+                    const date = new Date(r.datetime);
+                    let key;
+                    switch (interval) {
+                        case 'hour': key = r.datetime; break;
+                        case 'day':
+                            key = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}-${date.getDate().toString().padStart(2,'0')}`;
+                            break;
+                        case 'week':
+                            const ws = new Date(date); ws.setDate(date.getDate() - date.getDay());
+                            key = ws.toISOString().split('T')[0];
+                            break;
+                        default: key = `${date.getFullYear()}-${(date.getMonth()+1).toString().padStart(2,'0')}`;
+                    }
+                    const gk = `${r.zone}_${key}`;
+                    if (!groups[gk]) groups[gk] = { iso: r.iso, zone: r.zone, period: key, prices: [] };
+                    groups[gk].prices.push(r.price);
+                });
+                return Object.values(groups).map(g => ({
+                    iso: g.iso, zone: g.zone, period: g.period,
+                    avg: g.prices.reduce((a,b) => a+b, 0) / g.prices.length,
+                    min: Math.min(...g.prices), max: Math.max(...g.prices), count: g.prices.length
+                })).sort((a, b) => a.period.localeCompare(b.period));
+            },
+
+            analyzePeakHours(records) {
+                const hourlyAvg = {};
+                records.forEach(r => {
+                    const h = new Date(r.datetime).getHours();
+                    if (!hourlyAvg[h]) hourlyAvg[h] = { sum: 0, count: 0 };
+                    hourlyAvg[h].sum += r.price;
+                    hourlyAvg[h].count++;
+                });
+                const avgs = Object.entries(hourlyAvg).map(([h, d]) => ({ hour: parseInt(h), avg: d.sum / d.count })).sort((a,b) => a.hour - b.hour);
+                const sorted = [...avgs].sort((a,b) => b.avg - a.avg);
                 return {
-                    'ISO': s.iso,
-                    'Zone': s.zone,
-                    'Data Points': s.values.length,
-                    'Years Covered': s.years.size,
-                    'Min LMP ($/MWh)': sorted[0].toFixed(2),
-                    'Max LMP ($/MWh)': sorted[sorted.length - 1].toFixed(2),
-                    'Avg LMP ($/MWh)': (s.values.reduce((a, b) => a + b, 0) / s.values.length).toFixed(2),
-                    'Median LMP ($/MWh)': sorted[Math.floor(sorted.length / 2)].toFixed(2)
+                    hourlyAverages: avgs,
+                    peakHours: sorted.slice(0, 4).map(h => h.hour),
+                    offPeakHours: sorted.slice(-4).map(h => h.hour),
+                    peakAvg: sorted.slice(0,4).reduce((a,b) => a + b.avg, 0) / 4,
+                    offPeakAvg: sorted.slice(-4).reduce((a,b) => a + b.avg, 0) / 4
                 };
-            }).sort((a, b) => parseFloat(b['Avg LMP ($/MWh)']) - parseFloat(a['Avg LMP ($/MWh)']));
-
-            // Create workbook
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(summaryData);
-
-            // Set column widths
-            ws['!cols'] = [
-                { wch: 10 },  // ISO
-                { wch: 30 },  // Zone
-                { wch: 12 },  // Data Points
-                { wch: 14 },  // Years Covered
-                { wch: 18 },  // Min LMP
-                { wch: 18 },  // Max LMP
-                { wch: 18 },  // Avg LMP
-                { wch: 20 }   // Median LMP
-            ];
-
-            XLSX.utils.book_append_sheet(wb, ws, 'Summary Statistics');
-
-            // Add trends sheet
-            const trends = calculateTrends('yoy');
-            if (trends.length > 0) {
-                const trendsData = trends.map(t => ({
-                    'ISO': t.iso,
-                    'Zone': t.zone,
-                    'Period': t.period,
-                    'Previous LMP ($/MWh)': t.previous.toFixed(2),
-                    'Current LMP ($/MWh)': t.current.toFixed(2),
-                    'Change ($/MWh)': t.change.toFixed(2),
-                    'Change (%)': t.changePercent.toFixed(2)
-                })).sort((a, b) => parseFloat(b['Change (%)']) - parseFloat(a['Change (%)']));
-
-                const wsTrends = XLSX.utils.json_to_sheet(trendsData);
-                wsTrends['!cols'] = [
-                    { wch: 10 }, { wch: 30 }, { wch: 20 },
-                    { wch: 22 }, { wch: 22 }, { wch: 18 }, { wch: 12 }
-                ];
-                XLSX.utils.book_append_sheet(wb, wsTrends, 'YoY Trends');
             }
+        };
 
-            const timestamp = new Date().toISOString().split('T')[0];
-            XLSX.writeFile(wb, `LMP_Summary_${timestamp}.xlsx`);
-            showToast('Exported summary statistics to Excel');
-            document.getElementById('exportDropdown').classList.remove('show');
-        }
-
-        // ===========================================
-        // POWERPOINT EXPORT FUNCTIONS
-        // ===========================================
-
-        async function exportChartsToPowerPoint() {
-            try {
-                const pptx = new PptxGenJS();
-                pptx.title = 'LMP Analytics Charts';
-                pptx.author = 'Secure Energy Sales Resources';
-                
-                // Define slide master
-                pptx.defineSlideMaster({
-                    title: 'SE_MASTER',
-                    background: { color: '0A0E1A' },
-                    objects: [
-                        { rect: { x: 0, y: '90%', w: '100%', h: '10%', fill: { color: '004D40' } } },
-                        { text: { text: 'Secure Energy Sales Resources', options: { x: 0.5, y: '92%', w: 4, h: 0.4, color: 'FFFFFF', fontSize: 10 } } }
-                    ]
-                });
-
-                const iso = document.getElementById('isoSelect').value;
-                const zone = document.getElementById('zoneSelect').value;
-                const period = document.getElementById('periodSelect').value;
-
-                // Title slide
-                let slide = pptx.addSlide({ masterName: 'SE_MASTER' });
-                slide.addText('LMP Analytics Report', { 
-                    x: 0.5, y: 2, w: 9, h: 1, 
-                    fontSize: 36, color: '3EB489', bold: true 
-                });
-                slide.addText(`${iso !== 'all' ? iso : 'All ISOs'} ${zone !== 'all' ? '- ' + zone : ''}\n${new Date().toLocaleDateString()}`, { 
-                    x: 0.5, y: 3.2, w: 9, h: 1, 
-                    fontSize: 18, color: 'A0AEC0' 
-                });
-
-                // Trend Chart slide
-                const trendCanvas = document.getElementById('trendChart');
-                if (trendCanvas) {
-                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
-                    slide.addText('LMP Price Trends Over Time', { 
-                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
-                        fontSize: 24, color: '3EB489', bold: true 
-                    });
-                    
-                    const trendImage = trendCanvas.toDataURL('image/png');
-                    slide.addImage({ 
-                        data: trendImage, 
-                        x: 0.3, y: 0.9, w: 9.4, h: 4.5 
-                    });
-                }
-
-                // Comparison Chart slide
-                const comparisonCanvas = document.getElementById('comparisonChart');
-                if (comparisonCanvas) {
-                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
-                    slide.addText('Zone Price Comparison', { 
-                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
-                        fontSize: 24, color: '3EB489', bold: true 
-                    });
-                    
-                    const compImage = comparisonCanvas.toDataURL('image/png');
-                    slide.addImage({ 
-                        data: compImage, 
-                        x: 0.3, y: 0.9, w: 9.4, h: 4.5 
-                    });
-                }
-
-                // Generate filename
-                const timestamp = new Date().toISOString().split('T')[0];
-                await pptx.writeFile({ fileName: `LMP_Charts_${timestamp}.pptx` });
-                
-                showToast('Exported charts to PowerPoint');
-                document.getElementById('exportDropdown').classList.remove('show');
-            } catch (error) {
-                console.error('PowerPoint export error:', error);
-                showToast('Error exporting to PowerPoint', 'error');
-            }
-        }
-
-        async function exportAllToPowerPoint() {
-            try {
-                const pptx = new PptxGenJS();
-                pptx.title = 'LMP Analytics Full Report';
-                pptx.author = 'Secure Energy Sales Resources';
-                
-                const iso = document.getElementById('isoSelect').value;
-                const zone = document.getElementById('zoneSelect').value;
-                const filteredData = getFilteredData();
-
-                // Define slide master
-                pptx.defineSlideMaster({
-                    title: 'SE_MASTER',
-                    background: { color: '0A0E1A' },
-                    objects: [
-                        { rect: { x: 0, y: '90%', w: '100%', h: '10%', fill: { color: '004D40' } } },
-                        { text: { text: 'Secure Energy Sales Resources | LMP Analytics', options: { x: 0.5, y: '92%', w: 5, h: 0.4, color: 'FFFFFF', fontSize: 10 } } }
-                    ]
-                });
-
-                // Title slide
-                let slide = pptx.addSlide({ masterName: 'SE_MASTER' });
-                slide.addText('LMP Analytics Report', { 
-                    x: 0.5, y: 1.8, w: 9, h: 1, 
-                    fontSize: 40, color: '3EB489', bold: true 
-                });
-                slide.addText(`${iso !== 'all' ? iso : 'All ISOs'} ${zone !== 'all' && zone !== 'iso_average' ? '- ' + zone : zone === 'iso_average' ? '- ISO Averages' : ''}`, { 
-                    x: 0.5, y: 2.9, w: 9, h: 0.6, 
-                    fontSize: 24, color: 'FFFFFF' 
-                });
-                slide.addText(`Generated: ${new Date().toLocaleDateString()}\nData Points: ${filteredData.length.toLocaleString()}`, { 
-                    x: 0.5, y: 3.6, w: 9, h: 0.8, 
-                    fontSize: 14, color: 'A0AEC0' 
-                });
-
-                // Key Metrics slide
-                slide = pptx.addSlide({ masterName: 'SE_MASTER' });
-                slide.addText('Key Metrics Overview', { 
-                    x: 0.5, y: 0.3, w: 9, h: 0.5, 
-                    fontSize: 24, color: '3EB489', bold: true 
-                });
-
-                // Calculate metrics
-                const allLmps = filteredData.map(r => r.lmp);
-                const avgLmp = allLmps.reduce((a, b) => a + b, 0) / allLmps.length;
-                const minLmp = Math.min(...allLmps);
-                const maxLmp = Math.max(...allLmps);
-                const isos = [...new Set(filteredData.map(r => r.iso))];
-                const zones = [...new Set(filteredData.map(r => r.zone))];
-
-                const metrics = [
-                    { label: 'Average LMP', value: `$${avgLmp.toFixed(2)}/MWh` },
-                    { label: 'Minimum LMP', value: `$${minLmp.toFixed(2)}/MWh` },
-                    { label: 'Maximum LMP', value: `$${maxLmp.toFixed(2)}/MWh` },
-                    { label: 'ISOs Covered', value: isos.length.toString() },
-                    { label: 'Zones Analyzed', value: zones.length.toString() },
-                    { label: 'Data Points', value: filteredData.length.toLocaleString() }
-                ];
-
-                metrics.forEach((m, i) => {
-                    const col = i % 3;
-                    const row = Math.floor(i / 3);
-                    slide.addShape(pptx.ShapeType.rect, {
-                        x: 0.5 + col * 3.1, y: 1.2 + row * 2,
-                        w: 2.9, h: 1.6,
-                        fill: { color: '1A2030' },
-                        line: { color: '3EB489', pt: 1 }
-                    });
-                    slide.addText(m.value, { 
-                        x: 0.5 + col * 3.1, y: 1.4 + row * 2, 
-                        w: 2.9, h: 0.8, 
-                        fontSize: 28, color: '3EB489', bold: true, align: 'center' 
-                    });
-                    slide.addText(m.label, { 
-                        x: 0.5 + col * 3.1, y: 2.2 + row * 2, 
-                        w: 2.9, h: 0.5, 
-                        fontSize: 12, color: 'A0AEC0', align: 'center' 
-                    });
-                });
-
-                // Trend Chart slide
-                const trendCanvas = document.getElementById('trendChart');
-                if (trendCanvas) {
-                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
-                    slide.addText('LMP Price Trends Over Time', { 
-                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
-                        fontSize: 24, color: '3EB489', bold: true 
-                    });
-                    const trendImage = trendCanvas.toDataURL('image/png');
-                    slide.addImage({ data: trendImage, x: 0.3, y: 0.9, w: 9.4, h: 4.5 });
-                }
-
-                // Comparison Chart slide
-                const comparisonCanvas = document.getElementById('comparisonChart');
-                if (comparisonCanvas) {
-                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
-                    slide.addText('Zone Price Comparison', { 
-                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
-                        fontSize: 24, color: '3EB489', bold: true 
-                    });
-                    const compImage = comparisonCanvas.toDataURL('image/png');
-                    slide.addImage({ data: compImage, x: 0.3, y: 0.9, w: 9.4, h: 4.5 });
-                }
-
-                // Top Movers slide
-                const trends = calculateTrends('yoy');
-                if (trends.length > 0) {
-                    slide = pptx.addSlide({ masterName: 'SE_MASTER' });
-                    slide.addText('Top Price Movers (Year over Year)', { 
-                        x: 0.5, y: 0.3, w: 9, h: 0.5, 
-                        fontSize: 24, color: '3EB489', bold: true 
-                    });
-
-                    const gainers = trends.filter(t => t.change > 0).sort((a, b) => b.changePercent - a.changePercent).slice(0, 5);
-                    const losers = trends.filter(t => t.change < 0).sort((a, b) => a.changePercent - b.changePercent).slice(0, 5);
-
-                    // Gainers table
-                    slide.addText('Top Increases', { x: 0.5, y: 0.9, w: 4.5, h: 0.4, fontSize: 14, color: '10b981', bold: true });
-                    
-                    const gainerRows = [['Zone', 'Change']];
-                    gainers.forEach(g => {
-                        gainerRows.push([`${g.iso} - ${g.zone}`, `+${g.changePercent.toFixed(1)}%`]);
-                    });
-                    
-                    slide.addTable(gainerRows, {
-                        x: 0.5, y: 1.3, w: 4.5,
-                        fontSize: 10,
-                        color: 'FFFFFF',
-                        fill: { color: '1A2030' },
-                        border: { pt: 0.5, color: '3EB489' },
-                        fontFace: 'Arial'
-                    });
-
-                    // Losers table
-                    slide.addText('Top Decreases', { x: 5.2, y: 0.9, w: 4.5, h: 0.4, fontSize: 14, color: 'ef4444', bold: true });
-                    
-                    const loserRows = [['Zone', 'Change']];
-                    losers.forEach(l => {
-                        loserRows.push([`${l.iso} - ${l.zone}`, `${l.changePercent.toFixed(1)}%`]);
-                    });
-                    
-                    slide.addTable(loserRows, {
-                        x: 5.2, y: 1.3, w: 4.5,
-                        fontSize: 10,
-                        color: 'FFFFFF',
-                        fill: { color: '1A2030' },
-                        border: { pt: 0.5, color: 'ef4444' },
-                        fontFace: 'Arial'
-                    });
-                }
-
-                const timestamp = new Date().toISOString().split('T')[0];
-                await pptx.writeFile({ fileName: `LMP_Full_Report_${timestamp}.pptx` });
-                
-                showToast('Exported full report to PowerPoint');
-                document.getElementById('exportDropdown').classList.remove('show');
-            } catch (error) {
-                console.error('PowerPoint export error:', error);
-                showToast('Error exporting to PowerPoint', 'error');
-            }
-        }
-
-        // ===========================================
-        // DATA LOADING & PROCESSING
-        // ===========================================
-
-        // Load data from various sources
+        // ============================================
+        // DATA LOADING
+        // ============================================
         async function loadData() {
             console.log('[LMP Analytics] Loading data...');
             
-            // Show loading state
-            const mainContent = document.getElementById('mainContent');
-            if (mainContent && lmpData.length === 0) {
-                mainContent.innerHTML = `
-                    <div class="no-data">
-                        <div style="width: 48px; height: 48px; border: 3px solid var(--border-color); border-top-color: var(--se-light-green); border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                        <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
-                        <h3 style="margin: 16px 0 8px;">Loading LMP Data...</h3>
-                        <p>Fetching data from Azure</p>
-                    </div>
-                `;
-            }
-            
-            // Try localStorage cache first (for instant display)
             try {
-                const cached = localStorage.getItem('secureEnergy_lmpData');
-                if (cached) {
-                    const parsed = JSON.parse(cached);
-                    if (parsed.records && parsed.records.length > 0) {
-                        lmpData = parsed.records;
-                        console.log(`[LMP Analytics] Loaded ${lmpData.length} records from cache`);
-                    }
-                }
-            } catch (e) {
-                console.warn('[LMP Analytics] Cache load failed:', e);
-            }
-
-            // PRIMARY: Try Azure via parent AzureDataService (if in iframe)
-            let azureLoaded = false;
-            try {
-                if (window.parent !== window && window.parent.AzureDataService) {
-                    console.log('[LMP Analytics] Trying parent AzureDataService...');
-                    const azureData = await window.parent.AzureDataService.get(AZURE_CONFIG.lmpFile);
-                    if (azureData) {
-                        // Handle both formats: { records: [...] } or { data: { ISO: [...] } }
-                        let records;
-                        if (azureData.records && azureData.records.length > 0) {
-                            records = azureData.records;
-                        } else if (azureData.data) {
-                            records = convertAzureToRecords(azureData);
-                        }
-                        if (records && records.length > 0) {
-                            lmpData = records;
-                            azureLoaded = true;
-                            console.log(`[LMP Analytics] Loaded ${lmpData.length} records from Azure (parent service)`);
-                            try {
-                                localStorage.setItem('secureEnergy_lmpData', JSON.stringify({ records: lmpData }));
-                            } catch (cacheErr) {
-                                console.warn('[LMP Analytics] Could not cache data:', cacheErr);
-                            }
-                        }
-                    }
-                }
-            } catch (e) {
-                console.warn('[LMP Analytics] Parent AzureDataService failed:', e.message);
-            }
-
-            // SECONDARY: Try direct Azure API call
-            if (!azureLoaded) {
+                // Try Azure first
+                let apiKey = 'ses-readonly-portal2026';
                 try {
-                    console.log('[LMP Analytics] Trying direct Azure API...');
-                    // Use the admin key from parent's api-key-setup, or fall back to readonly
-                    let apiKey = null;
-                    try {
-                        if (window.parent !== window && window.parent.AzureDataService) {
-                            apiKey = window.parent.AzureDataService.getApiKey?.() || null;
+                    if (window.parent !== window && window.parent.AzureDataService) {
+                        const db = await window.parent.AzureDataService.get(AZURE_CONFIG.lmpFile);
+                        if (db) {
+                            lmpDatabase = db;
+                            console.log('[LMP Analytics] Loaded from parent AzureDataService');
                         }
-                    } catch (e) {}
-                    if (!apiKey) apiKey = 'ses-readonly-portal2026';
-                    
+                    }
+                } catch (e) {}
+
+                if (!lmpDatabase) {
                     const response = await fetch(`${AZURE_CONFIG.endpoint}/${AZURE_CONFIG.lmpFile}`, {
                         headers: { 'X-API-Key': apiKey }
                     });
                     if (response.ok) {
-                        const azureData = await response.json();
-                        let records;
-                        if (azureData.records && azureData.records.length > 0) {
-                            records = azureData.records;
-                        } else if (azureData.data) {
-                            records = convertAzureToRecords(azureData);
-                        }
-                        if (records && records.length > 0) {
-                            lmpData = records;
-                            azureLoaded = true;
-                            console.log(`[LMP Analytics] Loaded ${lmpData.length} records from Azure (direct API)`);
-                            try {
-                                localStorage.setItem('secureEnergy_lmpData', JSON.stringify({ records: lmpData }));
-                            } catch (cacheErr) {
-                                console.warn('[LMP Analytics] Could not cache data:', cacheErr);
-                            }
-                        }
-                    } else {
-                        console.warn(`[LMP Analytics] Azure API returned ${response.status}`);
-                    }
-                } catch (e) {
-                    console.warn('[LMP Analytics] Direct Azure API failed:', e.message);
-                }
-            }
-
-            // FALLBACK: Try GitHub JSON
-            if (!azureLoaded) {
-                try {
-                    console.log('[LMP Analytics] Falling back to GitHub...');
-                    const githubUrl = 'https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json';
-                    const response = await fetch(githubUrl + '?t=' + Date.now());
-                    if (response.ok) {
-                        const json = await response.json();
-                        let records;
-                        if (json.records && json.records.length > 0) {
-                            records = json.records;
-                        } else if (json.data) {
-                            records = convertAzureToRecords(json);
-                        }
-                        if (records && records.length > 0) {
-                            lmpData = records;
-                            console.log(`[LMP Analytics] Loaded ${lmpData.length} records from GitHub`);
-                            try {
-                                localStorage.setItem('secureEnergy_lmpData', JSON.stringify({ records: lmpData }));
-                            } catch (cacheErr) {
-                                console.warn('[LMP Analytics] Could not cache data:', cacheErr);
-                            }
-                        }
-                    }
-                } catch (e) {
-                    console.warn('[LMP Analytics] GitHub load failed:', e);
-                    // Last resort: Try relative path (for local development)
-                    try {
-                        const localResponse = await fetch('data/lmp-database.json?t=' + Date.now());
-                        if (localResponse.ok) {
-                            const json = await localResponse.json();
-                            let records;
-                            if (json.records && json.records.length > 0) {
-                                records = json.records;
-                            } else if (json.data) {
-                                records = convertAzureToRecords(json);
-                            }
-                            if (records && records.length > 0) {
-                                lmpData = records;
-                                console.log(`[LMP Analytics] Loaded ${lmpData.length} records from local path`);
-                            }
-                        }
-                    } catch (localErr) {
-                        console.warn('[LMP Analytics] Local load also failed:', localErr);
+                        lmpDatabase = await response.json();
+                        console.log('[LMP Analytics] Loaded from Azure API');
                     }
                 }
-            }
 
-            // Request from parent if in iframe
-            if (window.parent !== window) {
-                window.parent.postMessage({ type: 'REQUEST_LMP_DATA' }, '*');
-            }
-
-            // Initialize UI
-            if (lmpData.length > 0) {
-                initializeUI();
-            } else {
-                showNoData();
-            }
-        }
-
-        // Process external data (supports both formats)
-        function processExternalData(data) {
-            if (!data) return;
-            
-            let records = [];
-            
-            // Format 1: Already flat records array
-            if (Array.isArray(data)) {
-                records = data;
-            }
-            // Format 2: { records: [...] }
-            else if (data.records && Array.isArray(data.records)) {
-                records = data.records;
-            }
-            // Format 3: Azure format { ISONE: [...], PJM: [...] } or { data: { ISONE: [...] } }
-            else {
-                const isoData = data.data || data;
-                Object.keys(isoData).forEach(iso => {
-                    if (Array.isArray(isoData[iso])) {
-                        isoData[iso].forEach(item => {
-                            records.push({
-                                iso: iso,
-                                zone: item.zone || item.zone_name,
-                                year: item.year,
-                                month: item.month,
-                                lmp: item.avg_da_lmp || item.lmp
-                            });
-                        });
+                // Fallback to GitHub
+                if (!lmpDatabase) {
+                    const ghResponse = await fetch('https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json?t=' + Date.now());
+                    if (ghResponse.ok) {
+                        lmpDatabase = await ghResponse.json();
+                        console.log('[LMP Analytics] Loaded from GitHub');
                     }
-                });
-            }
+                }
 
-            if (records.length > 0) {
-                lmpData = records;
+                if (!lmpDatabase) {
+                    throw new Error('Could not load LMP data from any source');
+                }
+
+                // Flatten the data
+                const flattened = LMPProcessor.flattenDatabase(lmpDatabase);
+                monthlyData = flattened.monthly;
+                hourlyData = flattened.hourly;
+
+                console.log(`[LMP Analytics] Monthly: ${monthlyData.length}, Hourly: ${hourlyData.length}`);
+
                 initializeUI();
+
+            } catch (error) {
+                console.error('[LMP Analytics] Load error:', error);
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="loading">
+                        <p style="color: var(--accent-error);">❌ Failed to load data: ${error.message}</p>
+                        <button class="btn" onclick="loadData()" style="margin-top: 16px;">Retry</button>
+                    </div>
+                `;
             }
         }
 
-        // Show no data state
-        function showNoData() {
-            document.getElementById('mainContent').innerHTML = `
-                <div class="no-data">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M3 3v18h18"/>
-                        <path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>
-                    </svg>
-                    <h3 style="margin-bottom: 8px;">No LMP Data Available</h3>
-                    <p>Unable to load data from the database. Check your network connection or try again.</p>
-                    <button onclick="loadData()" style="margin-top: 16px; padding: 10px 20px; background: var(--se-gradient); border: none; border-radius: 8px; color: white; cursor: pointer; font-weight: 500;">
-                        ⟳ Retry Loading
-                    </button>
-                </div>
-            `;
-        }
-
-        // Initialize UI
+        // ============================================
+        // UI INITIALIZATION
+        // ============================================
         function initializeUI() {
             // Update header stats
-            const isos = [...new Set(lmpData.map(r => r.iso))];
-            const zones = [...new Set(lmpData.map(r => r.zone))];
-            const years = [...new Set(lmpData.map(r => r.year))].sort();
+            const isos = [...new Set(monthlyData.map(r => r.iso))];
+            const zones = [...new Set(monthlyData.map(r => r.zone))];
+            const years = [...new Set(monthlyData.map(r => r.year))].sort();
 
-            document.getElementById('totalRecords').textContent = lmpData.length.toLocaleString();
+            document.getElementById('totalRecords').textContent = monthlyData.length.toLocaleString();
+            document.getElementById('hourlyRecords').textContent = hourlyData.length.toLocaleString();
             document.getElementById('totalISOs').textContent = isos.length;
-            document.getElementById('totalZones').textContent = zones.length;
             document.getElementById('yearRange').textContent = years.length > 0 ? `${years[0]}-${years[years.length-1]}` : '--';
 
-            // Populate ISO dropdown
+            // Update badges
+            document.getElementById('monthlyBadge').textContent = monthlyData.length.toLocaleString();
+            document.getElementById('hourlyBadge').textContent = hourlyData.length.toLocaleString();
+
+            // Populate dropdowns
             const isoSelect = document.getElementById('isoSelect');
             isoSelect.innerHTML = '<option value="all">All ISOs</option>';
             isos.sort().forEach(iso => {
                 isoSelect.innerHTML += `<option value="${iso}">${iso}</option>`;
             });
 
-            // Populate zone dropdown
             updateZoneDropdown();
+            updateHourlyMonthDropdown();
 
-            // Render main content
+            // Check for hourly data
+            const hasHourly = LMPProcessor.hasHourlyData(lmpDatabase);
+            if (!hasHourly) {
+                document.getElementById('hourlyModeBtn').disabled = true;
+                document.getElementById('hourlyModeBtn').style.opacity = '0.5';
+            }
+
             renderMainContent();
-        }
-
-        // Update zone dropdown based on selected ISO
-        function onISOChange() {
-            updateZoneDropdown();
-            updateAnalytics();
         }
 
         function updateZoneDropdown() {
@@ -1370,86 +696,98 @@
             
             let zones;
             if (iso === 'all') {
-                zones = [...new Set(lmpData.map(r => r.zone))];
+                zones = [...new Set(monthlyData.map(r => r.zone))];
             } else {
-                zones = [...new Set(lmpData.filter(r => r.iso === iso).map(r => r.zone))];
+                zones = [...new Set(monthlyData.filter(r => r.iso === iso).map(r => r.zone))];
             }
 
             zoneSelect.innerHTML = '<option value="all">All Zones</option>';
-            // Add ISO Average option
-            zoneSelect.innerHTML += '<option value="iso_average">📊 No Specific Zones (ISO Average)</option>';
             zones.sort().forEach(zone => {
                 zoneSelect.innerHTML += `<option value="${zone}">${zone}</option>`;
             });
         }
 
-        // Render main content
+        function updateHourlyMonthDropdown() {
+            const iso = document.getElementById('isoSelect').value;
+            const select = document.getElementById('hourlyMonthSelect');
+            const months = LMPProcessor.getAvailableHourlyMonths(lmpDatabase, iso === 'all' ? null : iso);
+            
+            select.innerHTML = '<option value="all">All Available</option>';
+            months.forEach(ym => {
+                select.innerHTML += `<option value="${ym}">${ym}</option>`;
+            });
+        }
+
+        // ============================================
+        // MODE SWITCHING
+        // ============================================
+        function setDataMode(mode) {
+            currentMode = mode;
+            
+            // Update toggle buttons
+            document.getElementById('monthlyModeBtn').classList.toggle('active', mode === 'monthly');
+            document.getElementById('hourlyModeBtn').classList.toggle('active', mode === 'hourly');
+            document.getElementById('hourlyModeBtn').classList.toggle('hourly-active', mode === 'hourly');
+            
+            // Show/hide hourly controls
+            document.getElementById('hourlyControls').classList.toggle('active', mode === 'hourly');
+            
+            // Show/hide notices
+            document.getElementById('hourlyNotice').classList.toggle('hidden', mode !== 'hourly');
+            
+            // Check for hourly data
+            const hasHourly = LMPProcessor.hasHourlyData(lmpDatabase);
+            document.getElementById('noHourlyWarning').classList.toggle('hidden', mode !== 'hourly' || hasHourly);
+            
+            if (mode === 'hourly' && hasHourly) {
+                document.getElementById('hourlyStats').textContent = `${hourlyData.length.toLocaleString()} records loaded`;
+            }
+
+            renderMainContent();
+        }
+
+        // ============================================
+        // MAIN CONTENT RENDERING
+        // ============================================
         function renderMainContent() {
+            if (currentMode === 'monthly') {
+                renderMonthlyContent();
+            } else {
+                renderHourlyContent();
+            }
+        }
+
+        function renderMonthlyContent() {
             document.getElementById('mainContent').innerHTML = `
                 <div class="grid">
-                    <!-- Trend Chart -->
                     <div class="card grid-full">
                         <div class="card-header">
                             <span class="card-title">📈 LMP Price Trends Over Time</span>
-                            <div class="tabs" id="chartTabs">
+                            <div class="tabs">
                                 <span class="tab active" onclick="setChartView('monthly')">Monthly</span>
                                 <span class="tab" onclick="setChartView('yearly')">Yearly Avg</span>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="trendChart"></canvas>
-                            </div>
+                            <div class="chart-container"><canvas id="trendChart"></canvas></div>
                         </div>
                     </div>
 
-                    <!-- Top Gainers -->
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">🔺 Top 15 Price Increases</span>
-                            <select id="gainersPeriod" onchange="updateTrendTables()" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; color: var(--text-primary); font-size: 12px;">
-                                <option value="yoy">Year over Year</option>
-                                <option value="mom">Month over Month</option>
-                            </select>
-                        </div>
-                        <div class="card-body" style="padding: 0;">
-                            <div class="table-scroll" id="gainersTable"></div>
-                        </div>
-                    </div>
-
-                    <!-- Top Losers -->
-                    <div class="card">
-                        <div class="card-header">
-                            <span class="card-title">🔻 Top 15 Price Decreases</span>
-                            <select id="losersPeriod" onchange="updateTrendTables()" style="background: var(--bg-tertiary); border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; color: var(--text-primary); font-size: 12px;">
-                                <option value="yoy">Year over Year</option>
-                                <option value="mom">Month over Month</option>
-                            </select>
-                        </div>
-                        <div class="card-body" style="padding: 0;">
-                            <div class="table-scroll" id="losersTable"></div>
-                        </div>
-                    </div>
-
-                    <!-- Zone Comparison -->
                     <div class="card grid-full">
                         <div class="card-header">
                             <span class="card-title">📊 Zone Price Comparison</span>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="comparisonChart"></canvas>
-                            </div>
+                            <div class="chart-container"><canvas id="comparisonChart"></canvas></div>
                         </div>
                     </div>
 
-                    <!-- Data Summary Table -->
                     <div class="card grid-full">
                         <div class="card-header">
                             <span class="card-title">📋 Zone Summary Statistics</span>
                         </div>
                         <div class="card-body" style="padding: 0;">
-                            <div class="table-scroll" style="max-height: 500px;" id="summaryTable"></div>
+                            <div class="table-scroll" id="summaryTable"></div>
                         </div>
                     </div>
                 </div>
@@ -1458,467 +796,184 @@
             updateAnalytics();
         }
 
-        // Update all analytics
-        function updateAnalytics() {
-            const filteredData = getFilteredData();
+        function renderHourlyContent() {
+            const hasHourly = LMPProcessor.hasHourlyData(lmpDatabase);
             
-            if (filteredData.length === 0) {
+            if (!hasHourly) {
+                document.getElementById('mainContent').innerHTML = `
+                    <div class="loading">
+                        <p style="color: var(--accent-warning);">⚠️ No hourly data available</p>
+                        <p style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+                            Run the LMP fetcher with hourly mode enabled to populate this data.
+                        </p>
+                    </div>
+                `;
                 return;
             }
 
-            updateTrendChart(filteredData);
-            updateTrendTables();
-            updateComparisonChart(filteredData);
-            updateSummaryTable(filteredData);
+            document.getElementById('mainContent').innerHTML = `
+                <div class="hourly-analysis-grid" id="hourlyAnalysisCards"></div>
+                
+                <div class="grid">
+                    <div class="card grid-full">
+                        <div class="card-header">
+                            <span class="card-title">⏰ Hourly Price Chart</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container tall"><canvas id="hourlyChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">🌡️ Peak Hour Analysis</span>
+                        </div>
+                        <div class="card-body" id="peakHourAnalysis"></div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">📅 Day of Week Pattern</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="height: 250px;"><canvas id="dowChart"></canvas></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            updateHourlyAnalytics();
         }
 
-        // Get filtered data based on controls
-        function getFilteredData() {
+        // ============================================
+        // MONTHLY ANALYTICS
+        // ============================================
+        function getFilteredMonthlyData() {
             const iso = document.getElementById('isoSelect').value;
             const zone = document.getElementById('zoneSelect').value;
             const period = document.getElementById('periodSelect').value;
 
-            let filtered = [...lmpData];
+            let filtered = [...monthlyData];
 
-            if (iso !== 'all') {
-                filtered = filtered.filter(r => r.iso === iso);
-            }
+            if (iso !== 'all') filtered = filtered.filter(r => r.iso === iso);
+            if (zone !== 'all') filtered = filtered.filter(r => r.zone === zone);
 
-            // Handle ISO Average mode
-            if (zone === 'iso_average') {
-                // Aggregate data to ISO level averages
-                filtered = calculateISOAverages(filtered);
-            } else if (zone !== 'all') {
-                filtered = filtered.filter(r => r.zone === zone);
-            }
-
-            // Time period filter
             if (period !== 'all') {
-                const currentYear = new Date().getFullYear();
-                let yearsBack = period === '5y' ? 5 : period === '3y' ? 3 : 1;
-                filtered = filtered.filter(r => r.year >= currentYear - yearsBack);
+                const now = new Date();
+                let cutoff;
+                switch (period) {
+                    case '5y': cutoff = new Date(now.getFullYear() - 5, now.getMonth(), 1); break;
+                    case '3y': cutoff = new Date(now.getFullYear() - 3, now.getMonth(), 1); break;
+                    case '1y': cutoff = new Date(now.getFullYear() - 1, now.getMonth(), 1); break;
+                    case '6m': cutoff = new Date(now.getFullYear(), now.getMonth() - 6, 1); break;
+                    case '1m': cutoff = new Date(now.getFullYear(), now.getMonth() - 1, 1); break;
+                }
+                if (cutoff) {
+                    filtered = filtered.filter(r => {
+                        const rDate = new Date(r.year, parseInt(r.month) - 1, 1);
+                        return rDate >= cutoff;
+                    });
+                }
             }
 
             return filtered;
         }
 
-        // Calculate ISO-level averages across all zones
-        function calculateISOAverages(data) {
-            const isoMonthly = {};
+        function updateAnalytics() {
+            if (currentMode !== 'monthly') return;
             
-            // Group by ISO, year, month and calculate averages
-            data.forEach(r => {
-                const key = `${r.iso}|${r.year}|${r.month}`;
-                if (!isoMonthly[key]) {
-                    isoMonthly[key] = {
-                        iso: r.iso,
-                        year: r.year,
-                        month: r.month,
-                        sum: 0,
-                        count: 0
-                    };
-                }
-                isoMonthly[key].sum += r.lmp;
-                isoMonthly[key].count++;
-            });
+            const data = getFilteredMonthlyData();
+            if (data.length === 0) return;
 
-            // Convert to records with ISO Average as zone
-            return Object.values(isoMonthly).map(item => ({
-                iso: item.iso,
-                zone: 'ISO Average',
-                year: item.year,
-                month: item.month,
-                lmp: item.sum / item.count
-            }));
-        }
-
-        // Update trend chart
-        let chartView = 'monthly';
-
-        function setChartView(view) {
-            chartView = view;
-            document.querySelectorAll('#chartTabs .tab').forEach(t => t.classList.remove('active'));
-            event.target.classList.add('active');
-            updateAnalytics();
+            updateTrendChart(data);
+            updateComparisonChart(data);
+            updateSummaryTable(data);
         }
 
         function updateTrendChart(data) {
-            const ctx = document.getElementById('trendChart')?.getContext('2d');
+            const ctx = document.getElementById('trendChart');
             if (!ctx) return;
 
-            if (trendChart) {
-                trendChart.destroy();
-            }
-
-            const zone = document.getElementById('zoneSelect').value;
-
-            // Group by ISO/Zone (or just ISO for average mode)
-            const groups = {};
+            // Group by zone and date
+            const zoneData = {};
             data.forEach(r => {
-                const key = zone === 'iso_average' ? r.iso : `${r.iso} - ${r.zone}`;
-                if (!groups[key]) groups[key] = [];
-                groups[key].push(r);
+                if (!zoneData[r.zone]) zoneData[r.zone] = [];
+                zoneData[r.zone].push({ date: `${r.year}-${r.month}`, lmp: r.lmp });
             });
 
-            // Limit to top 10 zones by data count for readability
-            const sortedGroups = Object.entries(groups)
-                .sort((a, b) => b[1].length - a[1].length)
-                .slice(0, 10);
+            // Sort each zone's data
+            Object.keys(zoneData).forEach(zone => {
+                zoneData[zone].sort((a, b) => a.date.localeCompare(b.date));
+            });
 
-            const datasets = [];
-            const colors = [
-                '#3EB489', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6',
-                '#ec4899', '#14b8a6', '#f97316', '#06b6d4', '#84cc16'
-            ];
+            // Get all dates
+            const allDates = [...new Set(data.map(r => `${r.year}-${r.month}`))].sort();
 
-            if (chartView === 'monthly') {
-                // Monthly view - create time series
-                const allDates = [...new Set(data.map(r => `${r.year}-${String(r.month).padStart(2, '0')}`))].sort();
-                
-                sortedGroups.forEach(([key, records], i) => {
-                    const dataMap = {};
-                    records.forEach(r => {
-                        const date = `${r.year}-${String(r.month).padStart(2, '0')}`;
-                        dataMap[date] = r.lmp;
-                    });
+            // Colors for zones
+            const colors = ['#3EB489', '#8b5cf6', '#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#ec4899', '#06b6d4'];
 
-                    datasets.push({
-                        label: key,
-                        data: allDates.map(d => dataMap[d] || null),
-                        borderColor: colors[i % colors.length],
-                        backgroundColor: colors[i % colors.length] + '20',
-                        tension: 0.3,
-                        fill: false,
-                        spanGaps: true
-                    });
-                });
+            const datasets = Object.keys(zoneData).slice(0, 8).map((zone, i) => ({
+                label: zone,
+                data: allDates.map(d => {
+                    const rec = zoneData[zone].find(r => r.date === d);
+                    return rec ? rec.lmp : null;
+                }),
+                borderColor: colors[i % colors.length],
+                backgroundColor: colors[i % colors.length] + '20',
+                tension: 0.3,
+                fill: false
+            }));
 
-                trendChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: allDates.map(d => {
-                            const [y, m] = d.split('-');
-                            return `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(m)-1]} ${y}`;
-                        }),
-                        datasets: datasets
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            intersect: false,
-                            mode: 'index'
-                        },
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                                labels: { color: '#A0AEC0', boxWidth: 12, padding: 15 }
-                            },
-                            tooltip: {
-                                backgroundColor: '#1A2030',
-                                titleColor: '#fff',
-                                bodyColor: '#A0AEC0',
-                                borderColor: '#3EB489',
-                                borderWidth: 1,
-                                callbacks: {
-                                    label: ctx => `${ctx.dataset.label}: $${ctx.raw?.toFixed(2) || 'N/A'}/MWh`
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                ticks: { color: '#718096', maxRotation: 45 },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
-                            },
-                            y: {
-                                ticks: { 
-                                    color: '#718096',
-                                    callback: v => '$' + v
-                                },
-                                grid: { color: 'rgba(255,255,255,0.05)' },
-                                title: {
-                                    display: true,
-                                    text: 'LMP ($/MWh)',
-                                    color: '#718096'
-                                }
-                            }
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: allDates, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#A0AEC0', font: { size: 11 } } },
+                        tooltip: {
+                            backgroundColor: '#1A2030',
+                            callbacks: { label: ctx => `${ctx.dataset.label}: $${ctx.raw?.toFixed(2) || '--'}/MWh` }
                         }
-                    }
-                });
-            } else {
-                // Yearly average view
-                const years = [...new Set(data.map(r => r.year))].sort();
-                
-                sortedGroups.forEach(([key, records], i) => {
-                    const yearlyAvg = {};
-                    records.forEach(r => {
-                        if (!yearlyAvg[r.year]) yearlyAvg[r.year] = { sum: 0, count: 0 };
-                        yearlyAvg[r.year].sum += r.lmp;
-                        yearlyAvg[r.year].count++;
-                    });
-
-                    datasets.push({
-                        label: key,
-                        data: years.map(y => yearlyAvg[y] ? yearlyAvg[y].sum / yearlyAvg[y].count : null),
-                        borderColor: colors[i % colors.length],
-                        backgroundColor: colors[i % colors.length] + '40',
-                        borderWidth: 2
-                    });
-                });
-
-                trendChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: years,
-                        datasets: datasets
                     },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'top',
-                                labels: { color: '#A0AEC0', boxWidth: 12, padding: 15 }
-                            },
-                            tooltip: {
-                                backgroundColor: '#1A2030',
-                                callbacks: {
-                                    label: ctx => `${ctx.dataset.label}: $${ctx.raw?.toFixed(2) || 'N/A'}/MWh`
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                ticks: { color: '#718096' },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
-                            },
-                            y: {
-                                ticks: { 
-                                    color: '#718096',
-                                    callback: v => '$' + v
-                                },
-                                grid: { color: 'rgba(255,255,255,0.05)' }
-                            }
-                        }
+                    scales: {
+                        x: { ticks: { color: '#718096', maxRotation: 45 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#718096', callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }
                     }
-                });
-            }
+                }
+            });
         }
 
-        // Update trend tables (gainers/losers)
-        function updateTrendTables() {
-            const gainersPeriod = document.getElementById('gainersPeriod')?.value || 'yoy';
-            const losersPeriod = document.getElementById('losersPeriod')?.value || 'yoy';
-
-            const gainersData = calculateTrends(gainersPeriod);
-            const losersData = calculateTrends(losersPeriod);
-
-            // Top gainers (positive changes)
-            const gainers = gainersData
-                .filter(t => t.change > 0)
-                .sort((a, b) => b.changePercent - a.changePercent)
-                .slice(0, 15);
-
-            // Top losers (negative changes)
-            const losers = losersData
-                .filter(t => t.change < 0)
-                .sort((a, b) => a.changePercent - b.changePercent)
-                .slice(0, 15);
-
-            document.getElementById('gainersTable').innerHTML = renderTrendTable(gainers, 'up');
-            document.getElementById('losersTable').innerHTML = renderTrendTable(losers, 'down');
-        }
-
-        // Calculate trends
-        function calculateTrends(period) {
-            const iso = document.getElementById('isoSelect').value;
-            const zone = document.getElementById('zoneSelect').value;
-            
-            let data = [...lmpData];
-            if (iso !== 'all') data = data.filter(r => r.iso === iso);
-            
-            // Handle ISO average mode for trends
-            if (zone === 'iso_average') {
-                data = calculateISOAverages(data);
-            } else if (zone !== 'all') {
-                data = data.filter(r => r.zone === zone);
-            }
-
-            const trends = [];
-
-            if (period === 'yoy') {
-                // Year over Year comparison
-                const grouped = {};
-                data.forEach(r => {
-                    const key = `${r.iso}|${r.zone}`;
-                    if (!grouped[key]) grouped[key] = {};
-                    if (!grouped[key][r.year]) grouped[key][r.year] = { sum: 0, count: 0 };
-                    grouped[key][r.year].sum += r.lmp;
-                    grouped[key][r.year].count++;
-                });
-
-                Object.entries(grouped).forEach(([key, years]) => {
-                    const [iso, zone] = key.split('|');
-                    const yearList = Object.keys(years).map(Number).sort();
-                    
-                    if (yearList.length >= 2) {
-                        const latestYear = yearList[yearList.length - 1];
-                        const prevYear = yearList[yearList.length - 2];
-                        
-                        const latestAvg = years[latestYear].sum / years[latestYear].count;
-                        const prevAvg = years[prevYear].sum / years[prevYear].count;
-                        
-                        const change = latestAvg - prevAvg;
-                        const changePercent = prevAvg !== 0 ? (change / prevAvg) * 100 : 0;
-                        
-                        trends.push({
-                            iso,
-                            zone,
-                            period: `${prevYear} → ${latestYear}`,
-                            previous: prevAvg,
-                            current: latestAvg,
-                            change,
-                            changePercent
-                        });
-                    }
-                });
-            } else {
-                // Month over Month comparison
-                const grouped = {};
-                data.forEach(r => {
-                    const key = `${r.iso}|${r.zone}`;
-                    if (!grouped[key]) grouped[key] = [];
-                    grouped[key].push({ year: r.year, month: r.month, lmp: r.lmp });
-                });
-
-                Object.entries(grouped).forEach(([key, records]) => {
-                    const [iso, zone] = key.split('|');
-                    
-                    // Sort by date
-                    records.sort((a, b) => {
-                        if (a.year !== b.year) return a.year - b.year;
-                        return a.month - b.month;
-                    });
-
-                    if (records.length >= 2) {
-                        const latest = records[records.length - 1];
-                        const prev = records[records.length - 2];
-                        
-                        const change = latest.lmp - prev.lmp;
-                        const changePercent = prev.lmp !== 0 ? (change / prev.lmp) * 100 : 0;
-                        
-                        const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-                        
-                        trends.push({
-                            iso,
-                            zone,
-                            period: `${monthNames[prev.month-1]} ${prev.year} → ${monthNames[latest.month-1]} ${latest.year}`,
-                            previous: prev.lmp,
-                            current: latest.lmp,
-                            change,
-                            changePercent
-                        });
-                    }
-                });
-            }
-
-            return trends;
-        }
-
-        // Render trend table
-        function renderTrendTable(data, direction) {
-            if (data.length === 0) {
-                return '<div style="padding: 40px; text-align: center; color: var(--text-tertiary);">No data available</div>';
-            }
-
-            const zone = document.getElementById('zoneSelect').value;
-
-            return `
-                <table class="trends-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>ISO / Zone</th>
-                            <th>Period</th>
-                            <th>Previous</th>
-                            <th>Current</th>
-                            <th>Change</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.map((t, i) => `
-                            <tr>
-                                <td>${i + 1}</td>
-                                <td>
-                                    <strong>${t.iso}</strong><br>
-                                    <span class="zone-tag ${t.zone === 'ISO Average' ? 'average' : ''}">${t.zone}</span>
-                                </td>
-                                <td style="font-size: 12px; color: var(--text-secondary);">${t.period}</td>
-                                <td>$${t.previous.toFixed(2)}</td>
-                                <td>$${t.current.toFixed(2)}</td>
-                                <td>
-                                    <span class="trend-badge ${direction}">
-                                        ${direction === 'up' ? '▲' : '▼'}
-                                        ${Math.abs(t.changePercent).toFixed(1)}%
-                                    </span>
-                                    <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">
-                                        ${t.change >= 0 ? '+' : ''}$${t.change.toFixed(2)}
-                                    </div>
-                                </td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
-        // Update comparison chart
         function updateComparisonChart(data) {
-            const ctx = document.getElementById('comparisonChart')?.getContext('2d');
+            const ctx = document.getElementById('comparisonChart');
             if (!ctx) return;
 
-            if (comparisonChart) {
-                comparisonChart.destroy();
-            }
-
-            const zone = document.getElementById('zoneSelect').value;
-
-            // Calculate average LMP per zone (or per ISO for average mode)
-            const zoneAvg = {};
+            // Calculate average per zone
+            const zoneAvgs = {};
             data.forEach(r => {
-                const key = zone === 'iso_average' ? r.iso : `${r.iso} - ${r.zone}`;
-                if (!zoneAvg[key]) zoneAvg[key] = { sum: 0, count: 0, iso: r.iso };
-                zoneAvg[key].sum += r.lmp;
-                zoneAvg[key].count++;
+                if (!zoneAvgs[r.zone]) zoneAvgs[r.zone] = { sum: 0, count: 0 };
+                zoneAvgs[r.zone].sum += r.lmp;
+                zoneAvgs[r.zone].count++;
             });
 
-            const sorted = Object.entries(zoneAvg)
-                .map(([zone, data]) => ({
-                    zone,
-                    avg: data.sum / data.count,
-                    iso: data.iso
-                }))
+            const chartData = Object.entries(zoneAvgs)
+                .map(([zone, d]) => ({ zone, avg: d.sum / d.count }))
                 .sort((a, b) => b.avg - a.avg)
-                .slice(0, 20);
+                .slice(0, 15);
 
-            const isoColors = {
-                'ISONE': '#3EB489',
-                'PJM': '#3b82f6',
-                'NYISO': '#f59e0b',
-                'CAISO': '#ef4444',
-                'ERCOT': '#8b5cf6',
-                'MISO': '#ec4899'
-            };
-
+            if (comparisonChart) comparisonChart.destroy();
             comparisonChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: sorted.map(s => s.zone),
+                    labels: chartData.map(d => d.zone),
                     datasets: [{
                         label: 'Avg LMP ($/MWh)',
-                        data: sorted.map(s => s.avg),
-                        backgroundColor: sorted.map(s => isoColors[s.iso] || '#718096'),
-                        borderRadius: 4
+                        data: chartData.map(d => d.avg),
+                        backgroundColor: '#3EB48960',
+                        borderColor: '#3EB489',
+                        borderWidth: 1
                     }]
                 },
                 options: {
@@ -1927,49 +982,24 @@
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#1A2030',
-                            callbacks: {
-                                label: ctx => `$${ctx.raw.toFixed(2)}/MWh`
-                            }
-                        }
+                        tooltip: { callbacks: { label: ctx => `$${ctx.raw.toFixed(2)}/MWh` } }
                     },
                     scales: {
-                        x: {
-                            ticks: { 
-                                color: '#718096',
-                                callback: v => '$' + v
-                            },
-                            grid: { color: 'rgba(255,255,255,0.05)' }
-                        },
-                        y: {
-                            ticks: { color: '#718096', font: { size: 11 } },
-                            grid: { display: false }
-                        }
+                        x: { ticks: { color: '#718096', callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                        y: { ticks: { color: '#718096', font: { size: 11 } }, grid: { display: false } }
                     }
                 }
             });
         }
 
-        // Update summary table
         function updateSummaryTable(data) {
             const container = document.getElementById('summaryTable');
             if (!container) return;
 
-            const zone = document.getElementById('zoneSelect').value;
-
-            // Calculate stats per zone (or per ISO for average mode)
             const zoneStats = {};
             data.forEach(r => {
-                const key = zone === 'iso_average' ? r.iso : `${r.iso}|${r.zone}`;
-                if (!zoneStats[key]) {
-                    zoneStats[key] = {
-                        iso: r.iso,
-                        zone: zone === 'iso_average' ? 'ISO Average' : r.zone,
-                        values: [],
-                        years: new Set()
-                    };
-                }
+                const key = `${r.iso}|${r.zone}`;
+                if (!zoneStats[key]) zoneStats[key] = { iso: r.iso, zone: r.zone, values: [], years: new Set() };
                 zoneStats[key].values.push(r.lmp);
                 zoneStats[key].years.add(r.year);
             });
@@ -1977,12 +1007,8 @@
             const stats = Object.values(zoneStats).map(s => {
                 const sorted = [...s.values].sort((a, b) => a - b);
                 return {
-                    iso: s.iso,
-                    zone: s.zone,
-                    count: s.values.length,
-                    years: s.years.size,
-                    min: sorted[0],
-                    max: sorted[sorted.length - 1],
+                    iso: s.iso, zone: s.zone, count: s.values.length, years: s.years.size,
+                    min: sorted[0], max: sorted[sorted.length - 1],
                     avg: s.values.reduce((a, b) => a + b, 0) / s.values.length,
                     median: sorted[Math.floor(sorted.length / 2)]
                 };
@@ -1990,27 +1016,16 @@
 
             container.innerHTML = `
                 <table class="trends-table">
-                    <thead>
-                        <tr>
-                            <th>ISO</th>
-                            <th>Zone</th>
-                            <th>Data Points</th>
-                            <th>Years</th>
-                            <th>Min LMP</th>
-                            <th>Max LMP</th>
-                            <th>Avg LMP</th>
-                            <th>Median LMP</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>ISO</th><th>Zone</th><th>Data Points</th><th>Years</th><th>Min</th><th>Max</th><th>Avg</th><th>Median</th></tr></thead>
                     <tbody>
                         ${stats.map(s => `
                             <tr>
                                 <td><strong>${s.iso}</strong></td>
-                                <td><span class="zone-tag ${s.zone === 'ISO Average' ? 'average' : ''}">${s.zone}</span></td>
+                                <td>${s.zone}</td>
                                 <td>${s.count.toLocaleString()}</td>
                                 <td>${s.years}</td>
-                                <td class="trend-positive">$${s.min.toFixed(2)}</td>
-                                <td class="trend-negative">$${s.max.toFixed(2)}</td>
+                                <td style="color: var(--accent-success);">$${s.min.toFixed(2)}</td>
+                                <td style="color: var(--accent-error);">$${s.max.toFixed(2)}</td>
                                 <td><strong>$${s.avg.toFixed(2)}</strong></td>
                                 <td>$${s.median.toFixed(2)}</td>
                             </tr>
@@ -2020,128 +1035,265 @@
             `;
         }
 
-        // Refresh data
-        function refreshData() {
-            document.getElementById('mainContent').innerHTML = `
-                <div class="loading">
-                    <div class="loading-spinner"></div>
-                    <p>Refreshing data...</p>
+        // ============================================
+        // HOURLY ANALYTICS
+        // ============================================
+        function getFilteredHourlyData() {
+            const iso = document.getElementById('isoSelect').value;
+            const zone = document.getElementById('zoneSelect').value;
+            const month = document.getElementById('hourlyMonthSelect').value;
+
+            let filtered = [...hourlyData];
+
+            if (iso !== 'all') filtered = filtered.filter(r => r.iso === iso);
+            if (zone !== 'all') filtered = filtered.filter(r => r.zone === zone);
+            
+            if (month !== 'all') {
+                filtered = filtered.filter(r => {
+                    const d = new Date(r.datetime);
+                    const ym = `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}`;
+                    return ym === month;
+                });
+            }
+
+            return filtered;
+        }
+
+        function updateHourlyAnalytics() {
+            if (currentMode !== 'hourly') return;
+            
+            const data = getFilteredHourlyData();
+            if (data.length === 0) {
+                document.getElementById('hourlyAnalysisCards').innerHTML = `
+                    <div class="analysis-card" style="grid-column: 1/-1; text-align: center;">
+                        <p style="color: var(--text-tertiary);">No hourly data matches current filters</p>
+                    </div>
+                `;
+                return;
+            }
+
+            updateHourlyAnalysisCards(data);
+            updateHourlyChart(data);
+            updatePeakHourAnalysis(data);
+            updateDOWChart(data);
+        }
+
+        function updateHourlyAnalysisCards(data) {
+            const container = document.getElementById('hourlyAnalysisCards');
+            if (!container) return;
+
+            const prices = data.map(r => r.price);
+            const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+            const min = Math.min(...prices);
+            const max = Math.max(...prices);
+            const spread = max - min;
+
+            container.innerHTML = `
+                <div class="analysis-card">
+                    <h4>Total Records</h4>
+                    <div class="analysis-value">${data.length.toLocaleString()}</div>
+                    <div class="analysis-label">hourly data points</div>
+                </div>
+                <div class="analysis-card">
+                    <h4>Average Price</h4>
+                    <div class="analysis-value">$${avg.toFixed(2)}</div>
+                    <div class="analysis-label">per MWh</div>
+                </div>
+                <div class="analysis-card">
+                    <h4>Min / Max</h4>
+                    <div class="analysis-value" style="font-size: 20px;">$${min.toFixed(2)} / $${max.toFixed(2)}</div>
+                    <div class="analysis-label">price range</div>
+                </div>
+                <div class="analysis-card">
+                    <h4>Price Spread</h4>
+                    <div class="analysis-value">$${spread.toFixed(2)}</div>
+                    <div class="analysis-label">max - min</div>
                 </div>
             `;
-            
-            // Request fresh data from parent
-            if (window.parent !== window) {
-                window.parent.postMessage({ type: 'REQUEST_LMP_DATA' }, '*');
-            }
-            
-            setTimeout(loadData, 500);
         }
-        
-        // ========================================
-        // CLIENT CONTEXT INTEGRATION
-        // ========================================
-        let activeClient = null;
-        let activeAccount = null;
-        
-        // Helper to get context key for storage
-        function getContextKey() {
-            if (activeAccount && activeClient) {
-                return `${activeClient.id}_${activeAccount.id}`;
-            } else if (activeClient) {
-                return activeClient.id;
-            }
-            return null;
-        }
-        
-        // Get display name for current context
-        function getContextDisplayName() {
-            if (activeAccount && activeClient) {
-                return `${activeClient.name} → ${activeAccount.accountName || activeAccount.id}`;
-            } else if (activeClient) {
-                return activeClient.name;
-            }
-            return null;
-        }
-        
-        function initClientContext() {
-            if (window.parent !== window) {
-                window.parent.postMessage({ type: 'REQUEST_ACTIVE_CLIENT' }, '*');
-            }
-            window.addEventListener('message', handleClientMessage);
-        }
-        
-        function handleClientMessage(event) {
-            const data = event.data;
-            if (!data) return;
-            
-            if (data.type === 'ACTIVE_CLIENT_CHANGED' || data.type === 'ACTIVE_CLIENT_RESPONSE') {
-                activeClient = data.client;
-                activeAccount = data.account || null;
-                renderClientContextBanner();
-            }
-            
-            if (data.type === 'ACTIVE_ACCOUNT_CHANGED') {
-                activeAccount = data.account;
-                if (data.client) activeClient = data.client;
-                renderClientContextBanner();
-            }
-        }
-        
-        function renderClientContextBanner() {
-            const container = document.getElementById('clientContextBanner');
-            if (!container) return;
-            
-            if (activeClient) {
-                const hasAccount = activeAccount !== null;
-                container.innerHTML = `
-                    <div class="client-context-bar${hasAccount ? ' has-account' : ''}">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        <div class="info">
-                            <div class="label">Analyzing data for ${hasAccount ? 'account' : 'client'}</div>
-                            <div class="name">${activeClient.name}</div>
-                            ${hasAccount ? `<div class="account">└ ${activeAccount.accountName || activeAccount.id}</div>` : ''}
-                        </div>
-                        ${activeClient.iso ? `<span class="badge">${activeClient.iso}</span>` : ''}
-                    </div>
-                `;
-                
-                // Auto-filter by client's ISO if they have one
-                if (activeClient.iso) {
-                    const isoSelect = document.getElementById('isoSelect');
-                    const isoValue = activeClient.iso === 'ISO-NE' ? 'ISONE' : activeClient.iso;
-                    if (isoSelect && Array.from(isoSelect.options).some(o => o.value === isoValue)) {
-                        isoSelect.value = isoValue;
-                        onISOChange();
+
+        function updateHourlyChart(data) {
+            const ctx = document.getElementById('hourlyChart');
+            if (!ctx) return;
+
+            const aggregation = document.getElementById('aggregationSelect').value;
+            const aggregated = LMPProcessor.aggregateByInterval(data, aggregation);
+
+            // Group by zone
+            const zoneData = {};
+            aggregated.forEach(r => {
+                if (!zoneData[r.zone]) zoneData[r.zone] = [];
+                zoneData[r.zone].push({ period: r.period, avg: r.avg });
+            });
+
+            const allPeriods = [...new Set(aggregated.map(r => r.period))].sort();
+            const colors = ['#8b5cf6', '#3EB489', '#f59e0b', '#ef4444', '#3b82f6', '#10b981'];
+
+            const datasets = Object.keys(zoneData).slice(0, 6).map((zone, i) => ({
+                label: zone,
+                data: allPeriods.map(p => {
+                    const rec = zoneData[zone].find(r => r.period === p);
+                    return rec ? rec.avg : null;
+                }),
+                borderColor: colors[i % colors.length],
+                backgroundColor: colors[i % colors.length] + '20',
+                tension: 0.2,
+                fill: false,
+                pointRadius: aggregation === 'hour' ? 0 : 3
+            }));
+
+            if (hourlyChart) hourlyChart.destroy();
+            hourlyChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: allPeriods, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#A0AEC0' } },
+                        tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: $${ctx.raw?.toFixed(2) || '--'}/MWh` } }
+                    },
+                    scales: {
+                        x: { 
+                            ticks: { color: '#718096', maxRotation: 45, autoSkip: true, maxTicksLimit: 30 }, 
+                            grid: { color: 'rgba(255,255,255,0.05)' } 
+                        },
+                        y: { ticks: { color: '#718096', callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }
                     }
                 }
-            } else {
-                container.innerHTML = `
-                    <div class="no-client-bar">
-                        <strong>No client selected</strong> — <a onclick="requestClientSelection()">Select a client</a> to auto-filter by their ISO.
+            });
+        }
+
+        function updatePeakHourAnalysis(data) {
+            const container = document.getElementById('peakHourAnalysis');
+            if (!container) return;
+
+            const analysis = LMPProcessor.analyzePeakHours(data);
+
+            container.innerHTML = `
+                <div style="margin-bottom: 16px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span style="color: var(--accent-error);">Peak Avg: $${analysis.peakAvg.toFixed(2)}</span>
+                        <span style="color: var(--accent-success);">Off-Peak Avg: $${analysis.offPeakAvg.toFixed(2)}</span>
                     </div>
-                `;
+                    <div style="font-size: 12px; color: var(--text-secondary);">
+                        Spread: $${(analysis.peakAvg - analysis.offPeakAvg).toFixed(2)}/MWh
+                    </div>
+                </div>
+                <div style="font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px;">Hourly pattern (0-23):</div>
+                <div class="peak-hours-grid">
+                    ${Array.from({length: 24}, (_, h) => {
+                        const isPeak = analysis.peakHours.includes(h);
+                        const isOffPeak = analysis.offPeakHours.includes(h);
+                        return `<div class="hour-cell ${isPeak ? 'peak' : isOffPeak ? 'off-peak' : 'normal'}">${h}</div>`;
+                    }).join('')}
+                </div>
+                <div style="display: flex; gap: 16px; margin-top: 12px; font-size: 11px;">
+                    <span><span class="hour-cell peak" style="display: inline-block; width: 16px; height: 16px;"></span> Peak</span>
+                    <span><span class="hour-cell off-peak" style="display: inline-block; width: 16px; height: 16px;"></span> Off-Peak</span>
+                </div>
+            `;
+        }
+
+        function updateDOWChart(data) {
+            const ctx = document.getElementById('dowChart');
+            if (!ctx) return;
+
+            const dayTotals = {};
+            data.forEach(r => {
+                const day = new Date(r.datetime).getDay();
+                if (!dayTotals[day]) dayTotals[day] = { sum: 0, count: 0 };
+                dayTotals[day].sum += r.price;
+                dayTotals[day].count++;
+            });
+
+            const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const avgs = dayNames.map((_, i) => dayTotals[i] ? dayTotals[i].sum / dayTotals[i].count : 0);
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dayNames,
+                    datasets: [{
+                        label: 'Avg Price',
+                        data: avgs,
+                        backgroundColor: '#8b5cf660',
+                        borderColor: '#8b5cf6',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#718096' }, grid: { display: false } },
+                        y: { ticks: { color: '#718096', callback: v => '$' + v }, grid: { color: 'rgba(255,255,255,0.05)' } }
+                    }
+                }
+            });
+        }
+
+        // ============================================
+        // EVENT HANDLERS
+        // ============================================
+        function onISOChange() {
+            updateZoneDropdown();
+            updateHourlyMonthDropdown();
+            if (currentMode === 'monthly') updateAnalytics();
+            else updateHourlyAnalytics();
+        }
+
+        function setChartView(view) {
+            // Toggle tabs
+            document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            // Could implement different views here
+        }
+
+        function refreshData() {
+            document.getElementById('mainContent').innerHTML = `
+                <div class="loading"><div class="loading-spinner"></div><p>Refreshing...</p></div>
+            `;
+            lmpDatabase = null;
+            loadData();
+        }
+
+        function exportToExcel() {
+            const data = currentMode === 'monthly' ? getFilteredMonthlyData() : getFilteredHourlyData();
+            if (data.length === 0) { showToast('No data to export', 'error'); return; }
+
+            let exportData;
+            if (currentMode === 'monthly') {
+                exportData = data.map(r => ({
+                    ISO: r.iso, Zone: r.zone, Year: r.year, Month: r.month,
+                    'LMP ($/MWh)': r.lmp.toFixed(2), 'Min': r.min_price?.toFixed(2) || '', 
+                    'Max': r.max_price?.toFixed(2) || '', 'Records': r.record_count || ''
+                }));
+            } else {
+                exportData = data.map(r => ({
+                    ISO: r.iso, Zone: r.zone, Datetime: r.datetime, 'Price ($/MWh)': r.price.toFixed(2)
+                }));
             }
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(exportData);
+            XLSX.utils.book_append_sheet(wb, ws, currentMode === 'monthly' ? 'Monthly Data' : 'Hourly Data');
+            XLSX.writeFile(wb, `LMP_${currentMode}_${new Date().toISOString().split('T')[0]}.xlsx`);
+            showToast(`Exported ${data.length.toLocaleString()} records`);
         }
-        
-        function requestClientSelection() {
-            if (window.parent !== window) {
-                window.parent.postMessage({ type: 'SCROLL_TO_WIDGET', widgetId: 'client-lookup' }, '*');
-            }
+
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
         }
-        
-        function getActiveClient() {
-            return activeClient;
-        }
-        
-        function getActiveAccount() {
-            return activeAccount;
-        }
-        
-        // Initialize client context on load
-        document.addEventListener('DOMContentLoaded', initClientContext);
+
+        // ============================================
+        // INITIALIZE
+        // ============================================
+        document.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
