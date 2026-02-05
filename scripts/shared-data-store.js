@@ -799,6 +799,23 @@ const GitHubSync = {
         }
     },
 
+    async syncAnalyses() {
+        if (!this.hasToken() || this.isSyncing) return { success: false };
+        this.isSyncing = true;
+        try {
+            await AzureDataService.save('analyses.json', JSON.parse(AnalysisStore.exportForGitHub()));
+            this.lastSync = new Date().toISOString();
+            localStorage.setItem('secureEnergy_lastSync', this.lastSync);
+            console.log('[AzureSync] Analyses synced');
+            return { success: true };
+        } catch (e) {
+            console.error('[AzureSync] Analyses sync failed:', e);
+            return { success: false, error: e.message };
+        } finally {
+            this.isSyncing = false;
+        }
+    },
+
     async pushChanges() {
         if (!this.hasToken()) return { success: false, error: 'Not configured' };
         const results = {};
@@ -807,6 +824,7 @@ const GitHubSync = {
         results.widgetPrefs = await this.syncWidgetPreferences();
         results.usageProfiles = await this.syncUsageProfiles();
         results.tickets = await this.syncTickets();
+        results.analyses = await this.syncAnalyses();
         return results;
     },
 
@@ -1583,6 +1601,329 @@ const ActivityLog = {
 
 
 // =====================================================
+// ANALYSIS STORE (Azure-persisted full analysis records)
+// =====================================================
+// Stores complete LMP analysis records including monthly usage,
+// calculation results, and all parameters. Each analysis gets a
+// unique request number (e.g., SES-20260205-0001) for reference.
+// Records are saved to Azure and can be reloaded on any device.
+// =====================================================
+const AnalysisStore = {
+    STORAGE_KEY: 'secureEnergy_analyses',
+    MAX_ENTRIES: 500,
+    analyses: [],
+    _syncTimeout: null,
+    _initialized: false,
+    _dailyCounter: 0,
+    _counterDate: null,
+
+    async init() {
+        console.log('[AnalysisStore] Initializing...');
+        
+        // Load local analyses first (baseline)
+        this.analyses = this.loadFromStorage();
+        
+        // Restore daily counter
+        this._restoreCounter();
+        
+        // Try to fetch from Azure and MERGE (for cross-device sync)
+        if (typeof AzureDataService !== 'undefined' && AzureDataService.isConfigured()) {
+            try {
+                const data = await AzureDataService.getAnalyses();
+                if (data?.analyses && Array.isArray(data.analyses)) {
+                    this._mergeAnalyses(data.analyses);
+                    console.log('[AnalysisStore] Merged with Azure data');
+                }
+                // Restore counter from Azure data too
+                if (data?.counter) {
+                    const today = new Date().toISOString().slice(0, 10);
+                    if (data.counter.date === today && data.counter.value > this._dailyCounter) {
+                        this._dailyCounter = data.counter.value;
+                        this._counterDate = today;
+                        this._saveCounter();
+                    }
+                }
+            } catch (e) {
+                console.warn('[AnalysisStore] Azure fetch failed, using local data:', e.message);
+            }
+        }
+        
+        // Save merged result to localStorage
+        this.saveToStorage();
+        this._initialized = true;
+        
+        console.log(`[AnalysisStore] ${this.analyses.length} analyses loaded`);
+        return this.analyses;
+    },
+    
+    // Generate unique request number: SES-YYYYMMDD-NNNN
+    generateRequestNumber() {
+        const today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        
+        // Reset counter if new day
+        if (this._counterDate !== today.slice(0, 4) + '-' + today.slice(4, 6) + '-' + today.slice(6, 8)) {
+            this._dailyCounter = 0;
+            this._counterDate = today.slice(0, 4) + '-' + today.slice(4, 6) + '-' + today.slice(6, 8);
+        }
+        
+        this._dailyCounter++;
+        this._saveCounter();
+        
+        const seq = String(this._dailyCounter).padStart(4, '0');
+        return `SES-${today}-${seq}`;
+    },
+    
+    _restoreCounter() {
+        try {
+            const saved = localStorage.getItem('secureEnergy_analysisCounter');
+            if (saved) {
+                const c = JSON.parse(saved);
+                const today = new Date().toISOString().slice(0, 10);
+                if (c.date === today) {
+                    this._dailyCounter = c.value || 0;
+                    this._counterDate = c.date;
+                } else {
+                    this._dailyCounter = 0;
+                    this._counterDate = today;
+                }
+            }
+        } catch (e) { /* ignore */ }
+    },
+    
+    _saveCounter() {
+        try {
+            localStorage.setItem('secureEnergy_analysisCounter', JSON.stringify({
+                date: this._counterDate || new Date().toISOString().slice(0, 10),
+                value: this._dailyCounter
+            }));
+        } catch (e) { /* ignore */ }
+    },
+    
+    _mergeAnalyses(remoteAnalyses) {
+        // Create a map of existing entries by requestNumber AND id
+        const localById = new Map();
+        this.analyses.forEach(a => {
+            if (a.requestNumber) localById.set(a.requestNumber, a);
+            if (a.id) localById.set(a.id, a);
+        });
+        
+        // Add remote entries that don't exist locally
+        let added = 0;
+        remoteAnalyses.forEach(remote => {
+            const hasLocal = (remote.requestNumber && localById.has(remote.requestNumber)) ||
+                           (remote.id && localById.has(remote.id));
+            if (!hasLocal) {
+                this.analyses.push(remote);
+                added++;
+            }
+        });
+        
+        // Sort by timestamp (newest first)
+        this.analyses.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        
+        // Trim to max entries
+        if (this.analyses.length > this.MAX_ENTRIES) {
+            this.analyses = this.analyses.slice(0, this.MAX_ENTRIES);
+        }
+        
+        if (added > 0) console.log(`[AnalysisStore] Merged ${added} analyses from Azure`);
+    },
+
+    loadFromStorage() { 
+        try { return JSON.parse(localStorage.getItem(this.STORAGE_KEY)) || []; } catch { return []; } 
+    },
+    
+    saveToStorage() { 
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.analyses.slice(0, this.MAX_ENTRIES))); 
+    },
+
+    /**
+     * Save a complete analysis record.
+     * @param {Object} params - Analysis parameters and results
+     * @param {string} params.clientName
+     * @param {string} params.clientId
+     * @param {string} params.accountName
+     * @param {string} params.accountId
+     * @param {string} params.iso
+     * @param {string} params.zone
+     * @param {string} params.startDate
+     * @param {number} params.termMonths
+     * @param {number} params.fixedPrice
+     * @param {number} params.lmpAdjustment
+     * @param {number} params.capacityCost
+     * @param {number} params.ancillaryCost
+     * @param {number} params.transmissionCost
+     * @param {string} params.projectionMethod
+     * @param {number} params.lmpEscalator
+     * @param {number} params.simpleBlockRate
+     * @param {number} params.simpleHedgePercent
+     * @param {Array<number>} params.monthlyUsage - Array of 12 monthly usage values
+     * @param {number} params.totalAnnualUsage
+     * @param {Object} params.results - Summary results
+     * @param {Array} params.calculationResults - Full per-period calculation results
+     * @param {string} params.contextKey
+     * @param {string} params.userId
+     * @param {string} params.userName
+     * @param {string} params.userEmail
+     * @returns {Object} The saved analysis record with requestNumber
+     */
+    save(params) {
+        const requestNumber = this.generateRequestNumber();
+        
+        const analysis = {
+            id: 'analysis-' + Date.now() + '-' + Math.random().toString(36).substr(2, 6),
+            requestNumber: requestNumber,
+            timestamp: new Date().toISOString(),
+            
+            // User info
+            userId: params.userId || null,
+            userName: params.userName || 'Unknown',
+            userEmail: params.userEmail || null,
+            
+            // Client info
+            clientName: params.clientName || 'Unnamed Analysis',
+            clientId: params.clientId || null,
+            accountName: params.accountName || null,
+            accountId: params.accountId || null,
+            contextKey: params.contextKey || null,
+            
+            // All form parameters
+            parameters: {
+                iso: params.iso,
+                zone: params.zone,
+                startDate: params.startDate,
+                termMonths: params.termMonths,
+                fixedPrice: params.fixedPrice,
+                lmpAdjustment: params.lmpAdjustment || 0,
+                capacityCost: params.capacityCost || 0.015,
+                ancillaryCost: params.ancillaryCost || 0.005,
+                transmissionCost: params.transmissionCost || 0.015,
+                projectionMethod: params.projectionMethod || 'historical_average',
+                lmpEscalator: params.lmpEscalator || 0,
+                simpleBlockRate: params.simpleBlockRate || 0.075,
+                simpleHedgePercent: params.simpleHedgePercent || 100
+            },
+            
+            // Monthly usage array (12 values)
+            monthlyUsage: params.monthlyUsage || [],
+            totalAnnualUsage: params.totalAnnualUsage || 0,
+            
+            // Summary results
+            results: params.results || {},
+            
+            // Full calculation results (per-period detail)
+            calculationResults: params.calculationResults || []
+        };
+        
+        this.analyses.unshift(analysis);
+        
+        // Trim to max entries
+        if (this.analyses.length > this.MAX_ENTRIES) {
+            this.analyses = this.analyses.slice(0, this.MAX_ENTRIES);
+        }
+        
+        this.saveToStorage();
+        this._scheduleSyncToAzure();
+        
+        console.log(`[AnalysisStore] Saved analysis ${requestNumber} for "${analysis.clientName}"`);
+        
+        try {
+            window.dispatchEvent(new CustomEvent('analysisSaved', { detail: analysis }));
+        } catch (e) { /* ignore */ }
+        
+        return analysis;
+    },
+    
+    // Get analysis by request number
+    getByRequestNumber(requestNumber) {
+        return this.analyses.find(a => a.requestNumber === requestNumber) || null;
+    },
+    
+    // Get analysis by ID
+    getById(id) {
+        return this.analyses.find(a => a.id === id) || null;
+    },
+    
+    // Get all analyses
+    getAll() { return this.analyses; },
+    
+    // Get recent analyses (limited)
+    getRecent(count = 50) { return this.analyses.slice(0, count); },
+    
+    // Get analyses by user
+    getByUser(userId) { return this.analyses.filter(a => a.userId === userId); },
+    
+    // Get analyses by client
+    getByClient(clientId) { return this.analyses.filter(a => a.clientId === clientId); },
+    
+    // Get analyses by client name (partial match)
+    searchByClientName(name) {
+        const lower = name.toLowerCase();
+        return this.analyses.filter(a => (a.clientName || '').toLowerCase().includes(lower));
+    },
+    
+    // Delete an analysis by request number
+    deleteByRequestNumber(requestNumber) {
+        const idx = this.analyses.findIndex(a => a.requestNumber === requestNumber);
+        if (idx !== -1) {
+            this.analyses.splice(idx, 1);
+            this.saveToStorage();
+            this._scheduleSyncToAzure();
+            return true;
+        }
+        return false;
+    },
+    
+    // Refresh from Azure (for cross-device sync)
+    async refresh() {
+        console.log('[AnalysisStore] Refreshing from Azure...');
+        if (typeof AzureDataService !== 'undefined' && AzureDataService.isConfigured()) {
+            try {
+                const data = await AzureDataService.getAnalyses({ bypassCache: true });
+                if (data?.analyses && Array.isArray(data.analyses)) {
+                    this._mergeAnalyses(data.analyses);
+                    this.saveToStorage();
+                    console.log('[AnalysisStore] Refreshed - now have', this.analyses.length, 'analyses');
+                    return { success: true, count: this.analyses.length };
+                }
+            } catch (e) {
+                console.error('[AnalysisStore] Refresh failed:', e);
+                return { success: false, error: e.message };
+            }
+        }
+        return { success: false, error: 'Azure not configured' };
+    },
+    
+    _scheduleSyncToAzure() {
+        if (typeof AzureDataService === 'undefined' || !AzureDataService.isConfigured()) return;
+        clearTimeout(this._syncTimeout);
+        this._syncTimeout = setTimeout(() => {
+            const today = new Date().toISOString().slice(0, 10);
+            AzureDataService.saveAnalyses({
+                version: '1.0.0',
+                lastUpdated: new Date().toISOString(),
+                counter: { date: today, value: this._dailyCounter },
+                analyses: this.analyses.slice(0, this.MAX_ENTRIES)
+            }).then(() => {
+                console.log('[AnalysisStore] Synced to Azure');
+            }).catch(e => console.warn('[AnalysisStore] Azure sync failed:', e.message));
+        }, 2000);
+    },
+
+    exportForGitHub() {
+        return JSON.stringify({
+            version: '1.0.0',
+            lastUpdated: new Date().toISOString(),
+            counter: { date: this._counterDate, value: this._dailyCounter },
+            analyses: this.analyses.slice(0, this.MAX_ENTRIES)
+        }, null, 2);
+    },
+    
+    clear() { this.analyses = []; this.saveToStorage(); }
+};
+
+
+// =====================================================
 // TICKET STORE (Azure Integration)
 // =====================================================
 const TicketStore = {
@@ -1788,6 +2129,7 @@ if (typeof window !== 'undefined') {
     window.WidgetPreferences = WidgetPreferences;
     window.UsageProfileStore = UsageProfileStore;
     window.TicketStore = TicketStore;
+    window.AnalysisStore = AnalysisStore;
     
     ErrorLog.init();
     GitHubSync.init();
@@ -1797,6 +2139,11 @@ if (typeof window !== 'undefined') {
     // Initial sync load happens in initStoresWithAzure
     ActivityLog.entries = ActivityLog.loadFromStorage();
     console.log(`[ActivityLog] ${ActivityLog.entries.length} local entries loaded (will merge with Azure when ready)`);
+    
+    // Pre-load AnalysisStore from localStorage (will merge with Azure when ready)
+    AnalysisStore.analyses = AnalysisStore.loadFromStorage();
+    AnalysisStore._restoreCounter();
+    console.log(`[AnalysisStore] ${AnalysisStore.analyses.length} local analyses loaded (will merge with Azure when ready)`);
     
     // Initialize stores when Azure is ready
     function initStoresWithAzure() {
@@ -1821,6 +2168,13 @@ if (typeof window !== 'undefined') {
                 window.dispatchEvent(new CustomEvent('ticketsReady', { detail: { tickets: TicketStore.getAll() } }));
             } catch (e) { }
         }).catch(e => console.warn('[SharedDataStore] TicketStore init failed:', e.message));
+        
+        AnalysisStore.init().then(() => {
+            console.log('[SharedDataStore] AnalysisStore initialized');
+            try {
+                window.dispatchEvent(new CustomEvent('analysisStoreReady', { detail: { count: AnalysisStore.getAll().length } }));
+            } catch (e) { }
+        }).catch(e => console.warn('[SharedDataStore] AnalysisStore init failed:', e.message));
     }
     
     // Listen for Azure ready event
@@ -1838,8 +2192,9 @@ if (typeof window !== 'undefined') {
     window.resetWidgetPrefs = () => { localStorage.removeItem('secureEnergy_widgetPrefs'); location.reload(); };
     window.resetUsageProfiles = () => { localStorage.removeItem('secureEnergy_usageProfiles'); localStorage.removeItem('secureEnergy_activeUsageProfile'); location.reload(); };
     window.resetTicketStore = () => { localStorage.removeItem('secureEnergy_tickets'); location.reload(); };
+    window.resetAnalysisStore = () => { localStorage.removeItem('secureEnergy_analyses'); localStorage.removeItem('secureEnergy_analysisCounter'); location.reload(); };
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { hashPassword, SecureEnergyData, UserStore, ActivityLog, GitHubSync, AzureSync, ErrorLog, WidgetPreferences, UsageProfileStore, TicketStore };
+    module.exports = { hashPassword, SecureEnergyData, UserStore, ActivityLog, GitHubSync, AzureSync, ErrorLog, WidgetPreferences, UsageProfileStore, TicketStore, AnalysisStore };
 }

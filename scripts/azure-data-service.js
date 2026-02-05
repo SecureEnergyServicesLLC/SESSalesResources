@@ -276,6 +276,15 @@ const AzureDataService = (function() {
         return save('activity-log.json', log);
     }
 
+    // Analysis Records (full analysis history with calculation results)
+    async function getAnalyses(options = {}) {
+        return get('analyses.json', options);
+    }
+
+    async function saveAnalyses(analyses) {
+        return save('analyses.json', analyses);
+    }
+
     // ==========================================
     // INITIALIZATION HELPER
     // ==========================================
@@ -331,6 +340,8 @@ const AzureDataService = (function() {
         getLmpDatabase,
         getActivityLog,
         saveActivityLog,
+        getAnalyses,
+        saveAnalyses,
         
         // Config access (read-only)
         get apiBase() { return CONFIG.apiBase; }

@@ -159,6 +159,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         refreshActivityLogIfVisible();
     });
     
+    // Auto-refresh analysis history when AnalysisStore syncs from Azure
+    window.addEventListener('analysisStoreReady', function() {
+        console.log('[Portal] AnalysisStore ready from Azure, refreshing analysis history...');
+        if (document.getElementById('analysisHistoryContent')) renderAnalysisHistory();
+    });
+    
     console.log('[Portal] Ready');
 });
 
@@ -786,6 +792,8 @@ function handleWidgetMessage(event) {
     }
     if (event.data?.type === 'LMP_ANALYSIS_COMPLETE' && currentUser) {
         const d = event.data.data || {};
+        
+        // Save to ActivityLog (lightweight record for activity tracking)
         ActivityLog.logLMPAnalysis({ 
             userId: currentUser.id, 
             userEmail: currentUser.email, 
@@ -803,9 +811,43 @@ function handleWidgetMessage(event) {
             usage: d.totalAnnualUsage || d.usage, 
             results: d.results 
         });
+        
+        // Save to AnalysisStore (full record with monthly usage + calculation results)
+        var savedAnalysis = null;
+        if (typeof AnalysisStore !== 'undefined') {
+            savedAnalysis = AnalysisStore.save({
+                userId: currentUser.id,
+                userName: currentUser.firstName + ' ' + currentUser.lastName,
+                userEmail: currentUser.email,
+                clientName: d.clientName,
+                clientId: d.clientId,
+                accountName: d.accountName || null,
+                accountId: d.accountId || null,
+                contextKey: d.contextKey || null,
+                iso: d.iso,
+                zone: d.zone,
+                startDate: d.startDate,
+                termMonths: d.termMonths,
+                fixedPrice: d.fixedPrice,
+                lmpAdjustment: d.lmpAdjustment || 0,
+                capacityCost: d.capacityCost || 0.015,
+                ancillaryCost: d.ancillaryCost || 0.005,
+                transmissionCost: d.transmissionCost || 0.015,
+                projectionMethod: d.projectionMethod || 'historical_average',
+                lmpEscalator: d.lmpEscalator || 0,
+                simpleBlockRate: d.simpleBlockRate || 0.075,
+                simpleHedgePercent: d.simpleHedgePercent || 100,
+                monthlyUsage: d.monthlyUsage || [],
+                totalAnnualUsage: d.totalAnnualUsage || d.usage || 0,
+                results: d.results,
+                calculationResults: d.calculationResults || []
+            });
+        }
+        
         if (document.getElementById('analysisHistoryContent')) renderAnalysisHistory();
         const displayName = d.accountName ? `${d.clientName} → ${d.accountName}` : (d.clientName || 'Unnamed');
-        showNotification('Analysis logged: ' + displayName, 'success');
+        const reqNum = savedAnalysis ? ' (' + savedAnalysis.requestNumber + ')' : '';
+        showNotification('Analysis logged: ' + displayName + reqNum, 'success');
         saveAllWidgetStates();
     }
     if (event.data?.type === 'LMP_EXPORT_COMPLETE' && currentUser) {
@@ -1203,11 +1245,34 @@ function renderAnalysisHistory() {
     
     let analyses = [];
     if (currentUser) {
-        // Get analysis records from activity log
-        const userLogs = currentUser.role === 'admin' 
-            ? ActivityLog.getAll().filter(l => l.action === 'LMP Analysis')
-            : ActivityLog.getByUser(currentUser.id).filter(l => l.action === 'LMP Analysis');
-        analyses = userLogs.slice(0, 50); // Limit to 50 most recent
+        // Prefer AnalysisStore (full records with calculation results)
+        if (typeof AnalysisStore !== 'undefined' && AnalysisStore.getAll().length > 0) {
+            analyses = currentUser.role === 'admin'
+                ? AnalysisStore.getAll()
+                : AnalysisStore.getByUser(currentUser.id);
+            analyses = analyses.slice(0, 50);
+        } else {
+            // Fallback to ActivityLog for legacy records
+            const userLogs = currentUser.role === 'admin' 
+                ? ActivityLog.getAll().filter(l => l.action === 'LMP Analysis')
+                : ActivityLog.getByUser(currentUser.id).filter(l => l.action === 'LMP Analysis');
+            analyses = userLogs.slice(0, 50).map(function(a) {
+                // Normalize ActivityLog format to look like AnalysisStore format
+                return {
+                    id: a.id,
+                    requestNumber: null,
+                    timestamp: a.timestamp,
+                    userId: a.userId,
+                    userName: a.userName,
+                    clientName: a.clientName || (a.data && a.data.clientName) || 'Unnamed',
+                    parameters: a.data || {},
+                    results: (a.data && a.data.results) || {},
+                    monthlyUsage: [],
+                    calculationResults: [],
+                    _isLegacy: true
+                };
+            });
+        }
     }
     
     if (analyses.length === 0) {
@@ -1580,30 +1645,67 @@ function formatTimeAgo(timestamp) {
 }
 
 function createAnalysisCard(a) {
-    const d = a.data || {};
-    const r = d.results || {};
+    // Support both AnalysisStore and legacy ActivityLog formats
+    var params, r, client, reqNum, isLegacy;
+    if (a._isLegacy) {
+        // Legacy ActivityLog format
+        params = a.parameters || {};
+        r = a.results || {};
+        client = a.clientName || params.clientName || 'Unnamed Analysis';
+        reqNum = null;
+        isLegacy = true;
+    } else {
+        // AnalysisStore format
+        params = a.parameters || {};
+        r = a.results || {};
+        client = a.clientName || 'Unnamed Analysis';
+        reqNum = a.requestNumber || null;
+        isLegacy = false;
+    }
+    
     const savings = r.savingsVsFixed || 0;
-    const client = a.clientName || d.clientName || 'Unnamed Analysis';
     const timeStr = formatTimeAgo(a.timestamp);
     const showData = encodeURIComponent(JSON.stringify(a));
-    const reloadData = encodeURIComponent(JSON.stringify(d));
+    
+    // For reload: if AnalysisStore record, pass the requestNumber; if legacy, pass the parameters
+    var reloadAttr;
+    if (reqNum) {
+        reloadAttr = encodeURIComponent(JSON.stringify({ requestNumber: reqNum }));
+    } else {
+        // Legacy: pass the old-style data object for reload
+        var legacyData = a.parameters || a.data || {};
+        reloadAttr = encodeURIComponent(JSON.stringify(legacyData));
+    }
+    
     const savingsColor = savings >= 0 ? '#10b981' : '#ef4444';
     const savingsSign = savings >= 0 ? '+' : '';
     const savingsAmount = Math.abs(savings).toLocaleString(undefined, {maximumFractionDigits: 0});
+    const hasFullResults = !isLegacy && a.calculationResults && a.calculationResults.length > 0;
     
     var html = '<div style="background:var(--bg-secondary);border-radius:10px;padding:16px;border-left:4px solid ' + savingsColor + ';">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">';
     html += '<div><div style="font-weight:600;font-size:15px;">' + escapeHtml(client) + '</div>';
-    html += '<div style="font-size:12px;color:var(--text-tertiary);">' + (d.iso || 'N/A') + ' • ' + (d.zone || 'N/A') + ' • ' + (d.termMonths || 0) + 'mo</div>';
+    html += '<div style="font-size:12px;color:var(--text-tertiary);">' + (params.iso || 'N/A') + ' • ' + (params.zone || 'N/A') + ' • ' + (params.termMonths || 0) + 'mo</div>';
+    
+    // Show request number
+    if (reqNum) {
+        html += '<div style="font-size:11px;color:var(--accent-secondary);margin-top:3px;font-family:monospace;">' + reqNum + '</div>';
+    }
+    
     if (currentUser && currentUser.role === 'admin' && a.userName) {
-        html += '<div style="font-size:11px;color:var(--accent-primary);margin-top:4px;">👤 ' + escapeHtml(a.userName) + '</div>';
+        html += '<div style="font-size:11px;color:var(--accent-primary);margin-top:2px;">👤 ' + escapeHtml(a.userName) + '</div>';
     }
     html += '</div>';
     html += '<div style="text-align:right;"><div style="font-size:18px;font-weight:700;color:' + savingsColor + ';">' + savingsSign + '$' + savingsAmount + '</div>';
     html += '<div style="font-size:11px;color:var(--text-tertiary);">savings</div></div></div>';
     html += '<div style="display:flex;justify-content:space-between;align-items:center;"><div style="display:flex;gap:8px;">';
     html += '<button onclick="showAnalysisDetail(\'' + showData + '\')" style="background:var(--accent-secondary);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;">Show</button>';
-    html += '<button onclick="reloadAnalysis(\'' + reloadData + '\')" style="background:var(--accent-primary);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;">Reload</button>';
+    
+    // Reload button - show full indicator if we have complete data
+    var reloadLabel = hasFullResults ? '🔄 Reload' : 'Reload';
+    var reloadTitle = hasFullResults ? 'Full reload with all parameters and monthly usage' : 'Reload parameters only (legacy record)';
+    html += '<button onclick="reloadAnalysis(\'' + reloadAttr + '\')" title="' + reloadTitle + '" style="background:var(--accent-primary);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;cursor:pointer;">' + reloadLabel + '</button>';
+    
     html += '</div><span style="font-size:11px;color:var(--text-tertiary);">' + timeStr + '</span></div></div>';
     return html;
 }
@@ -1612,13 +1714,59 @@ window.showAnalysisDetail = function(encodedData) {
     trackButtonClick('Show Analysis Detail', 'analysis-history');
     try {
         const a = JSON.parse(decodeURIComponent(encodedData));
-        const d = a.data || {};
-        const r = d.results || {};
+        
+        // Support both AnalysisStore and legacy formats
+        var params, r, client, reqNum;
+        if (a._isLegacy || (!a.parameters && a.data)) {
+            // Legacy ActivityLog format
+            params = a.data || {};
+            r = (a.data && a.data.results) || {};
+            client = a.clientName || (a.data && a.data.clientName) || 'Unnamed';
+            reqNum = null;
+        } else {
+            // AnalysisStore format
+            params = a.parameters || {};
+            r = a.results || {};
+            client = a.clientName || 'Unnamed';
+            reqNum = a.requestNumber || null;
+        }
+        
         const savings = r.savingsVsFixed || 0;
-        const client = a.clientName || d.clientName || 'Unnamed';
         const modal = document.getElementById('editUserModal');
         const content = document.getElementById('editUserContent');
-        content.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--border-color);"><div><h2 style="margin:0;font-size:20px;">' + escapeHtml(client) + '</h2><p style="margin:4px 0 0;font-size:13px;color:var(--text-tertiary);">' + new Date(a.timestamp).toLocaleString() + '</p></div><div style="text-align:right;"><div style="font-size:28px;font-weight:700;color:' + (savings >= 0 ? '#10b981' : '#ef4444') + ';">' + (savings >= 0 ? '+' : '') + '$' + Math.abs(savings).toLocaleString(undefined, {maximumFractionDigits: 0}) + '</div><div style="font-size:12px;color:var(--text-tertiary);">Savings</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;"><div><h4 style="margin:0 0 12px;">Parameters</h4><div style="background:var(--bg-tertiary);padding:16px;border-radius:8px;font-size:13px;"><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">ISO:</span><span style="font-weight:500;">' + (d.iso || 'N/A') + '</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Zone:</span><span style="font-weight:500;">' + (d.zone || 'N/A') + '</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Start:</span><span style="font-weight:500;">' + (d.startDate || 'N/A') + '</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Term:</span><span style="font-weight:500;">' + (d.termMonths || 0) + 'mo</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Rate:</span><span style="font-weight:500;">$' + (d.fixedPrice || 0).toFixed(4) + '</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="color:var(--text-tertiary);">Usage:</span><span style="font-weight:500;">' + (d.totalAnnualUsage || d.usage || 0).toLocaleString() + ' kWh</span></div></div></div><div><h4 style="margin:0 0 12px;">Results</h4><div style="background:var(--bg-tertiary);padding:16px;border-radius:8px;font-size:13px;"><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Index Cost:</span><span style="font-weight:600;">$' + (r.totalIndexCost || 0).toLocaleString(undefined, {maximumFractionDigits: 0}) + '</span></div><div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Fixed Cost:</span><span style="font-weight:600;">$' + (r.totalFixedCost || 0).toLocaleString(undefined, {maximumFractionDigits: 0}) + '</span></div><div style="display:flex;justify-content:space-between;padding:10px 0 0;"><span style="color:var(--text-tertiary);">Savings:</span><span style="font-weight:700;font-size:16px;color:' + (savings >= 0 ? '#10b981' : '#ef4444') + ';">' + (savings >= 0 ? '+' : '') + '$' + Math.abs(savings).toLocaleString(undefined, {maximumFractionDigits: 0}) + '</span></div></div></div></div><div style="margin-top:20px;display:flex;gap:12px;"><button onclick="closeEditModal()" style="flex:1;padding:12px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:8px;cursor:pointer;">Close</button></div>';
+        
+        var reqNumHtml = reqNum ? '<div style="font-family:monospace;font-size:13px;color:var(--accent-secondary);margin-top:4px;">' + reqNum + '</div>' : '';
+        var userHtml = a.userName ? '<div style="font-size:12px;color:var(--text-tertiary);margin-top:2px;">By: ' + escapeHtml(a.userName) + '</div>' : '';
+        
+        // Monthly usage section (only for AnalysisStore records)
+        var monthlyHtml = '';
+        if (a.monthlyUsage && a.monthlyUsage.length > 0) {
+            var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            monthlyHtml = '<div style="margin-top:20px;"><h4 style="margin:0 0 12px;">Monthly Usage (kWh)</h4><div style="background:var(--bg-tertiary);padding:16px;border-radius:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:12px;">';
+            for (var mi = 0; mi < 12 && mi < a.monthlyUsage.length; mi++) {
+                var val = a.monthlyUsage[mi] || 0;
+                monthlyHtml += '<div style="text-align:center;"><span style="color:var(--text-tertiary);">' + monthNames[mi] + '</span><br><span style="font-weight:600;">' + Number(val).toLocaleString() + '</span></div>';
+            }
+            monthlyHtml += '</div></div>';
+        }
+        
+        content.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;padding-bottom:16px;border-bottom:2px solid var(--border-color);"><div><h2 style="margin:0;font-size:20px;">' + escapeHtml(client) + '</h2>' + reqNumHtml + userHtml + '<p style="margin:4px 0 0;font-size:13px;color:var(--text-tertiary);">' + new Date(a.timestamp).toLocaleString() + '</p></div><div style="text-align:right;"><div style="font-size:28px;font-weight:700;color:' + (savings >= 0 ? '#10b981' : '#ef4444') + ';">' + (savings >= 0 ? '+' : '') + '$' + Math.abs(savings).toLocaleString(undefined, {maximumFractionDigits: 0}) + '</div><div style="font-size:12px;color:var(--text-tertiary);">Savings</div></div></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">' +
+        '<div><h4 style="margin:0 0 12px;">Parameters</h4><div style="background:var(--bg-tertiary);padding:16px;border-radius:8px;font-size:13px;">' +
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">ISO:</span><span style="font-weight:500;">' + (params.iso || 'N/A') + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Zone:</span><span style="font-weight:500;">' + (params.zone || 'N/A') + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Start:</span><span style="font-weight:500;">' + (params.startDate || 'N/A') + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Term:</span><span style="font-weight:500;">' + (params.termMonths || 0) + 'mo</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Fixed Rate:</span><span style="font-weight:500;">$' + (params.fixedPrice || 0).toFixed(4) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="color:var(--text-tertiary);">Usage:</span><span style="font-weight:500;">' + (a.totalAnnualUsage || params.totalAnnualUsage || 0).toLocaleString() + ' kWh</span></div>' +
+        '</div></div>' +
+        '<div><h4 style="margin:0 0 12px;">Results</h4><div style="background:var(--bg-tertiary);padding:16px;border-radius:8px;font-size:13px;">' +
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Index Cost:</span><span style="font-weight:600;">$' + (r.totalIndexCost || 0).toLocaleString(undefined, {maximumFractionDigits: 0}) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border-color);"><span style="color:var(--text-tertiary);">Fixed Cost:</span><span style="font-weight:600;">$' + (r.totalFixedCost || 0).toLocaleString(undefined, {maximumFractionDigits: 0}) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;padding:10px 0 0;"><span style="color:var(--text-tertiary);">Savings:</span><span style="font-weight:700;font-size:16px;color:' + (savings >= 0 ? '#10b981' : '#ef4444') + ';">' + (savings >= 0 ? '+' : '') + '$' + Math.abs(savings).toLocaleString(undefined, {maximumFractionDigits: 0}) + '</span></div>' +
+        '</div></div></div>' +
+        monthlyHtml +
+        '<div style="margin-top:20px;display:flex;gap:12px;"><button onclick="closeEditModal()" style="flex:1;padding:12px;background:var(--bg-tertiary);border:1px solid var(--border-color);border-radius:8px;cursor:pointer;">Close</button></div>';
         document.querySelector('#editUserModal .modal-title').textContent = 'Analysis Details';
         modal.classList.add('show');
     } catch (e) { showNotification('Failed to load details', 'error'); }
@@ -1627,11 +1775,65 @@ window.showAnalysisDetail = function(encodedData) {
 window.reloadAnalysis = function(encodedData) {
     trackButtonClick('Reload Analysis', 'analysis-history');
     try {
-        const data = JSON.parse(decodeURIComponent(encodedData));
+        const payload = JSON.parse(decodeURIComponent(encodedData));
+        
+        // Determine the full analysis data to send
+        var analysisData = null;
+        
+        if (payload.requestNumber && typeof AnalysisStore !== 'undefined') {
+            // Fetch full record from AnalysisStore by request number
+            var fullRecord = AnalysisStore.getByRequestNumber(payload.requestNumber);
+            if (fullRecord) {
+                analysisData = {
+                    requestNumber: fullRecord.requestNumber,
+                    clientName: fullRecord.clientName,
+                    clientId: fullRecord.clientId,
+                    accountName: fullRecord.accountName,
+                    accountId: fullRecord.accountId,
+                    // All form parameters
+                    iso: fullRecord.parameters.iso,
+                    zone: fullRecord.parameters.zone,
+                    startDate: fullRecord.parameters.startDate,
+                    termMonths: fullRecord.parameters.termMonths,
+                    fixedPrice: fullRecord.parameters.fixedPrice,
+                    lmpAdjustment: fullRecord.parameters.lmpAdjustment || 0,
+                    capacityCost: fullRecord.parameters.capacityCost,
+                    ancillaryCost: fullRecord.parameters.ancillaryCost,
+                    transmissionCost: fullRecord.parameters.transmissionCost,
+                    projectionMethod: fullRecord.parameters.projectionMethod,
+                    lmpEscalator: fullRecord.parameters.lmpEscalator,
+                    simpleBlockRate: fullRecord.parameters.simpleBlockRate,
+                    simpleHedgePercent: fullRecord.parameters.simpleHedgePercent,
+                    // Monthly usage
+                    monthlyUsage: fullRecord.monthlyUsage || [],
+                    totalAnnualUsage: fullRecord.totalAnnualUsage,
+                    // Full calculation results
+                    calculationResults: fullRecord.calculationResults || [],
+                    results: fullRecord.results || {}
+                };
+                console.log('[Main] Reloading full analysis:', fullRecord.requestNumber);
+            } else {
+                showNotification('Analysis ' + payload.requestNumber + ' not found - try refreshing', 'warning');
+                return;
+            }
+        } else {
+            // Legacy: payload IS the parameters (old ActivityLog format)
+            analysisData = payload;
+        }
+        
         const lmpWidget = document.querySelector('[data-widget-id="lmp-comparison"] iframe');
-        if (lmpWidget?.contentWindow) { lmpWidget.contentWindow.postMessage({ type: 'LOAD_ANALYSIS', data }, '*'); scrollToWidget('lmp-comparison'); showNotification('Loaded into calculator', 'success'); }
-        else { showNotification('Open LMP Comparison first', 'warning'); }
-    } catch (e) { showNotification('Failed to reload', 'error'); }
+        if (lmpWidget?.contentWindow) {
+            lmpWidget.contentWindow.postMessage({ type: 'LOAD_ANALYSIS', data: analysisData }, '*');
+            scrollToWidget('lmp-comparison');
+            var reqLabel = analysisData.requestNumber ? ' (' + analysisData.requestNumber + ')' : '';
+            showNotification('Analysis loaded' + reqLabel, 'success');
+        } else {
+            showNotification('Open LMP Comparison first', 'warning');
+        }
+    } catch (e) {
+        console.error('Failed to reload analysis:', e);
+        showNotification('Failed to reload', 'error');
+    }
 };
 
 const AISearch = {
@@ -1915,21 +2117,69 @@ window.exportLMPData = function() {
 
 window.exportMyAnalysisRecords = function() {
     if (!currentUser) return;
-    const logs = ActivityLog.getByUser(currentUser.id).filter(l => l.action === 'LMP Analysis');
-    const csv = 'Date,Client,ISO,Zone,Term,Fixed Rate,Usage,Index Cost,Fixed Cost,Savings\n' +
-        logs.map(l => {
-            const d = l.data || {};
-            const r = d.results || {};
-            return [new Date(l.timestamp).toLocaleDateString(), d.clientName || '', d.iso || '', d.zone || '', d.termMonths || '', d.fixedPrice || '', d.totalAnnualUsage || '', r.totalIndexCost || '', r.totalFixedCost || '', r.savingsVsFixed || ''].join(',');
-        }).join('\n');
-    downloadFile(csv, 'my-analysis-history.csv', 'text/csv');
-    logWidgetAction('History Export', 'analysis-history', { count: logs.length });
+    
+    // Prefer AnalysisStore; fallback to ActivityLog
+    var records;
+    var useAnalysisStore = typeof AnalysisStore !== 'undefined' && AnalysisStore.getAll().length > 0;
+    
+    if (useAnalysisStore) {
+        records = currentUser.role === 'admin' ? AnalysisStore.getAll() : AnalysisStore.getByUser(currentUser.id);
+        var csv = 'Request Number,Date,User,Client,ISO,Zone,Term (mo),Fixed Rate,Total Usage (kWh),Index Cost,Fixed Cost,Savings\n' +
+            records.map(function(a) {
+                var p = a.parameters || {};
+                var r = a.results || {};
+                return [
+                    a.requestNumber || '', 
+                    new Date(a.timestamp).toLocaleDateString(), 
+                    a.userName || '',
+                    '"' + (a.clientName || '').replace(/"/g, '""') + '"', 
+                    p.iso || '', 
+                    p.zone || '', 
+                    p.termMonths || '', 
+                    p.fixedPrice || '', 
+                    a.totalAnnualUsage || '', 
+                    r.totalIndexCost || '', 
+                    r.totalFixedCost || '', 
+                    r.savingsVsFixed || ''
+                ].join(',');
+            }).join('\n');
+        downloadFile(csv, 'analysis-history.csv', 'text/csv');
+        logWidgetAction('History Export', 'analysis-history', { count: records.length, source: 'AnalysisStore' });
+    } else {
+        // Legacy: fall back to ActivityLog
+        var logs = ActivityLog.getByUser(currentUser.id).filter(function(l) { return l.action === 'LMP Analysis'; });
+        var csv = 'Date,Client,ISO,Zone,Term,Fixed Rate,Usage,Index Cost,Fixed Cost,Savings\n' +
+            logs.map(function(l) {
+                var d = l.data || {};
+                var r = d.results || {};
+                return [new Date(l.timestamp).toLocaleDateString(), d.clientName || '', d.iso || '', d.zone || '', d.termMonths || '', d.fixedPrice || '', d.totalAnnualUsage || '', r.totalIndexCost || '', r.totalFixedCost || '', r.savingsVsFixed || ''].join(',');
+            }).join('\n');
+        downloadFile(csv, 'my-analysis-history.csv', 'text/csv');
+        logWidgetAction('History Export', 'analysis-history', { count: logs.length, source: 'ActivityLog' });
+    }
+    
     showNotification('Analysis history exported', 'success');
 };
 
 window.refreshAnalysisHistory = function() {
-    renderAnalysisHistory();
-    showNotification('Analysis history refreshed', 'info');
+    // Try to refresh from Azure first for cross-device sync
+    if (typeof AnalysisStore !== 'undefined' && typeof AzureDataService !== 'undefined' && AzureDataService.isConfigured()) {
+        showNotification('Syncing analysis history from Azure...', 'info');
+        AnalysisStore.refresh().then(function(result) {
+            renderAnalysisHistory();
+            if (result.success) {
+                showNotification('Analysis history synced (' + result.count + ' records)', 'success');
+            } else {
+                showNotification('Analysis history refreshed (local only)', 'info');
+            }
+        }).catch(function() {
+            renderAnalysisHistory();
+            showNotification('Analysis history refreshed (local only)', 'info');
+        });
+    } else {
+        renderAnalysisHistory();
+        showNotification('Analysis history refreshed', 'info');
+    }
 };
 
 function downloadFile(content, filename, mimeType) {

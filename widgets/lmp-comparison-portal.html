@@ -3068,12 +3068,21 @@
             const fixedPrice = parseFloat(document.getElementById('fixedPrice').value);
             const lmpAdjustment = parseFloat(document.getElementById('lmpAdjustSlider')?.value || 0);
             
-            // Get usage data
-            const usage = [];
+            // Get ALL form parameters for complete reload
+            const capacityCost = parseFloat(document.getElementById('capacityCost')?.value || 0.015);
+            const ancillaryCost = parseFloat(document.getElementById('ancillaryCost')?.value || 0.005);
+            const transmissionCost = parseFloat(document.getElementById('transmissionCost')?.value || 0.015);
+            const projectionMethod = document.getElementById('projectionMethod')?.value || 'historical_average';
+            const lmpEscalator = parseFloat(document.getElementById('lmpEscalator')?.value || 0);
+            const simpleBlockRate = parseFloat(document.getElementById('simpleBlockRate')?.value || 0.075);
+            const simpleHedgePercent = parseFloat(document.getElementById('simpleHedgeSlider')?.value || 100);
+            
+            // Get monthly usage data (all 12 months)
+            const monthlyUsage = [];
             for (let i = 0; i < 12; i++) {
-                usage.push(parseFloat(document.getElementById(`usage_${i}`).value) || 0);
+                monthlyUsage.push(parseFloat(document.getElementById(`usage_${i}`).value) || 0);
             }
-            const totalAnnualUsage = usage.reduce((a, b) => a + b, 0);
+            const totalAnnualUsage = monthlyUsage.reduce((a, b) => a + b, 0);
             
             // Get results summary
             const lastResult = calculationResults[calculationResults.length - 1];
@@ -3099,6 +3108,16 @@
                         termMonths: termMonths,
                         fixedPrice: fixedPrice,
                         lmpAdjustment: lmpAdjustment,
+                        // Additional parameters for complete reload
+                        capacityCost: capacityCost,
+                        ancillaryCost: ancillaryCost,
+                        transmissionCost: transmissionCost,
+                        projectionMethod: projectionMethod,
+                        lmpEscalator: lmpEscalator,
+                        simpleBlockRate: simpleBlockRate,
+                        simpleHedgePercent: simpleHedgePercent,
+                        // Monthly usage array (12 values)
+                        monthlyUsage: monthlyUsage,
                         totalAnnualUsage: totalAnnualUsage,
                         results: {
                             totalIndexCost: totalIndexCost,
@@ -3107,6 +3126,8 @@
                             avgBlendedRate: avgBlendedRate,
                             totalUsage: totalUsage
                         },
+                        // Full per-period calculation results for complete reload
+                        calculationResults: calculationResults || [],
                         timestamp: new Date().toISOString()
                     }
                 };
@@ -4531,9 +4552,11 @@
             }
         });
         
-        // Load a saved analysis into the form
+        // Load a saved analysis into the form (supports both legacy and full AnalysisStore records)
         function loadSavedAnalysis(data) {
             if (!data) return;
+            
+            console.log('[LMP Portal] Loading saved analysis:', data.requestNumber || 'legacy');
             
             // Set client name
             const clientNameInput = document.getElementById('clientName');
@@ -4574,11 +4597,10 @@
                 fixedPriceInput.value = data.fixedPrice;
             }
             
-            // Set LMP adjustment if exists
+            // Set LMP adjustment slider
             const lmpAdjustmentInput = document.getElementById('lmpAdjustSlider');
             if (lmpAdjustmentInput && data.lmpAdjustment !== undefined) {
                 lmpAdjustmentInput.value = data.lmpAdjustment;
-                // Also update the display value
                 const lmpAdjustValue = document.getElementById('lmpAdjustValue');
                 if (lmpAdjustValue) {
                     const val = parseFloat(data.lmpAdjustment);
@@ -4586,7 +4608,85 @@
                 }
             }
             
-            showNotification('Analysis parameters loaded - click Calculate to run', 'success');
+            // === NEW: Restore non-energy cost parameters ===
+            const capacityCostEl = document.getElementById('capacityCost');
+            if (capacityCostEl && data.capacityCost !== undefined) {
+                capacityCostEl.value = data.capacityCost;
+            }
+            
+            const ancillaryCostEl = document.getElementById('ancillaryCost');
+            if (ancillaryCostEl && data.ancillaryCost !== undefined) {
+                ancillaryCostEl.value = data.ancillaryCost;
+            }
+            
+            const transmissionCostEl = document.getElementById('transmissionCost');
+            if (transmissionCostEl && data.transmissionCost !== undefined) {
+                transmissionCostEl.value = data.transmissionCost;
+            }
+            
+            // === NEW: Restore projection method ===
+            const projMethodEl = document.getElementById('projectionMethod');
+            if (projMethodEl && data.projectionMethod) {
+                projMethodEl.value = data.projectionMethod;
+                // Trigger any change handlers for projection method visibility
+                projMethodEl.dispatchEvent(new Event('change'));
+            }
+            
+            const lmpEscalatorEl = document.getElementById('lmpEscalator');
+            if (lmpEscalatorEl && data.lmpEscalator !== undefined) {
+                lmpEscalatorEl.value = data.lmpEscalator;
+            }
+            
+            // === NEW: Restore hedge settings ===
+            const simpleBlockRateEl = document.getElementById('simpleBlockRate');
+            if (simpleBlockRateEl && data.simpleBlockRate !== undefined) {
+                simpleBlockRateEl.value = data.simpleBlockRate;
+            }
+            
+            const simpleHedgeSliderEl = document.getElementById('simpleHedgeSlider');
+            if (simpleHedgeSliderEl && data.simpleHedgePercent !== undefined) {
+                simpleHedgeSliderEl.value = data.simpleHedgePercent;
+                const simpleHedgeValue = document.getElementById('simpleHedgeValue');
+                if (simpleHedgeValue) {
+                    simpleHedgeValue.textContent = data.simpleHedgePercent + '%';
+                }
+            }
+            
+            // === NEW: Restore monthly usage data ===
+            if (data.monthlyUsage && Array.isArray(data.monthlyUsage) && data.monthlyUsage.length > 0) {
+                for (let i = 0; i < 12 && i < data.monthlyUsage.length; i++) {
+                    const usageInput = document.getElementById(`usage_${i}`);
+                    if (usageInput) {
+                        usageInput.value = data.monthlyUsage[i] || 0;
+                    }
+                }
+                console.log('[LMP Portal] Monthly usage restored:', data.monthlyUsage.length, 'months');
+            }
+            
+            // Determine if we have full calculation results for auto-display
+            const hasFullResults = data.calculationResults && 
+                                   Array.isArray(data.calculationResults) && 
+                                   data.calculationResults.length > 0;
+            
+            if (hasFullResults) {
+                // Full reload: restore calculation results and display immediately
+                calculationResults = data.calculationResults;
+                
+                // Give zone dropdown time to populate, then display results
+                setTimeout(() => {
+                    try {
+                        displayResults();
+                        const reqLabel = data.requestNumber ? ' (' + data.requestNumber + ')' : '';
+                        showNotification('Analysis fully restored' + reqLabel + ' — results displayed', 'success');
+                    } catch (e) {
+                        console.warn('[LMP Portal] Could not auto-display results, may need to recalculate:', e);
+                        showNotification('Analysis parameters loaded — click Calculate to refresh results', 'success');
+                    }
+                }, 200);
+            } else {
+                // Legacy reload: only parameters loaded, need to recalculate
+                showNotification('Analysis parameters loaded — click Calculate to run', 'success');
+            }
         }
         
         // Handle external data updates
