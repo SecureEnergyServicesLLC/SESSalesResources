@@ -2,13 +2,12 @@
  * Secure Energy Analytics Portal - Main Controller v3.2
  * 
  * v3.2 Updates:
- * - Client Command Center widget: merged Client Lookup + Client Admin into unified widget
- * - Search-first banner with hierarchical parent/account navigation
- * - Portal activity tracking & widget analytics grid per client
- * - Role-based: standard users see search/context/activity; admins get full CRUD/import/export
- * - Legacy client-lookup and client-admin widgets preserved (toggleable via permissions)
- * - Added 'client-command-center' permission toggle in User Administration
- * - New message handlers: COMMAND_CENTER_ACTION, COMMAND_CENTER_CLIENT_SAVED, etc.
+ * - Client Command Center: docked full-width at top of screen (not in widget grid)
+ * - Command Center replaces client-lookup/client-admin as primary client interface
+ * - 6 new COMMAND_CENTER_* message handlers for activity logging
+ * - Permission toggle for client-command-center in user admin
+ * - Activity log icons and formatters for Command Center events
+ * - Legacy client-lookup and client-admin widgets preserved as toggleable
  * 
  * v3.1 Updates:
  * - Password Reset widget: users can change their own password
@@ -65,7 +64,6 @@ let lastActivityTime = Date.now();
 
 const DEFAULT_WIDGETS = [
     { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, adminWide: true, fullWidth: true, embedded: true, defaultHeight: 800, minHeight: 500, maxHeight: 1400, doubleHeight: true },
-    { id: 'client-command-center', name: 'Client Command Center', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><path d="M7 8h4M7 11h2"/><circle cx="17" cy="9.5" r="2.5"/></svg>', src: 'widgets/client-command-center.html', adminWide: true, fullWidth: true, defaultHeight: 900, minHeight: 600, maxHeight: 1400, doubleHeight: true },
     { id: 'client-admin', name: 'Client Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', src: 'widgets/client-admin-widget.html', adminOnly: true, adminWide: true, fullWidth: true, defaultHeight: 800, minHeight: 500, maxHeight: 1400, doubleHeight: true },
     { id: 'client-lookup', name: 'Client Lookup', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>', src: 'widgets/client-lookup-widget.html', fullWidth: false, defaultHeight: 220, minHeight: 180, maxHeight: 350 },
     { id: 'energy-utilization', name: 'Energy Utilization', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/energy-utilization-widget.html', fullWidth: false, defaultHeight: 650, minHeight: 500, maxHeight: 900 },
@@ -114,7 +112,7 @@ window.setTheme = function(theme) {
 function loadSavedTheme() { window.setTheme(localStorage.getItem('secureEnergy_theme') || 'dark'); }
 
 document.addEventListener('DOMContentLoaded', async function() {
-    console.log('[Portal] Initializing v3.2 - Client Command Center...');
+    console.log('[Portal] Initializing v3.1 - Password Security + Force Reset...');
     loadSavedTheme();
     await UserStore.init();
     await ActivityLog.init();
@@ -560,9 +558,79 @@ document.getElementById('logoutBtn').addEventListener('click', function() {
 let draggedWidget = null;
 let dragOverWidget = null;
 
+// =====================================================
+// CLIENT COMMAND CENTER — DOCKED TOP-OF-SCREEN
+// =====================================================
+function renderCommandCenterDock(user) {
+    const dockId = 'commandCenterDock';
+    let dock = document.getElementById(dockId);
+    
+    // Check permission — if explicitly disabled, remove and bail
+    if (user.permissions && user.permissions['client-command-center'] === false) {
+        if (dock) dock.remove();
+        return;
+    }
+    
+    // Already rendered? Don't duplicate
+    if (dock) return;
+    
+    // Find the insertion point — before the widgetsGrid, inside mainContent
+    const mainContent = document.getElementById('mainContent');
+    const widgetsGrid = document.getElementById('widgetsGrid');
+    if (!mainContent || !widgetsGrid) return;
+    
+    dock = document.createElement('div');
+    dock.id = dockId;
+    dock.className = 'command-center-dock';
+    
+    // Collapse state from localStorage
+    const isCollapsed = localStorage.getItem('commandCenter_collapsed') === 'true';
+    
+    dock.innerHTML = 
+        '<div class="command-center-dock-header">' +
+            '<div class="command-center-dock-title">' +
+                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>' +
+                '<span>Client Command Center</span>' +
+            '</div>' +
+            '<div class="command-center-dock-actions">' +
+                '<button class="command-center-dock-btn" onclick="toggleCommandCenterDock()" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" id="cmdCenterToggleBtn">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>' +
+                '</button>' +
+                '<button class="command-center-dock-btn" onclick="popoutWidget(\'client-command-center\')" title="Pop out">' +
+                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+                '</button>' +
+            '</div>' +
+        '</div>' +
+        '<div class="command-center-dock-body" id="commandCenterBody" style="' + (isCollapsed ? 'display:none;' : '') + '">' +
+            '<iframe class="command-center-iframe" id="commandCenterIframe" src="widgets/client-command-center.html" title="Client Command Center"></iframe>' +
+        '</div>';
+    
+    // Insert before the widgets grid
+    mainContent.insertBefore(dock, widgetsGrid);
+}
+
+function toggleCommandCenterDock() {
+    const body = document.getElementById('commandCenterBody');
+    const btn = document.getElementById('cmdCenterToggleBtn');
+    if (!body) return;
+    
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? '' : 'none';
+    localStorage.setItem('commandCenter_collapsed', isHidden ? 'false' : 'true');
+    
+    if (btn) {
+        btn.title = isHidden ? 'Collapse' : 'Expand';
+        btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isHidden ? '18 15 12 9 6 15' : '6 9 12 15 18 9') + '"/></svg>';
+    }
+}
+
 function renderWidgets(user) {
     const container = document.getElementById('widgetsGrid');
     container.innerHTML = '';
+    
+    // === DOCK: Client Command Center above widget grid ===
+    renderCommandCenterDock(user);
+    
     let availableWidgets = DEFAULT_WIDGETS.filter(w => {
         if (w.adminOnly && user.role !== 'admin') return false;
         if (user.permissions && user.permissions[w.id] === false) return false;
@@ -771,6 +839,12 @@ window.resetWidgetLayout = function() {
 };
 
 function popoutWidget(id) { 
+    // Handle docked Command Center (not in DEFAULT_WIDGETS)
+    if (id === 'client-command-center') {
+        window.open('widgets/client-command-center.html', id, 'width=1400,height=900');
+        logWidgetAction('Widget Popout', id);
+        return;
+    }
     const w = DEFAULT_WIDGETS.find(x => x.id === id); 
     if (w?.src) { window.open(w.src, id, 'width=1200,height=800'); logWidgetAction('Widget Popout', id); }
 }
@@ -910,10 +984,10 @@ function handleWidgetMessage(event) {
         ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'client-admin', action: 'Client Delete', clientName: event.data.clientName, data: { clientId: event.data.clientId } });
         showNotification('Client deleted: ' + event.data.clientName, 'info');
     }
-    // Client Command Center message handlers
+    // === Command Center Message Handlers ===
     if (event.data?.type === 'COMMAND_CENTER_ACTION' && currentUser) {
-        ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'client-command-center', action: event.data.action || 'Command Center Action', clientName: event.data.clientName || null, data: event.data.data || {} });
-        if (event.data.notify) showNotification(event.data.notify, event.data.notifyType || 'success');
+        ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'client-command-center', action: event.data.action || 'Command Center Action', clientName: event.data.clientName, data: event.data.data || {} });
+        if (event.data.notify) showNotification(event.data.notify, event.data.notifyType || 'info');
     }
     if (event.data?.type === 'COMMAND_CENTER_CLIENT_SAVED' && currentUser) {
         ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'client-command-center', action: event.data.isNew ? 'Client Create' : 'Client Update', clientName: event.data.clientName, data: event.data.data || {} });
@@ -925,18 +999,15 @@ function handleWidgetMessage(event) {
         showNotification('Client deleted: ' + event.data.clientName, 'info');
     }
     if (event.data?.type === 'COMMAND_CENTER_IMPORT' && currentUser) {
-        ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'client-command-center', action: 'Data Import', data: event.data.data || {} });
-        showNotification(event.data.message || 'Import complete', 'success');
+        ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'client-command-center', action: 'Data Import', data: { imported: event.data.imported, updated: event.data.updated, skipped: event.data.skipped } });
     }
     if (event.data?.type === 'COMMAND_CENTER_EXPORT' && currentUser) {
-        ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'client-command-center', action: 'Data Export', data: event.data.data || {} });
+        ActivityLog.log({ userId: currentUser.id, userEmail: currentUser.email, userName: currentUser.firstName + ' ' + currentUser.lastName, widget: 'client-command-center', action: 'Data Export', data: { format: event.data.format } });
     }
-    if (event.data?.type === 'COMMAND_CENTER_SET_CLIENT' && window.SecureEnergyClients) {
-        if (event.data.clientId) {
-            SecureEnergyClients.setActiveClient(event.data.clientId);
-            if (event.data.accountId) SecureEnergyClients.setActiveAccount(event.data.accountId);
-        } else {
-            SecureEnergyClients.clearActiveClient();
+    if (event.data?.type === 'COMMAND_CENTER_SET_CLIENT' && currentUser) {
+        if (typeof SecureEnergyClients !== 'undefined') {
+            if (event.data.clientId) SecureEnergyClients.setActiveClient(event.data.clientId);
+            if (event.data.accountId && SecureEnergyClients.setActiveAccount) SecureEnergyClients.setActiveAccount(event.data.accountId);
         }
     }
     if (event.data?.type === 'UTILIZATION_SAVED' && currentUser) {
@@ -1584,7 +1655,6 @@ function getDataPreview(log) {
     if (log.action === 'Password Changed') return 'Email: ' + (d.email || 'N/A') + (d.changedBy && d.changedBy !== d.email ? ' | Changed by: ' + d.changedBy : '');
     if (log.action === 'Force Password Reset' || log.action === 'Force Reset Cleared') return 'Email: ' + (d.email || 'N/A');
     if (log.action === 'Force Reset All Users') return (d.count || 0) + ' users flagged for reset';
-    if (log.widget === 'client-command-center') return (log.clientName ? 'Client: ' + log.clientName : '') + (d.accountName ? ' → ' + d.accountName : '') + (d.action ? ' | ' + d.action : '');
     return '';
 }
 
@@ -1672,7 +1742,7 @@ function clearErrorLog() {
 }
 
 function getActivityIcon(action) {
-    const icons = { 'Login': '🔑', 'Logout': '🚪', 'Session Timeout': '⏰', 'LMP Analysis': '📊', 'LMP Export': '📥', 'Button Click': '👆', 'Bid Sheet Generated': '📄', 'Client Save': '💾', 'Client Create': '➕', 'Client Update': '✏️', 'Client Delete': '🗑️', 'Widget Expand': '🔼', 'Widget Collapse': '🔽', 'Widget Resize': '↕️', 'Widget Reorder': '🔀', 'Widget Width Toggle': '↔️', 'Widget Popout': '🪟', 'Widget Layout Reset': '🔄', 'Data Upload': '📤', 'Data Update': '🔄', 'Data Import': '📥', 'Data Export': '📤', 'Error Check at Login': '⚠️', 'Error Resolved': '✅', 'Error Log Cleared': '🧹', 'Admin Tab Switch': '📑', 'User Created': '👤', 'User Updated': '✏️', 'User Deleted': '🗑️', 'AI Query': '🤖', 'Utilization Data Saved': '⚡', 'History Export': '📁', 'Export Users': '👥', 'Export Activity': '📋', 'Export LMP Data': '📈', 'Ticket Created': '🎫', 'Ticket Reply': '💬', 'Ticket Updated': '📝', 'Password Changed': '🔐', 'Force Password Reset': '🔒', 'Force Password Reset Completed': '🔓', 'Force Reset All Users': '🔒', 'Force Reset Cleared': '🔓', 'Login (Force Reset Required)': '⚠️', 'Logout (During Force Reset)': '🚪', 'Command Center Action': '🎛️', 'Client Search': '🔍', 'Client Selected': '📋', 'Account Selected': '📂' };
+    const icons = { 'Login': '🔑', 'Logout': '🚪', 'Session Timeout': '⏰', 'LMP Analysis': '📊', 'LMP Export': '📥', 'Button Click': '👆', 'Bid Sheet Generated': '📄', 'Client Save': '💾', 'Client Create': '➕', 'Client Update': '✏️', 'Client Delete': '🗑️', 'Widget Expand': '🔼', 'Widget Collapse': '🔽', 'Widget Resize': '↕️', 'Widget Reorder': '🔀', 'Widget Width Toggle': '↔️', 'Widget Popout': '🪟', 'Widget Layout Reset': '🔄', 'Data Upload': '📤', 'Data Update': '🔄', 'Error Check at Login': '⚠️', 'Error Resolved': '✅', 'Error Log Cleared': '🧹', 'Admin Tab Switch': '📑', 'User Created': '👤', 'User Updated': '✏️', 'User Deleted': '🗑️', 'AI Query': '🤖', 'Utilization Data Saved': '⚡', 'History Export': '📁', 'Export Users': '👥', 'Export Activity': '📋', 'Export LMP Data': '📈', 'Ticket Created': '🎫', 'Ticket Reply': '💬', 'Ticket Updated': '📝', 'Password Changed': '🔐', 'Force Password Reset': '🔒', 'Force Password Reset Completed': '🔓', 'Force Reset All Users': '🔒', 'Force Reset Cleared': '🔓', 'Login (Force Reset Required)': '⚠️', 'Logout (During Force Reset)': '🚪', 'Command Center Action': '🎛️', 'Client Search': '🔍', 'Client Selected': '📋', 'Account Selected': '📂', 'Data Import': '📥', 'Data Export': '📤' };
     return icons[action] || '📝';
 }
 

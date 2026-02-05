@@ -1,12 +1,11 @@
 /**
- * Secure Energy Shared Data Store v3.4 (Client Command Center Support)
+ * Secure Energy Shared Data Store v3.4 (Azure Integration + Password Security + Command Center)
  * Centralized data management for LMP data, user authentication, activity logging,
  * widget layout preferences, usage profiles, and support tickets
  * 
  * v3.4 Updates:
- * - Added 'client-command-center' to ErrorLog widget source detection
- * - Supports Client Command Center widget activity logging and error tracking
- * 
+ * - Added client-command-center to ErrorLog.getWidgetFromSource()
+ *
  * v3.3 Updates:
  * - Added logHistoryExport() - tracks analysis history CSV exports (was called but missing)
  * - Added logDataExport() - generic export tracker for any widget (Excel, CSV, PPTX, etc.)
@@ -94,12 +93,12 @@ const ErrorLog = {
 
     getWidgetFromSource(source) {
         if (!source) return 'unknown';
-        if (source.includes('client-command-center')) return 'client-command-center';
         if (source.includes('lmp-comparison')) return 'lmp-comparison';
         if (source.includes('lmp-analytics')) return 'lmp-analytics';
         if (source.includes('data-manager')) return 'data-manager';
         if (source.includes('arcadia')) return 'arcadia-fetcher';
         if (source.includes('feedback')) return 'feedback';
+        if (source.includes('command-center') || source.includes('CommandCenter')) return 'client-command-center';
         if (source.includes('main.js')) return 'portal';
         return 'portal';
     },

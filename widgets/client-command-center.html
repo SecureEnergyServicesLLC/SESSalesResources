@@ -1018,6 +1018,7 @@
                         <div class="banner-stat-value" id="statAccounts">0</div>
                         <div class="banner-stat-label">Accounts</div>
                     </div>
+                    <div id="scopeIndicator" style="font-size:0.65rem;color:var(--text-muted);text-align:center;margin-top:2px;"></div>
                 </div>
 
                 <div class="banner-user-badge" id="userBadge">
@@ -1288,7 +1289,7 @@
                 <div class="admin-tab-content" id="admintab-export">
                     <h3 style="font-size: 0.95rem; margin-bottom: 8px;">Export & Save</h3>
                     <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 16px;">
-                        Client data is stored in <code style="background: var(--bg-input); padding: 2px 5px; border-radius: 3px;">data/clients.json</code> on GitHub.
+                        Client data is stored in <code style="background: var(--bg-input); padding: 2px 5px; border-radius: 3px;">clients.json</code> on Azure Blob Storage. Changes auto-sync when Azure is configured.
                     </p>
                     <div id="storageInfo" style="background: var(--bg-input); padding: 12px; border-radius: var(--radius-md); margin-bottom: 16px;"></div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
@@ -1300,7 +1301,7 @@
                         </button>
                     </div>
                     <div style="font-size: 0.75rem; color: var(--text-muted); padding: 10px; background: var(--bg-input); border-radius: var(--radius-sm);">
-                        <strong>How to save:</strong> Download → Go to GitHub repo → data/ folder → Upload/replace clients.json → Commit
+                        <strong>Auto-sync:</strong> Changes save to Azure automatically when configured. Download for manual backup or offline use.
                     </div>
                 </div>
 
@@ -1479,10 +1480,22 @@
         // ========================================
         function updateBannerStats() {
             if (!ClientStore) return;
-            const clients = allClients;
+            const clients = getAccessibleClients();
             const totalAccounts = clients.reduce((sum, c) => sum + (c.accounts?.length || 0), 0);
             document.getElementById('statParents').textContent = clients.length;
             document.getElementById('statAccounts').textContent = totalAccounts;
+
+            // Show scope indicator
+            const scopeEl = document.getElementById('scopeIndicator');
+            if (scopeEl) {
+                if (!currentUser || isAdmin) {
+                    scopeEl.textContent = '🔓 All Clients';
+                    scopeEl.style.color = 'var(--success)';
+                } else {
+                    scopeEl.textContent = '🔒 My Clients';
+                    scopeEl.style.color = 'var(--account-active)';
+                }
+            }
         }
 
         // ========================================
@@ -2076,15 +2089,48 @@
         }
 
         function getAccessibleClients() {
-            // Filter by assigned group for the current user
-            if (!currentUser || isAdmin) return allClients;
+            // Admins see everything
+            if (!currentUser || isAdmin) {
+                console.log('[CommandCenter] Access: ADMIN - showing all', allClients.length, 'clients');
+                return allClients;
+            }
 
-            const userGroup = currentUser.assignedGroup || currentUser.group;
-            if (!userGroup) return allClients;
+            // Build match identifiers for current user
+            const userFullName = ((currentUser.firstName || '') + ' ' + (currentUser.lastName || '')).trim().toLowerCase();
+            const userEmail = (currentUser.email || '').toLowerCase();
+            const userGroup = (currentUser.assignedGroup || currentUser.group || '').toLowerCase();
 
-            return allClients.filter(c =>
-                !c.assignedGroup || c.assignedGroup === userGroup
-            );
+            // If no identifying info, fall back to showing all (safety net)
+            if (!userFullName && !userEmail) {
+                console.warn('[CommandCenter] Access: No user identity found - showing all as fallback');
+                return allClients;
+            }
+
+            const filtered = allClients.filter(c => {
+                // Match parent-level owner fields (salesRepName / salesRepEmail)
+                const repName = (c.salesRepName || '').toLowerCase();
+                const repEmail = (c.salesRepEmail || '').toLowerCase();
+                if (userEmail && repEmail && repEmail === userEmail) return true;
+                if (userFullName && repName && repName === userFullName) return true;
+
+                // Match child account-level accountOwner field
+                if (c.accounts?.length > 0) {
+                    const ownsAccount = c.accounts.some(a => {
+                        const acctOwner = (a.accountOwner || '').toLowerCase();
+                        if (!acctOwner) return false;
+                        return acctOwner === userFullName || acctOwner === userEmail;
+                    });
+                    if (ownsAccount) return true;
+                }
+
+                // Match assigned group (existing legacy support)
+                if (userGroup && c.assignedGroup && c.assignedGroup.toLowerCase() === userGroup) return true;
+
+                return false;
+            });
+
+            console.log('[CommandCenter] Access: OWNER filter -', filtered.length, '/', allClients.length, 'clients for', userFullName || userEmail);
+            return filtered;
         }
 
         // ========================================
