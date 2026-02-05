@@ -1,9 +1,10 @@
-name: Update LMP Data Monthly
+name: Update LMP Data
 
 on:
   schedule:
+    # Runs at 6 AM UTC on the 3rd of every month (monthly aggregate)
     - cron: '0 6 3 * *'
-  
+
   workflow_dispatch:
     inputs:
       start_date:
@@ -19,6 +20,11 @@ on:
         required: false
         default: 'all'
         type: string
+      include_hourly:
+        description: 'Fetch hourly granularity data (true/false) - slower but enables hourly analytics'
+        required: false
+        default: 'true'
+        type: string
 
 permissions:
   contents: read
@@ -30,20 +36,20 @@ env:
 jobs:
   fetch-and-update:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-      
+
       - name: Install dependencies
         run: npm install
         working-directory: scripts
-      
+
       - name: Determine date range
         id: dates
         run: |
@@ -56,30 +62,33 @@ jobs:
             echo "start_date=$PREV_MONTH" >> $GITHUB_OUTPUT
             echo "end_date=$LAST_DAY" >> $GITHUB_OUTPUT
           fi
-          echo "Fetching data from ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}"
-      
-      - name: Fetch LMP Data from Arcadia API
+          echo "Fetching data from $(cat $GITHUB_OUTPUT | grep start_date | cut -d= -f2) to $(cat $GITHUB_OUTPUT | grep end_date | cut -d= -f2)"
+
+      - name: Fetch LMP Data (Hourly) from Arcadia API
         env:
           ARCADIA_APP_ID: ${{ secrets.ARCADIA_APP_ID }}
           ARCADIA_APP_KEY: ${{ secrets.ARCADIA_APP_KEY }}
           START_DATE: ${{ steps.dates.outputs.start_date }}
           END_DATE: ${{ steps.dates.outputs.end_date }}
           ISO_MARKETS: ${{ github.event.inputs.iso_markets || 'all' }}
-        run: node fetch-lmp-data.js
+          INCLUDE_HOURLY: ${{ github.event.inputs.include_hourly || 'true' }}
+        run: node fetch-lmp-data-hourly.js
         working-directory: scripts
-      
-      - name: Update LMP Database (Azure)
+
+      - name: Upload to Azure (v2)
         env:
           AZURE_API_ENDPOINT: ${{ secrets.AZURE_API_ENDPOINT }}
           AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
-        run: node update-lmp-database-azure.js
+        run: node update-lmp-database-azure-v2.js
         working-directory: scripts
-      
+
       - name: Summary
         run: |
+          HOURLY_FLAG="${{ github.event.inputs.include_hourly || 'true' }}"
           echo "## LMP Data Update Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Date Range:** ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Markets:** ${{ github.event.inputs.iso_markets || 'all' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Hourly Data:** ${HOURLY_FLAG}" >> $GITHUB_STEP_SUMMARY
           echo "- **Storage:** Azure Blob (ses-data-api)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ✅ Completed" >> $GITHUB_STEP_SUMMARY
