@@ -147,14 +147,15 @@
                 Complete API-Verified Zone IDs • 5 ISOs • 79 Total Zones
             </p>
             <div style="font-size: 10px; color: #718096; margin-top: 4px;">
-                v5.0.1 FINAL • CORS Proxy Failover • Auto-generated from API Discovery Tool
+                v5.1.0 FINAL • Azure Proxy + CORS Fallback • API Discovery Verified
             </div>
         </div>
         
         <div class="alert-box">
             <h4>🎉 Complete Zone Discovery Applied!</h4>
             <p style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">
-                This fetcher uses zone IDs discovered directly from the Genability API
+                This fetcher uses zone IDs discovered directly from the Genability API.
+                API calls route through your Azure Function proxy (no CORS issues).
             </p>
             <ul>
                 <li><strong>ERCOT:</strong> 8 zones (AEN, CPS, HOUSTON, LCRA, NORTH, RAYBN, SOUTH, WEST)</li>
@@ -372,37 +373,31 @@
         let fetchedData = { hourly: [] };
 
         // ============================================
-        // CORS PROXY FAILOVER CHAIN
-        // Auto-rotates if a proxy goes down
+        // GENABILITY API PROXY CONFIGURATION
+        // Primary: Your Azure Function (no CORS issues)
+        // Fallback: Free public proxies (unreliable)
         // ============================================
-        const CORS_PROXIES = [
-            {
-                name: 'allorigins',
-                buildUrl: (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
-            },
-            {
-                name: 'corsproxy.io',
-                buildUrl: (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
-            },
-            {
-                name: 'corsproxy.org',
-                buildUrl: (url) => `https://corsproxy.org/?${encodeURIComponent(url)}`
-            }
+        const AZURE_PROXY_BASE = 'https://ses-data-api-gpaqghfbehhrb6c2.eastus-01.azurewebsites.net/api/genability-proxy';
+        
+        // Try to get portal API key for Azure proxy
+        function getPortalApiKey() {
+            try {
+                // From parent AzureDataService (when in iframe)
+                if (window.parent && window.parent.AzureDataService && window.parent.AzureDataService.isConfigured()) {
+                    const key = sessionStorage.getItem('ses_azure_api_key') || localStorage.getItem('ses_azure_api_key');
+                    if (key) return key;
+                }
+            } catch(e) { /* cross-origin, ignore */ }
+            // Direct from storage
+            return sessionStorage.getItem('ses_azure_api_key') || localStorage.getItem('ses_azure_api_key') || null;
+        }
+
+        const FREE_PROXIES = [
+            { name: 'allorigins', buildUrl: (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}` },
+            { name: 'corsproxy.io', buildUrl: (url) => `https://corsproxy.io/?${encodeURIComponent(url)}` },
+            { name: 'corsproxy.org', buildUrl: (url) => `https://corsproxy.org/?${encodeURIComponent(url)}` }
         ];
-        let currentProxyIndex = 0;
-
-        function getProxyUrl(targetUrl) {
-            return CORS_PROXIES[currentProxyIndex].buildUrl(targetUrl);
-        }
-
-        function tryNextProxy() {
-            if (currentProxyIndex < CORS_PROXIES.length - 1) {
-                currentProxyIndex++;
-                console.log(`[CORS] Switching to proxy: ${CORS_PROXIES[currentProxyIndex].name}`);
-                return true;
-            }
-            return false;
-        }
+        let freeProxyIndex = 0;
 
         function init() {
             // Set dates to past week
@@ -543,60 +538,86 @@
                 });
                 
                 const rawUrl = `${base}/${propKey}/lookups?${params}`;
-                let fetched = false;
-                let lastError = null;
+                let data = null;
 
-                // Try current proxy, failover to next on error
-                const startProxy = currentProxyIndex;
-                do {
-                    const proxyUrl = getProxyUrl(rawUrl);
+                // ── Attempt 1: Azure Function proxy (reliable, no CORS) ──
+                const portalKey = getPortalApiKey();
+                if (portalKey) {
                     try {
-                        console.log(`[CORS] Using ${CORS_PROXIES[currentProxyIndex].name} for ${zoneId} page ${page}`);
-                        
-                        const res = await fetch(proxyUrl, {
+                        const azureUrl = `${AZURE_PROXY_BASE}?url=${encodeURIComponent(rawUrl)}`;
+                        const res = await fetch(azureUrl, {
                             method: 'GET',
-                            headers: { 
-                                'Authorization': `Basic ${creds}`,
+                            headers: {
+                                'x-api-key': portalKey,
+                                'x-genability-auth': `Basic ${creds}`,
                                 'Accept': 'application/json'
                             }
                         });
-                        
-                        if (res.status === 401) throw new Error('Invalid API credentials');
-                        
-                        if (!res.ok) {
-                            throw new Error(`Proxy ${CORS_PROXIES[currentProxyIndex].name} returned ${res.status}`);
-                        }
 
-                        const data = await res.json();
-                        
-                        if (data.results?.length) {
-                            all.push(...data.results.map(i => ({ 
-                                datetime: i.fromDateTime,
-                                price: parseFloat(i.actualValue || i.bestValue || 0)
-                            })).filter(r => !isNaN(r.price)));
-                            
-                            more = data.count > page + 1000;
-                            page += 1000;
+                        if (res.status === 401) throw new Error('Invalid Genability API credentials');
+
+                        if (res.ok) {
+                            data = await res.json();
+                            if (page === 0 && all.length === 0) {
+                                console.log(`[Proxy] Azure proxy working for ${zoneId}`);
+                            }
                         } else {
-                            more = false;
+                            console.warn(`[Proxy] Azure proxy returned ${res.status}, falling back to free proxies`);
                         }
-                        fetched = true;
-
                     } catch (err) {
-                        lastError = err;
-                        // Don't rotate on auth errors
-                        if (err.message.includes('Invalid API credentials')) throw err;
-                        
-                        console.warn(`[CORS] ${CORS_PROXIES[currentProxyIndex].name} failed: ${err.message}`);
-                        if (!tryNextProxy()) {
-                            currentProxyIndex = 0; // reset for next call
-                            break;
+                        if (err.message.includes('Invalid Genability')) throw err;
+                        console.warn(`[Proxy] Azure proxy error: ${err.message}`);
+                    }
+                }
+
+                // ── Attempt 2: Free CORS proxies (fallback) ──
+                if (!data) {
+                    let tried = 0;
+                    while (!data && tried < FREE_PROXIES.length) {
+                        const proxy = FREE_PROXIES[freeProxyIndex];
+                        try {
+                            console.log(`[Proxy] Trying ${proxy.name} for ${zoneId} page ${page}`);
+                            const proxyUrl = proxy.buildUrl(rawUrl);
+                            const res = await fetch(proxyUrl, {
+                                method: 'GET',
+                                headers: {
+                                    'Authorization': `Basic ${creds}`,
+                                    'Accept': 'application/json'
+                                }
+                            });
+
+                            if (res.status === 401) throw new Error('Invalid Genability API credentials');
+
+                            if (res.ok) {
+                                data = await res.json();
+                                console.log(`[Proxy] ${proxy.name} succeeded`);
+                            } else {
+                                throw new Error(`${proxy.name} returned ${res.status}`);
+                            }
+                        } catch (err) {
+                            if (err.message.includes('Invalid Genability')) throw err;
+                            console.warn(`[Proxy] ${proxy.name} failed: ${err.message}`);
+                            freeProxyIndex = (freeProxyIndex + 1) % FREE_PROXIES.length;
+                            tried++;
                         }
                     }
-                } while (!fetched);
+                }
 
-                if (!fetched) {
-                    throw new Error(`All CORS proxies failed for ${zoneId}. Last error: ${lastError?.message || 'unknown'}`);
+                if (!data) {
+                    throw new Error(`All proxies failed for ${zoneId}. Check Azure proxy deployment or try again later.`);
+                }
+
+                // ── Parse results ──
+                if (data.results?.length) {
+                    all.push(...data.results.map(i => ({ 
+                        datetime: i.fromDateTime,
+                        price: parseFloat(i.actualValue || i.bestValue || 0)
+                    })).filter(r => !isNaN(r.price)));
+                    
+                    more = data.count > page + 1000;
+                    page += 1000;
+                } else {
+                    more = false;
                 }
             }
             
