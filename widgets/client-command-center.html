@@ -929,6 +929,51 @@
         }
         .import-option { display: flex; align-items: center; gap: 4px; }
 
+        .import-mode-toggle {
+            display: flex;
+            gap: 0;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+        }
+        .import-mode-btn {
+            flex: 1;
+            padding: 7px 10px;
+            background: var(--bg-input);
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.72rem;
+            font-weight: 500;
+            transition: all 0.15s;
+            text-align: center;
+        }
+        .import-mode-btn:not(:last-child) { border-right: 1px solid var(--border); }
+        .import-mode-btn.active { background: var(--accent); color: white; }
+        .import-mode-btn.active.danger { background: var(--danger); }
+        .import-mode-btn:hover:not(.active) { background: rgba(255,255,255,0.04); }
+        .import-mode-warn {
+            font-size: 0.68rem;
+            color: var(--danger);
+            padding: 6px 8px;
+            background: rgba(220,53,69,0.08);
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            display: none;
+        }
+        .import-mode-warn.visible { display: block; }
+        .import-field-list {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            padding: 8px;
+            background: var(--bg-input);
+            border-radius: var(--radius-sm);
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+        .import-field-list strong { color: var(--text-secondary); }
+
         /* Detail grid for client info */
         .detail-section { margin-bottom: 14px; }
         .detail-section-title {
@@ -1328,19 +1373,29 @@
                         <span style="background: var(--accent); color: white; padding: 2px 7px; border-radius: 3px; font-size: 0.65rem;">1</span>
                         Import Parent Clients
                     </h4>
-                    <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 10px;">Upload contract-level data from Salesforce to create parent client records.</p>
+                    <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 10px;">
+                        Upload the <strong>Parent Level</strong> Salesforce report. Rows are grouped by Parent Account — each row's contracts &amp; opportunities are stored under the parent.
+                    </p>
+                    <div class="import-field-list">
+                        <strong>Expected columns:</strong> Parent Account: Account ID Unique, Parent Account: Account Name, Parent Account: Customer, Account Contract Name, Opportunity: Opportunity Name, Assigned To, Status, Number Of Meters, # Active MC, Sign Date, Contract Start/End Date, Supplier, Product Category, Est. Annual Usage, Est. Contract Margin, BUDA Eligible/Notes, Account Contract ID, Contract Mils, Contract Rate
+                    </div>
+                    <div class="import-mode-toggle" id="parentImportMode">
+                        <button class="import-mode-btn active" onclick="setImportMode('parent','append',this)">📎 Append &amp; Update</button>
+                        <button class="import-mode-btn" onclick="setImportMode('parent','replace',this)">🔄 Replace All</button>
+                    </div>
+                    <div class="import-mode-warn" id="parentReplaceWarn">⚠️ Replace All will <strong>delete all existing clients</strong> and import fresh. This cannot be undone.</div>
                     <div class="import-zone" id="importZone" onclick="document.getElementById('importFile').click()">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="1.5" style="margin-bottom: 6px;">
                             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                             <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                         </svg>
                         <p><strong>Click to upload</strong> or drag & drop</p>
-                        <p style="font-size: 0.72rem;">Excel, CSV or JSON</p>
+                        <p style="font-size: 0.72rem;">Excel (.xlsx), CSV, or JSON</p>
                         <input type="file" id="importFile" accept=".xlsx,.xls,.csv,.json" style="display:none;" onchange="handleFileSelect(event)">
                     </div>
                     <div class="import-options">
-                        <label class="import-option"><input type="checkbox" id="optUpdateExisting" checked> Update existing</label>
-                        <label class="import-option"><input type="checkbox" id="optMatchByName"> Match by name</label>
+                        <label class="import-option"><input type="checkbox" id="optUpdateExisting" checked> Update existing clients</label>
+                        <label class="import-option"><input type="checkbox" id="optMatchByName"> Match by name (in addition to SF ID)</label>
                     </div>
                     <div id="importPreview" style="display:none; margin-top: 12px;"></div>
                     <div id="importResults" style="display:none; margin-top: 12px;"></div>
@@ -1349,22 +1404,33 @@
                 <div>
                     <h4 style="font-size: 0.88rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
                         <span style="background: var(--account-active); color: white; padding: 2px 7px; border-radius: 3px; font-size: 0.65rem;">2</span>
-                        Import Account Tree (Enrichment)
+                        Import Child Accounts
                     </h4>
-                    <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 10px;">Upload account-level data to add child accounts under parents. <strong>Requires "Parent Account" column.</strong></p>
+                    <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 10px;">
+                        Upload the <strong>Child Level</strong> Salesforce report. Accounts are linked to parents via <em>Parent Account</em> (Col T) or <em>Parent Account ID</em> (Col A). 
+                        Parents are auto-created when <em>Pending Opportunity</em> is not blank.
+                    </p>
+                    <div class="import-field-list">
+                        <strong>Expected columns:</strong> Parent Account ID, Account Owner, Account Name, Active Account Contract, Pending Opportunity, Renewal Status, Service Zip/Postal Code, Service State/Province, Supplier Applied Payment Number, Account Number, Last Modified Date, Latest Sign Date, Contract Start/End Date, Current Supplier, Gas Utility, Electric Utility, Supplier Annual KWH/DTH, Parent Account
+                    </div>
+                    <div class="import-mode-toggle" id="accountImportMode">
+                        <button class="import-mode-btn active" onclick="setImportMode('account','append',this)">📎 Append &amp; Update</button>
+                        <button class="import-mode-btn" onclick="setImportMode('account','replace',this)">🔄 Replace All</button>
+                    </div>
+                    <div class="import-mode-warn" id="accountReplaceWarn">⚠️ Replace All will <strong>clear all child accounts</strong> from every client and import fresh.</div>
                     <div class="import-zone" id="accountImportZone" onclick="document.getElementById('accountImportFile').click()" style="border-color: rgba(59,130,246,0.3);">
                         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="var(--account-active)" stroke-width="1.5" style="margin-bottom: 6px;">
                             <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                             <circle cx="8.5" cy="7" r="4"/>
                             <path d="M20 8v6M23 11h-6"/>
                         </svg>
-                        <p><strong>Click to upload</strong> account data</p>
-                        <p style="font-size: 0.72rem;">Excel, CSV or JSON with Parent Account column</p>
+                        <p><strong>Click to upload</strong> child account data</p>
+                        <p style="font-size: 0.72rem;">Excel (.xlsx), CSV, or JSON</p>
                         <input type="file" id="accountImportFile" accept=".xlsx,.xls,.csv,.json" style="display:none;" onchange="handleAccountFileSelect(event)">
                     </div>
                     <div class="import-options">
-                        <label class="import-option"><input type="checkbox" id="optAcctUpdateExisting" checked> Update existing</label>
-                        <label class="import-option"><input type="checkbox" id="optCreateOrphans"> Create missing parents</label>
+                        <label class="import-option"><input type="checkbox" id="optAcctUpdateExisting" checked> Update existing accounts</label>
+                        <label class="import-option"><input type="checkbox" id="optCreateOrphans"> Create missing parents (even without Pending Opportunity)</label>
                     </div>
                     <div id="accountImportPreview" style="display:none; margin-top: 12px;"></div>
                     <div id="accountImportResults" style="display:none; margin-top: 12px;"></div>
@@ -2454,6 +2520,24 @@
         function handleFileSelect(e) { if (e.target.files.length) handleFile(e.target.files[0]); }
         function handleAccountFileSelect(e) { if (e.target.files.length) handleAccountFile(e.target.files[0]); }
 
+        // Import mode state
+        let parentImportMode = 'append'; // 'append' or 'replace'
+        let accountImportMode = 'append';
+
+        function setImportMode(type, mode, btn) {
+            if (type === 'parent') {
+                parentImportMode = mode;
+                document.getElementById('parentReplaceWarn').classList.toggle('visible', mode === 'replace');
+            } else {
+                accountImportMode = mode;
+                document.getElementById('accountReplaceWarn').classList.toggle('visible', mode === 'replace');
+            }
+            // Toggle active state on buttons
+            btn.parentElement.querySelectorAll('.import-mode-btn').forEach(b => b.classList.remove('active', 'danger'));
+            btn.classList.add('active');
+            if (mode === 'replace') btn.classList.add('danger');
+        }
+
         function handleFile(file) {
             const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
             const isCSV = file.name.endsWith('.csv');
@@ -2506,15 +2590,27 @@
 
         function executeImport() {
             if (!pendingImportData || !ClientStore) { showToast('No data or store unavailable', 'error'); return; }
-            const opts = { updateExisting: document.getElementById('optUpdateExisting').checked, matchByName: document.getElementById('optMatchByName').checked };
+            const isReplace = parentImportMode === 'replace';
+            if (isReplace && !confirm('⚠️ REPLACE ALL will delete all existing clients and import fresh.\n\nThis cannot be undone. Continue?')) return;
+            const opts = {
+                updateExisting: document.getElementById('optUpdateExisting').checked,
+                matchByName: document.getElementById('optMatchByName').checked,
+                replaceAll: isReplace
+            };
             try {
                 const r = ClientStore.importFromSalesforce(pendingImportData, opts);
-                document.getElementById('importResults').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;"><strong>Done:</strong> ' + r.imported + ' imported, ' + r.updated + ' updated, ' + r.skipped + ' skipped</div>';
+                let msg = '<strong>Done:</strong> ' + r.imported + ' imported, ' + r.updated + ' updated, ' + r.skipped + ' skipped';
+                if (r.contracts > 0) msg += ', ' + r.contracts + ' contracts mapped';
+                if (r.errors?.length > 0) {
+                    msg += '<br><span style="color:var(--danger);font-size:0.72rem;">' + r.errors.length + ' errors — check console</span>';
+                    console.warn('[Import] Errors:', r.errors);
+                }
+                document.getElementById('importResults').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;">' + msg + '</div>';
                 document.getElementById('importResults').style.display = 'block';
                 document.getElementById('importPreview').style.display = 'none';
                 allClients = ClientStore.getAllClients();
                 updateBannerStats();
-                if (r.imported > 0 || r.updated > 0) showToast('Imported ' + r.imported + ', updated ' + r.updated, 'success');
+                if (r.imported > 0 || r.updated > 0) showToast((isReplace ? 'Replaced: ' : 'Imported ') + r.imported + ', updated ' + r.updated, 'success');
             } catch (e) { showToast('Import failed: ' + e.message, 'error'); }
             pendingImportData = null;
             document.getElementById('importFile').value = '';
@@ -2524,15 +2620,27 @@
 
         function executeAccountImport() {
             if (!pendingAccountData || !ClientStore?.importAccounts) { showToast('No data or import not supported', 'error'); return; }
-            const opts = { updateExisting: document.getElementById('optAcctUpdateExisting')?.checked, createOrphans: document.getElementById('optCreateOrphans')?.checked };
+            const isReplace = accountImportMode === 'replace';
+            if (isReplace && !confirm('⚠️ REPLACE ALL will clear all child accounts from every client and import fresh.\n\nThis cannot be undone. Continue?')) return;
+            const opts = {
+                updateExisting: document.getElementById('optAcctUpdateExisting')?.checked,
+                createOrphans: document.getElementById('optCreateOrphans')?.checked,
+                replaceAll: isReplace
+            };
             try {
                 const r = ClientStore.importAccounts(pendingAccountData, opts);
-                document.getElementById('accountImportResults').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;"><strong>Done:</strong> ' + r.imported + ' added, ' + r.updated + ' updated, ' + r.skipped + ' skipped, ' + r.orphaned + ' orphaned</div>';
+                let msg = '<strong>Done:</strong> ' + r.imported + ' added, ' + r.updated + ' updated, ' + r.skipped + ' skipped, ' + r.orphaned + ' orphaned';
+                if (r.parentsCreated > 0) msg += ', <span style="color:var(--accent);">' + r.parentsCreated + ' parents auto-created</span>';
+                if (r.errors?.length > 0) {
+                    msg += '<br><span style="color:var(--danger);font-size:0.72rem;">' + r.errors.length + ' errors — check console</span>';
+                    console.warn('[Import] Errors:', r.errors);
+                }
+                document.getElementById('accountImportResults').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;">' + msg + '</div>';
                 document.getElementById('accountImportResults').style.display = 'block';
                 document.getElementById('accountImportPreview').style.display = 'none';
                 allClients = ClientStore.getAllClients();
                 updateBannerStats();
-                showToast('Imported ' + r.imported + ' accounts', 'success');
+                showToast((isReplace ? 'Replaced: ' : '') + r.imported + ' accounts imported', 'success');
             } catch (e) { showToast('Import failed: ' + e.message, 'error'); }
             pendingAccountData = null;
             document.getElementById('accountImportFile').value = '';

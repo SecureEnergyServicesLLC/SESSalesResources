@@ -2,10 +2,13 @@
  * Client Store - Centralized Client Management
  * Provides unique client identifiers (CID) across all portal widgets
  * Supports Salesforce data import and cross-widget client context
- * Version: 2.5.0 - Azure Integration + Init Broadcast
+ * Version: 2.6.0 - Updated SF Report Mappings + Parent Grouping + Append/Replace
+ * 
+ * v2.6.0 - Updated field maps for new Parent/Child SF reports, parent grouping import,
+ *          contract-level data separation, Pending Opportunity auto-create, append/replace modes
+ * v2.5.0 - init() now notifies subscribers and broadcasts CLIENTS_LOADED when data loads
  * 
  * CHANGELOG:
- * v2.5.0 - init() now notifies subscribers and broadcasts CLIENTS_LOADED when data loads
  * v2.4.0 - Azure Blob Storage integration for data persistence
  * v2.3.1 - Added local broadcast() helper to fix "Can't find variable: broadcast" error
  * v2.3.0 - User-specific active client/account selection
@@ -72,9 +75,16 @@
     // Salesforce Field Mappings
     // ========================================
     const SALESFORCE_FIELD_MAP = {
+        // === Parent-level fields (same across grouped rows) ===
+        'Parent Account: Account ID Unique': 'salesforceId',
+        'Parent Account: Account Name': 'name',
         'Parent Account: Customer': 'parentAccountCustomer',
-        'Account Contract Name': 'contractName',
         'Assigned To: Contract Assignment Group Name': 'assignedGroup',
+        'Parent Account: BUDA Eligible?': 'budaEligible',
+        'Parent Account: BUDA Notes': 'budaNotes',
+        // === Contract/Opportunity-level fields (vary per row) ===
+        'Account Contract Name': 'contractName',
+        'Opportunity: Opportunity Name': 'opportunityName',
         'Status': 'contractStatus',
         'Number Of Meters': 'numberOfMeters',
         '# Active MC': 'activeMeterCount',
@@ -85,10 +95,10 @@
         'Product Category': 'productCategory',
         'Estimated Annual Usage (Kwh/Dth)': 'annualUsageKwh',
         'Estimated Contract Margin': 'contractMargin',
-        'Parent Account: BUDA Eligible?': 'budaEligible',
-        'Parent Account: BUDA Notes': 'budaNotes',
-        'Parent Account: Account ID Unique': 'salesforceId',
-        'Parent Account: Account Name': 'name',
+        'Account Contract ID': 'accountContractId',
+        'Contract Mils': 'contractMils',
+        'Contract Rate': 'contractRate',
+        // === Generic SF API field names (direct export) ===
         'Account Name': 'name',
         'Account ID': 'salesforceId',
         'AccountId': 'salesforceId',
@@ -128,12 +138,35 @@
         'Rate Type': 'rateType'
     };
 
+    // Fields that live on the parent client (not per-contract)
+    const PARENT_LEVEL_FIELDS = new Set([
+        'salesforceId', 'name', 'parentAccountCustomer', 'assignedGroup',
+        'budaEligible', 'budaNotes', 'address', 'city', 'state', 'zip',
+        'country', 'phone', 'website', 'industry', 'accountType', 'notes',
+        'salesRepId', 'salesRepName', 'sfCreatedDate', 'sfModifiedDate',
+        'annualRevenue', 'employees', 'iso', 'utility', 'loadZone',
+        'annualUsageMWh', 'rateType'
+    ]);
+
+    // Fields that belong to each contract row under a parent
+    const CONTRACT_LEVEL_FIELDS = new Set([
+        'contractName', 'opportunityName', 'contractStatus', 'numberOfMeters',
+        'activeMeterCount', 'signDate', 'contractStartDate', 'contractEndDate',
+        'currentSupplier', 'productCategory', 'annualUsageKwh', 'contractMargin',
+        'accountContractId', 'contractMils', 'contractRate'
+    ]);
+
     const ACCOUNT_FIELD_MAP = {
+        'Parent Account ID': 'parentAccountId',
         'Account Owner': 'accountOwner',
         'Account Name': 'accountName',
-        'Billing State/Province': 'billingState',
-        'Billing Zip/Postal Code': 'billingZip',
+        'Active Account Contract': 'activeAccountContract',
+        'Pending Opportunity': 'pendingOpportunity',
+        'Renewal Status': 'renewalStatus',
         'Service Zip/Postal Code': 'serviceZip',
+        'Service State/Province': 'serviceState',
+        'Billing State/Province': 'serviceState',
+        'Billing Zip/Postal Code': 'serviceZip',
         'Supplier Applied Payment Number': 'supplierPaymentNumber',
         'Account Number': 'accountNumber',
         'Last Activity': 'lastActivity',
@@ -631,38 +664,146 @@
     // Salesforce Import
     // ========================================
     function importFromSalesforce(data, options = {}) {
-        const results = { imported: 0, updated: 0, skipped: 0, errors: [] };
+        const results = { imported: 0, updated: 0, skipped: 0, contracts: 0, errors: [] };
         let records = [];
         
         if (typeof data === 'string') records = parseCSV(data);
         else if (Array.isArray(data)) records = data;
         else if (data && typeof data === 'object') records = [data];
         
+        // Replace mode: clear all existing clients first
+        if (options.replaceAll) {
+            console.log('[ClientStore] REPLACE ALL mode — clearing existing clients before import');
+            clearAllClients();
+        }
+        
         const currentUser = window.UserStore?.getCurrentUser?.();
         
-        records.forEach((record, index) => {
-            try {
-                const mappedData = mapSalesforceFields(record);
-                if (!mappedData.name) { results.skipped++; return; }
+        // Detect if this is the parent-level SF report (has Parent Account: Account ID Unique)
+        const hasParentGrouping = records.length > 0 && (
+            records[0].hasOwnProperty('Parent Account: Account ID Unique') ||
+            records[0].hasOwnProperty('Parent Account: Account Name') ||
+            records[0].hasOwnProperty('Account Contract Name')
+        );
+        
+        if (hasParentGrouping && records.length > 0) {
+            // === GROUP BY PARENT ===
+            // Multiple rows can share the same parent; each row is a contract/opportunity
+            const parentGroups = {};
+            
+            records.forEach((record) => {
+                const mapped = mapSalesforceFields(record);
+                // Determine grouping key: SF ID preferred, fall back to name
+                const groupKey = (mapped.salesforceId || mapped.name || '').toString().trim().toLowerCase();
+                if (!groupKey) return;
                 
-                let existingClient = null;
-                if (mappedData.salesforceId) existingClient = getClientBySalesforceId(mappedData.salesforceId);
-                if (!existingClient && options.matchByName) existingClient = getClientByName(mappedData.name);
-                
-                if (existingClient) {
-                    if (options.updateExisting) {
-                        updateClient(existingClient.id, { ...mappedData, source: 'Salesforce', updatedBy: currentUser?.email || '' });
-                        results.updated++;
-                    } else results.skipped++;
-                } else {
-                    createClient({ ...mappedData, source: 'Salesforce', createdBy: currentUser?.email || '' });
-                    results.imported++;
+                if (!parentGroups[groupKey]) {
+                    parentGroups[groupKey] = { parentFields: {}, contracts: [] };
                 }
-            } catch (e) { results.errors.push(`Row ${index + 1}: ${e.message}`); }
-        });
+                
+                // Separate parent-level fields from contract-level fields
+                const parentData = {};
+                const contractData = {};
+                Object.entries(mapped).forEach(([field, value]) => {
+                    if (value === '' || value === null || value === undefined) return;
+                    if (PARENT_LEVEL_FIELDS.has(field)) parentData[field] = value;
+                    else if (CONTRACT_LEVEL_FIELDS.has(field)) contractData[field] = value;
+                    else parentData[field] = value; // default to parent
+                });
+                
+                // Merge parent fields (first row wins for each field)
+                Object.entries(parentData).forEach(([k, v]) => {
+                    if (!parentGroups[groupKey].parentFields[k]) parentGroups[groupKey].parentFields[k] = v;
+                });
+                
+                // Add contract row if it has meaningful data
+                if (contractData.contractName || contractData.opportunityName || contractData.accountContractId) {
+                    contractData.id = 'CTR-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
+                    parentGroups[groupKey].contracts.push(contractData);
+                    results.contracts++;
+                }
+            });
+            
+            // Now create/update each grouped parent
+            Object.values(parentGroups).forEach(group => {
+                try {
+                    const pf = group.parentFields;
+                    if (!pf.name) { results.skipped++; return; }
+                    
+                    let existingClient = null;
+                    if (pf.salesforceId) existingClient = getClientBySalesforceId(pf.salesforceId);
+                    if (!existingClient && options.matchByName) existingClient = getClientByName(pf.name);
+                    
+                    const clientPayload = {
+                        ...pf,
+                        contracts: group.contracts,
+                        source: 'Salesforce',
+                        updatedBy: currentUser?.email || ''
+                    };
+                    
+                    if (existingClient) {
+                        if (options.updateExisting) {
+                            // Merge contracts: keep existing ones not in import, add/update imported ones
+                            const existingContracts = existingClient.contracts || [];
+                            const mergedContracts = mergeContracts(existingContracts, group.contracts);
+                            clientPayload.contracts = mergedContracts;
+                            updateClient(existingClient.id, clientPayload);
+                            results.updated++;
+                        } else results.skipped++;
+                    } else {
+                        clientPayload.createdBy = currentUser?.email || '';
+                        createClient(clientPayload);
+                        results.imported++;
+                    }
+                } catch (e) { results.errors.push(`Parent "${group.parentFields.name}": ${e.message}`); }
+            });
+            
+        } else {
+            // === FLAT MODE (generic SF export, one row = one client) ===
+            records.forEach((record, index) => {
+                try {
+                    const mappedData = mapSalesforceFields(record);
+                    if (!mappedData.name) { results.skipped++; return; }
+                    
+                    let existingClient = null;
+                    if (mappedData.salesforceId) existingClient = getClientBySalesforceId(mappedData.salesforceId);
+                    if (!existingClient && options.matchByName) existingClient = getClientByName(mappedData.name);
+                    
+                    if (existingClient) {
+                        if (options.updateExisting) {
+                            updateClient(existingClient.id, { ...mappedData, source: 'Salesforce', updatedBy: currentUser?.email || '' });
+                            results.updated++;
+                        } else results.skipped++;
+                    } else {
+                        createClient({ ...mappedData, source: 'Salesforce', createdBy: currentUser?.email || '' });
+                        results.imported++;
+                    }
+                } catch (e) { results.errors.push(`Row ${index + 1}: ${e.message}`); }
+            });
+        }
         
         notifySubscribers('import', results);
         return results;
+    }
+
+    /**
+     * Merge imported contracts with existing ones.
+     * Matches by accountContractId if available, otherwise by contractName.
+     */
+    function mergeContracts(existing, incoming) {
+        const merged = [...existing];
+        incoming.forEach(inc => {
+            const matchIdx = merged.findIndex(ex =>
+                (inc.accountContractId && ex.accountContractId === inc.accountContractId) ||
+                (inc.contractName && ex.contractName === inc.contractName && inc.contractName !== '')
+            );
+            if (matchIdx >= 0) {
+                merged[matchIdx] = { ...merged[matchIdx], ...inc, updatedAt: new Date().toISOString() };
+            } else {
+                merged.push({ ...inc, addedAt: new Date().toISOString() });
+            }
+        });
+        return merged;
     }
 
     function mapSalesforceFields(record) {
@@ -683,29 +824,67 @@
     // Account Import (Enrichment)
     // ========================================
     function importAccounts(data, options = {}) {
-        const results = { imported: 0, updated: 0, skipped: 0, orphaned: 0, errors: [] };
+        const results = { imported: 0, updated: 0, skipped: 0, orphaned: 0, parentsCreated: 0, errors: [] };
         let records = [];
         
         if (typeof data === 'string') records = parseCSV(data);
         else if (Array.isArray(data)) records = data;
         else if (data && typeof data === 'object') records = [data];
         
+        // Replace mode: clear all accounts from all clients first
+        if (options.replaceAll) {
+            console.log('[ClientStore] REPLACE ALL ACCOUNTS mode — clearing existing accounts');
+            Object.values(clients).forEach(c => { c.accounts = []; });
+            saveToStorage();
+        }
+        
         startBatch();
         
         records.forEach((record, index) => {
             try {
                 const mappedAccount = mapAccountFields(record);
-                if (!mappedAccount.parentAccountName) { results.skipped++; return; }
                 
-                const parentClient = getClientByName(mappedAccount.parentAccountName);
+                // Need a parent reference: either parentAccountName (Col T) or parentAccountId (Col A)
+                if (!mappedAccount.parentAccountName && !mappedAccount.parentAccountId) {
+                    results.skipped++;
+                    return;
+                }
+                
+                // Find parent: first try by SF ID (parentAccountId), then by name
+                let parentClient = null;
+                if (mappedAccount.parentAccountId) {
+                    parentClient = getClientBySalesforceId(mappedAccount.parentAccountId);
+                }
+                if (!parentClient && mappedAccount.parentAccountName) {
+                    parentClient = getClientByName(mappedAccount.parentAccountName);
+                }
                 
                 if (!parentClient) {
                     results.orphaned++;
-                    if (options.createOrphans) {
-                        const newParent = createClient({ name: mappedAccount.parentAccountName, source: 'Auto-created from Account Import' });
+                    
+                    // Auto-create parent if:
+                    // 1. createOrphans option is checked, OR
+                    // 2. Pending Opportunity is not blank (business rule: active prospect)
+                    const hasPendingOpportunity = mappedAccount.pendingOpportunity && 
+                        String(mappedAccount.pendingOpportunity).trim() !== '';
+                    
+                    if (options.createOrphans || hasPendingOpportunity) {
+                        const parentName = mappedAccount.parentAccountName || ('SF-' + mappedAccount.parentAccountId);
+                        const parentPayload = { 
+                            name: parentName, 
+                            source: hasPendingOpportunity ? 'Auto-created (Pending Opportunity)' : 'Auto-created from Account Import'
+                        };
+                        if (mappedAccount.parentAccountId) parentPayload.salesforceId = mappedAccount.parentAccountId;
+                        
+                        const newParent = createClient(parentPayload);
                         addAccountToClient(newParent.id, mappedAccount);
+                        results.parentsCreated++;
                         results.imported++;
-                    } else results.errors.push(`Row ${index + 1}: Parent "${mappedAccount.parentAccountName}" not found`);
+                        console.log('[ClientStore] Auto-created parent "' + parentName + '"' + 
+                            (hasPendingOpportunity ? ' (has Pending Opportunity: ' + mappedAccount.pendingOpportunity + ')' : ''));
+                    } else {
+                        results.errors.push(`Row ${index + 1}: Parent "${mappedAccount.parentAccountName || mappedAccount.parentAccountId}" not found`);
+                    }
                     return;
                 }
                 
@@ -753,7 +932,8 @@
     function findAccountInClient(clientId, accountData) {
         if (!clients[clientId]?.accounts) return null;
         return clients[clientId].accounts.find(acc => 
-            (accountData.accountNumber && acc.accountNumber === accountData.accountNumber) ||
+            (accountData.accountNumber && String(acc.accountNumber) === String(accountData.accountNumber)) ||
+            (accountData.supplierPaymentNumber && acc.supplierPaymentNumber === accountData.supplierPaymentNumber) ||
             (acc.accountName === accountData.accountName && acc.serviceZip === accountData.serviceZip)
         );
     }
@@ -977,7 +1157,7 @@
         syncToGitHub, loadFromGitHub, hasUnsavedChanges, onReady,
         startBatch, endBatch, getStorageInfo, clearAllClients,
         subscribe, getStats, getClientDropdownOptions,
-        SALESFORCE_FIELD_MAP, ACCOUNT_FIELD_MAP
+        SALESFORCE_FIELD_MAP, ACCOUNT_FIELD_MAP, PARENT_LEVEL_FIELDS, CONTRACT_LEVEL_FIELDS
     };
 
 })();
