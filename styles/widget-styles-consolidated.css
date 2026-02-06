@@ -1,5 +1,10 @@
 /**
- * Secure Energy Analytics Portal - Widget Styles v3.4 (Dual Layout Mode)
+ * Secure Energy Analytics Portal - Widget Styles v3.5 (Docked Panel System)
+ * 
+ * v3.5 Updates:
+ * - Admin tabs/panels styles now also scoped to .docked-panel.docked-panel-admin
+ *   (User Admin moved from widget grid to docked panel above grid)
+ * - Form input styles extended for docked-panel-admin context
  * 
  * v3.4 Updates:
  * - Dual layout mode: Wide (single-column) or Grid (2-per-row) — user toggleable
@@ -526,7 +531,8 @@
     overflow-x: auto;
 }
 
-.widget.admin-wide .admin-tabs { flex-wrap: wrap; gap: 8px; padding: 16px 20px; }
+.widget.admin-wide .admin-tabs,
+.docked-panel.docked-panel-admin .admin-tabs { flex-wrap: wrap; gap: 8px; padding: 16px 20px; }
 
 .admin-tab {
     padding: 12px 20px;
@@ -544,7 +550,8 @@
 .admin-tab:hover { background: var(--bg-secondary); color: var(--text-primary); }
 .admin-tab.active { background: var(--bg-secondary); border-bottom-color: var(--se-light-green, #3EB489); color: var(--se-light-green, #3EB489); }
 
-.widget.admin-wide .admin-tab {
+.widget.admin-wide .admin-tab,
+.docked-panel.docked-panel-admin .admin-tab {
     padding: 10px 20px;
     border-radius: 6px;
     background: var(--bg-secondary);
@@ -552,12 +559,15 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-.widget.admin-wide .admin-tab:hover { background: var(--bg-primary); border-color: var(--se-light-green, #3EB489); }
-.widget.admin-wide .admin-tab.active { background: var(--se-light-green, #3EB489); color: white; border-color: var(--se-light-green, #3EB489); }
+.widget.admin-wide .admin-tab:hover,
+.docked-panel.docked-panel-admin .admin-tab:hover { background: var(--bg-primary); border-color: var(--se-light-green, #3EB489); }
+.widget.admin-wide .admin-tab.active,
+.docked-panel.docked-panel-admin .admin-tab.active { background: var(--se-light-green, #3EB489); color: white; border-color: var(--se-light-green, #3EB489); }
 
 .admin-panel { display: none; padding: 20px; flex: 1; overflow-y: auto; max-height: calc(100% - 50px); }
 .admin-panel.active { display: block; }
-.widget.admin-wide .admin-panel { padding: 24px; }
+.widget.admin-wide .admin-panel,
+.docked-panel.docked-panel-admin .admin-panel { padding: 24px; }
 
 /* =============================================================================
    FORMS
@@ -566,7 +576,8 @@
 .form-row.single { grid-template-columns: 1fr; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
 .form-group label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
-.widget.admin-wide .form-group label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+.widget.admin-wide .form-group label,
+.docked-panel.docked-panel-admin .form-group label { font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
 .form-group input,
 .form-group select {
@@ -580,7 +591,9 @@
 }
 
 .widget.admin-wide .form-group input,
-.widget.admin-wide .form-group select { padding: 12px 14px; background: var(--bg-primary); }
+.widget.admin-wide .form-group select,
+.docked-panel.docked-panel-admin .form-group input,
+.docked-panel.docked-panel-admin .form-group select { padding: 12px 14px; background: var(--bg-primary); }
 
 .form-group input:focus,
 .form-group select:focus { outline: none; border-color: var(--se-light-green, #3EB489); box-shadow: 0 0 0 3px rgba(62, 180, 137, 0.15); }

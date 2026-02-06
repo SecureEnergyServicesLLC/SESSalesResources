@@ -1,5 +1,14 @@
 /**
- * Secure Energy Analytics Portal - Main Controller v3.4
+ * Secure Energy Analytics Portal - Main Controller v3.5
+ * 
+ * v3.5 Updates:
+ * - Docked Panel System: User Admin, Command Center, Energy Utilization, LMP Comparison
+ *   all render as collapsible/maximizable dock panels ABOVE the widget grid
+ * - Admin users see User Admin dock at top, then Command Center, Energy Util, LMP Comparison
+ * - Standard users see Command Center, Energy Util, LMP Comparison (no User Admin)
+ * - Each dock panel has Collapse, Maximize, and Pop-out controls
+ * - Collapse state persisted per-panel in localStorage
+ * - Generalized renderDockedPanels() replaces renderCommandCenterDock()
  * 
  * v3.4 Updates:
  * - Dual Layout Mode: Wide (single-column) or Grid (2-per-row) — user toggleable
@@ -97,6 +106,47 @@ const DEFAULT_WIDGETS = [
 ];
 
 let WIDGETS = JSON.parse(JSON.stringify(DEFAULT_WIDGETS));
+
+// =====================================================
+// DOCKED PANELS — Render above widget grid (not in grid)
+// Order: User Admin (admin-only), Command Center, Energy Util, LMP Comparison
+// =====================================================
+const DOCKED_PANELS = [
+    { 
+        id: 'user-admin', 
+        name: 'User Administration', 
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        adminOnly: true,
+        embedded: true,
+        height: 800,
+        badge: 'ADMIN',
+        permission: 'user-admin'
+    },
+    { 
+        id: 'client-command-center', 
+        name: 'Client Command Center', 
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+        src: 'widgets/client-command-center.html',
+        height: 850,
+        permission: 'client-command-center'
+    },
+    { 
+        id: 'energy-utilization', 
+        name: 'Energy Utilization', 
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+        src: 'widgets/energy-utilization-widget.html',
+        height: 650,
+        permission: 'energy-utilization'
+    },
+    { 
+        id: 'lmp-comparison', 
+        name: 'LMP Comparison Portal', 
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+        src: 'widgets/lmp-comparison-portal.html',
+        height: 700,
+        permission: 'lmp-comparison'
+    }
+];
 
 const WidgetLayout = {
     getWidgetConfig(userId, widgetId) {
@@ -592,77 +642,166 @@ let draggedWidget = null;
 let dragOverWidget = null;
 
 // =====================================================
-// CLIENT COMMAND CENTER — DOCKED TOP-OF-SCREEN
+// DOCKED PANELS — Generalized dock system above widget grid
 // =====================================================
-function renderCommandCenterDock(user) {
-    const dockId = 'commandCenterDock';
-    let dock = document.getElementById(dockId);
-    
-    // Check permission — if explicitly disabled, remove and bail
-    if (user.permissions && user.permissions['client-command-center'] === false) {
-        if (dock) dock.remove();
-        return;
-    }
-    
-    // Already rendered? Don't duplicate
-    if (dock) return;
-    
-    // Find the insertion point — before the widgetsGrid, inside mainContent
+function renderDockedPanels(user) {
     const mainContent = document.getElementById('mainContent');
     const widgetsGrid = document.getElementById('widgetsGrid');
     if (!mainContent || !widgetsGrid) return;
     
-    dock = document.createElement('div');
-    dock.id = dockId;
-    dock.className = 'command-center-dock';
+    // One-time migration: old command center key → new format
+    const oldKey = localStorage.getItem('commandCenter_collapsed');
+    if (oldKey !== null) {
+        localStorage.setItem('dockPanel_client-command-center_collapsed', oldKey);
+        localStorage.removeItem('commandCenter_collapsed');
+    }
     
-    // Collapse state from localStorage
-    const isCollapsed = localStorage.getItem('commandCenter_collapsed') === 'true';
-    
-    dock.innerHTML = 
-        '<div class="command-center-dock-header">' +
-            '<div class="command-center-dock-title">' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>' +
-                '<span>Client Command Center</span>' +
-            '</div>' +
-            '<div class="command-center-dock-actions">' +
-                '<button class="command-center-dock-btn" onclick="toggleCommandCenterDock()" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" id="cmdCenterToggleBtn">' +
-                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>' +
-                '</button>' +
-                '<button class="command-center-dock-btn" onclick="popoutWidget(\'client-command-center\')" title="Pop out">' +
-                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
-                '</button>' +
-            '</div>' +
-        '</div>' +
-        '<div class="command-center-dock-body" id="commandCenterBody" style="' + (isCollapsed ? 'display:none;' : '') + '">' +
-            '<iframe class="command-center-iframe" id="commandCenterIframe" src="widgets/client-command-center.html" title="Client Command Center"></iframe>' +
-        '</div>';
-    
-    // Insert before the widgets grid
-    mainContent.insertBefore(dock, widgetsGrid);
+    DOCKED_PANELS.forEach(panel => {
+        const dockId = 'dock_' + panel.id;
+        let dock = document.getElementById(dockId);
+        
+        // Check admin-only restriction
+        if (panel.adminOnly && user.role !== 'admin') {
+            if (dock) dock.remove();
+            return;
+        }
+        
+        // Check permission — if explicitly disabled, remove and bail
+        if (panel.permission && user.permissions && user.permissions[panel.permission] === false) {
+            if (dock) dock.remove();
+            return;
+        }
+        
+        // Already rendered? Don't duplicate
+        if (dock) return;
+        
+        // Collapse state from localStorage
+        const storageKey = 'dockPanel_' + panel.id + '_collapsed';
+        const isCollapsed = localStorage.getItem(storageKey) === 'true';
+        
+        dock = document.createElement('div');
+        dock.id = dockId;
+        dock.className = 'docked-panel';
+        if (panel.adminOnly) dock.classList.add('docked-panel-admin');
+        
+        // Badge HTML
+        const badgeHtml = panel.badge 
+            ? '<span class="docked-panel-badge">' + panel.badge + '</span>' 
+            : '';
+        
+        // Build header
+        const headerHtml = 
+            '<div class="docked-panel-header">' +
+                '<div class="docked-panel-title">' +
+                    panel.icon +
+                    '<span>' + panel.name + '</span>' +
+                    badgeHtml +
+                '</div>' +
+                '<div class="docked-panel-actions">' +
+                    '<button class="docked-panel-btn" onclick="toggleDockedPanel(\'' + panel.id + '\')" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" id="dockToggle_' + panel.id + '">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>' +
+                    '</button>' +
+                    '<button class="docked-panel-btn" onclick="toggleDockedPanelMaximize(\'' + panel.id + '\')" title="Maximize" id="dockMax_' + panel.id + '">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>' +
+                    '</button>' +
+                    (panel.src ? '<button class="docked-panel-btn" onclick="popoutWidget(\'' + panel.id + '\')" title="Pop out">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+                    '</button>' : '') +
+                '</div>' +
+            '</div>';
+        
+        // Build body — embedded (user-admin) or iframe
+        let bodyHtml;
+        if (panel.embedded && panel.id === 'user-admin') {
+            bodyHtml = '<div class="docked-panel-body" id="dockBody_' + panel.id + '" style="height:' + panel.height + 'px;' + (isCollapsed ? 'display:none;' : '') + '">' +
+                '<div class="admin-widget-content" id="adminWidgetContent" style="height:100%;overflow-y:auto;"></div>' +
+            '</div>';
+        } else {
+            bodyHtml = '<div class="docked-panel-body" id="dockBody_' + panel.id + '" style="height:' + panel.height + 'px;' + (isCollapsed ? 'display:none;' : '') + '">' +
+                '<iframe class="docked-panel-iframe" id="dockIframe_' + panel.id + '" src="' + panel.src + '" title="' + panel.name + '"></iframe>' +
+            '</div>';
+        }
+        
+        dock.innerHTML = headerHtml + bodyHtml;
+        
+        // Insert before the widgets grid
+        mainContent.insertBefore(dock, widgetsGrid);
+    });
 }
 
-function toggleCommandCenterDock() {
-    const body = document.getElementById('commandCenterBody');
-    const btn = document.getElementById('cmdCenterToggleBtn');
+function toggleDockedPanel(panelId) {
+    const body = document.getElementById('dockBody_' + panelId);
+    const btn = document.getElementById('dockToggle_' + panelId);
     if (!body) return;
+    
+    // Don't toggle if maximized
+    const dock = document.getElementById('dock_' + panelId);
+    if (dock && dock.classList.contains('docked-panel-maximized')) return;
     
     const isHidden = body.style.display === 'none';
     body.style.display = isHidden ? '' : 'none';
-    localStorage.setItem('commandCenter_collapsed', isHidden ? 'false' : 'true');
+    localStorage.setItem('dockPanel_' + panelId + '_collapsed', isHidden ? 'false' : 'true');
     
     if (btn) {
         btn.title = isHidden ? 'Collapse' : 'Expand';
         btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isHidden ? '18 15 12 9 6 15' : '6 9 12 15 18 9') + '"/></svg>';
     }
+    
+    logWidgetAction(isHidden ? 'Dock Expand' : 'Dock Collapse', panelId);
 }
+
+function toggleDockedPanelMaximize(panelId) {
+    const dock = document.getElementById('dock_' + panelId);
+    const body = document.getElementById('dockBody_' + panelId);
+    const maxBtn = document.getElementById('dockMax_' + panelId);
+    if (!dock || !body) return;
+    
+    const isMaximized = dock.classList.contains('docked-panel-maximized');
+    
+    if (isMaximized) {
+        // Restore
+        dock.classList.remove('docked-panel-maximized');
+        const savedHeight = dock.dataset.preMaxHeight;
+        if (savedHeight) body.style.height = savedHeight;
+        const backdrop = document.getElementById('dockMaximizeBackdrop');
+        if (backdrop) backdrop.remove();
+        document.body.style.overflow = '';
+        if (maxBtn) {
+            maxBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
+            maxBtn.title = 'Maximize';
+        }
+        logWidgetAction('Dock Restore', panelId);
+    } else {
+        // Maximize — expand if collapsed first
+        if (body.style.display === 'none') toggleDockedPanel(panelId);
+        dock.dataset.preMaxHeight = body.style.height;
+        let backdrop = document.getElementById('dockMaximizeBackdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'dockMaximizeBackdrop';
+            backdrop.className = 'widget-maximize-backdrop';
+            backdrop.onclick = function() { toggleDockedPanelMaximize(panelId); };
+            document.body.appendChild(backdrop);
+        }
+        dock.classList.add('docked-panel-maximized');
+        document.body.style.overflow = 'hidden';
+        if (maxBtn) {
+            maxBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
+            maxBtn.title = 'Restore';
+        }
+        logWidgetAction('Dock Maximize', panelId);
+    }
+}
+
+// Legacy alias for backward compatibility
+function toggleCommandCenterDock() { toggleDockedPanel('client-command-center'); }
 
 function renderWidgets(user) {
     const container = document.getElementById('widgetsGrid');
     container.innerHTML = '';
     
-    // === DOCK: Client Command Center above widget grid ===
-    renderCommandCenterDock(user);
+    // === DOCK: Render all docked panels above widget grid ===
+    renderDockedPanels(user);
     
     // === LAYOUT MODE: Determine wide vs grid ===
     // Priority: user toggle > admin default > 'wide'
@@ -675,7 +814,12 @@ function renderWidgets(user) {
     container.classList.add('layout-' + layoutMode);
     window._currentLayoutMode = layoutMode;
     
+    // IDs of widgets rendered as docked panels (excluded from grid)
+    const dockedIds = DOCKED_PANELS.map(p => p.id);
+    
     let availableWidgets = DEFAULT_WIDGETS.filter(w => {
+        // Skip widgets that are now docked panels
+        if (dockedIds.includes(w.id)) return false;
         if (w.adminOnly && user.role !== 'admin') return false;
         if (user.permissions && user.permissions[w.id] === false) return false;
         return true;
@@ -2647,7 +2791,14 @@ function downloadFile(content, filename, mimeType) {
 
 document.addEventListener('keydown', e => { 
     if (e.key === 'Escape') {
-        // First check for maximized widget
+        // First check for maximized docked panel
+        const maxDock = document.querySelector('.docked-panel-maximized');
+        if (maxDock) {
+            const panelId = maxDock.id.replace('dock_', '');
+            toggleDockedPanelMaximize(panelId);
+            return;
+        }
+        // Then check for maximized widget
         const maximized = document.querySelector('.widget.maximized');
         if (maximized) { toggleWidgetMaximize(maximized.dataset.widgetId); return; }
         closeEditModal(); 

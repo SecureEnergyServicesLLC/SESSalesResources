@@ -1,5 +1,11 @@
-/* Secure Energy Analytics Portal - Main Styles v2.1
- * FIXES:
+/* Secure Energy Analytics Portal - Main Styles v2.2
+ * v2.2 Updates:
+ * - Generalized Docked Panel system (.docked-panel) replaces command-center-dock
+ * - Supports User Admin, Command Center, Energy Util, LMP Comparison as dock panels
+ * - Dock panels have collapse, maximize, and pop-out controls
+ * - Legacy .command-center-dock class preserved for backward compatibility
+ *
+ * v2.1 FIXES:
  * - Clock & Weather now visible on all screen sizes (compact mode on smaller screens)
  * - Improved responsive top-bar layout
  * - Better data status banner visibility
@@ -658,27 +664,46 @@ body {
 }
 
 /* =====================================================
-   CLIENT COMMAND CENTER — DOCKED TOP-OF-SCREEN
+   DOCKED PANELS — Generalized dock system above widget grid
+   Renders: User Admin, Command Center, Energy Util, LMP Comparison
    ===================================================== */
-.command-center-dock {
-    margin-bottom: 24px;
+.docked-panel {
+    margin-bottom: 16px;
     border-radius: var(--radius-xl);
-    border: 2px solid var(--se-light-green, #3EB489);
+    border: 1px solid var(--border-color);
     overflow: hidden;
     background: var(--bg-secondary);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+    transition: box-shadow 0.25s ease, border-color 0.25s ease;
+}
+
+.docked-panel:hover {
+    border-color: rgba(62, 180, 137, 0.35);
+    box-shadow: 0 4px 20px rgba(62, 180, 137, 0.08);
+}
+
+/* Admin-specific panels get the green accent border */
+.docked-panel.docked-panel-admin {
+    border: 2px solid var(--se-light-green, #3EB489);
     box-shadow: 0 4px 24px rgba(62, 180, 137, 0.08);
 }
 
-.command-center-dock-header {
+.docked-panel-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 10px 20px;
     background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-tertiary) 100%);
+    border-bottom: 1px solid var(--border-color);
+    min-height: 48px;
+    user-select: none;
+}
+
+.docked-panel.docked-panel-admin .docked-panel-header {
     border-bottom: 2px solid var(--se-light-green, #3EB489);
 }
 
-.command-center-dock-title {
+.docked-panel-title {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -687,16 +712,29 @@ body {
     color: var(--text-primary);
 }
 
-.command-center-dock-title svg {
+.docked-panel-title svg {
     color: var(--se-light-green, #3EB489);
+    flex-shrink: 0;
 }
 
-.command-center-dock-actions {
+.docked-panel-badge {
+    padding: 2px 10px;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+}
+
+.docked-panel-actions {
     display: flex;
     gap: 6px;
 }
 
-.command-center-dock-btn {
+.docked-panel-btn {
     background: var(--bg-elevated, var(--bg-tertiary));
     border: 1px solid var(--border-color);
     color: var(--text-secondary);
@@ -710,30 +748,80 @@ body {
     transition: all 0.2s ease;
 }
 
-.command-center-dock-btn:hover {
+.docked-panel-btn:hover {
     background: var(--se-dark-green, #2a7a5a);
     color: white;
     border-color: var(--se-light-green, #3EB489);
 }
 
-.command-center-dock-body {
+.docked-panel-btn:active {
+    transform: scale(0.93);
+}
+
+.docked-panel-body {
     position: relative;
-    height: 850px;
     transition: height 0.3s ease;
 }
 
-.command-center-iframe {
+.docked-panel-iframe {
     width: 100%;
     height: 100%;
     border: none;
     display: block;
 }
 
-/* Responsive: shorter on small screens */
+/* Collapsed state: hide header border-bottom */
+.docked-panel-body[style*="display: none"] + .docked-panel-header,
+.docked-panel:has(.docked-panel-body[style*="display:none"]) .docked-panel-header {
+    border-bottom: none;
+}
+
+/* Maximized state — Full viewport overlay */
+.docked-panel.docked-panel-maximized {
+    position: fixed !important;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    bottom: 8px;
+    z-index: 9000;
+    margin: 0;
+    border: 2px solid var(--se-light-green, #3EB489);
+    border-radius: 12px;
+    box-shadow: 0 16px 64px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(62, 180, 137, 0.2);
+    animation: widgetMaximize 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.docked-panel.docked-panel-maximized .docked-panel-header {
+    border-radius: 12px 12px 0 0;
+    padding: 12px 20px;
+    border-bottom: 2px solid var(--se-light-green, #3EB489);
+}
+
+.docked-panel.docked-panel-maximized .docked-panel-body {
+    height: calc(100% - 52px) !important;
+}
+
+/* Responsive: shorter docked panels on small screens */
 @media (max-width: 768px) {
-    .command-center-dock-body {
-        height: 600px;
+    .docked-panel-body {
+        height: 500px !important;
     }
+    .docked-panel-header {
+        padding: 8px 14px;
+    }
+    .docked-panel-title {
+        font-size: 13px;
+    }
+}
+
+/* Legacy: keep .command-center-dock working for any external references */
+.command-center-dock {
+    margin-bottom: 16px;
+    border-radius: var(--radius-xl);
+    border: 2px solid var(--se-light-green, #3EB489);
+    overflow: hidden;
+    background: var(--bg-secondary);
+    box-shadow: 0 4px 24px rgba(62, 180, 137, 0.08);
 }
 
 /* Widgets Grid */
