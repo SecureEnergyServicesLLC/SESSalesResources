@@ -758,6 +758,10 @@ body {
     transform: scale(0.93);
 }
 
+/* Color-coded hover states */
+.docked-panel-btn.minimize-btn:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; color: #3b82f6; }
+.docked-panel-btn.maximize-btn:hover { background: rgba(62, 180, 137, 0.15); border-color: var(--se-light-green, #3EB489); color: var(--se-light-green, #3EB489); }
+
 .docked-panel-body {
     position: relative;
     transition: height 0.3s ease;

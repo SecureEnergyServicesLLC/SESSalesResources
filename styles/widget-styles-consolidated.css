@@ -196,75 +196,15 @@
     flex-shrink: 0;
 }
 
-.dock-panel-controls,
-.widget-controls {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    margin-left: 8px;
-}
+/* =============================================================================
+   UNIFIED PANEL BUTTON STYLES
+   Base .docked-panel-btn styles are in main.css (docked panel system)
+   Below: color-coded hover overrides + widget-specific additions
+   ============================================================================= */
 
-.dock-panel-controls::before {
-    content: '';
-    display: block;
-    width: 1px;
-    height: 20px;
-    background: var(--border-color);
-    margin-right: 4px;
-    opacity: 0.5;
-}
-
-.dock-ctrl-btn,
-.widget-ctrl-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 30px;
-    height: 30px;
-    padding: 0;
-    background: var(--bg-elevated, var(--bg-tertiary));
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-tertiary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.dock-ctrl-btn:hover,
-.widget-ctrl-btn:hover {
-    background: var(--bg-tertiary);
-    border-color: var(--se-light-green, #3EB489);
-    color: var(--text-primary);
-}
-
-.dock-ctrl-btn:active { transform: scale(0.93); }
-
-/* Color-coded hover states */
-.dock-ctrl-btn.minimize-btn:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; color: #3b82f6; }
-.dock-ctrl-btn.maximize-btn:hover { background: rgba(62, 180, 137, 0.15); border-color: var(--se-light-green, #3EB489); color: var(--se-light-green, #3EB489); }
-
-.dock-action-btn,
-.widget-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.dock-action-btn:hover,
-.widget-btn:hover {
-    background: var(--se-light-green, #3EB489);
-    border-color: var(--se-light-green, #3EB489);
-    color: #000;
-}
+/* Color-coded hover states for specific actions */
+.docked-panel-btn.minimize-btn:hover { background: rgba(59, 130, 246, 0.15); border-color: #3b82f6; color: #3b82f6; }
+.docked-panel-btn.maximize-btn:hover { background: rgba(62, 180, 137, 0.15); border-color: var(--se-light-green, #3EB489); color: var(--se-light-green, #3EB489); }
 
 /* Header-based drag handle — the header itself is the grab zone */
 .widget-drag-header {

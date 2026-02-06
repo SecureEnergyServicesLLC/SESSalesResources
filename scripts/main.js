@@ -706,10 +706,10 @@ function renderDockedPanels(user) {
                     badgeHtml +
                 '</div>' +
                 '<div class="docked-panel-actions">' +
-                    '<button class="docked-panel-btn" onclick="toggleDockedPanel(\'' + panel.id + '\')" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" id="dockToggle_' + panel.id + '">' +
+                    '<button class="docked-panel-btn minimize-btn" onclick="toggleDockedPanel(\'' + panel.id + '\')" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" id="dockToggle_' + panel.id + '">' +
                         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>' +
                     '</button>' +
-                    '<button class="docked-panel-btn" onclick="toggleDockedPanelMaximize(\'' + panel.id + '\')" title="Maximize" id="dockMax_' + panel.id + '">' +
+                    '<button class="docked-panel-btn maximize-btn" onclick="toggleDockedPanelMaximize(\'' + panel.id + '\')" title="Maximize" id="dockMax_' + panel.id + '">' +
                         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>' +
                     '</button>' +
                     (panel.src ? '<button class="docked-panel-btn" onclick="popoutWidget(\'' + panel.id + '\')" title="Pop out">' +
@@ -908,14 +908,17 @@ function createWidgetElement(widget, user) {
     div.dataset.widgetId = widget.id;
     div.draggable = true;
     
-    // === Simplified controls: Collapse + Maximize only (matches docked panels) ===
+    // === Controls: Collapse + Maximize + Pop-out — mirrors docked panels exactly ===
     const collapseIcon = '<svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>';
     const maximizeIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
+    const popoutIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+    const hasPopout = widget.src || false;
 
     const windowControls = 
-        '<div class="dock-panel-controls">' +
-            '<button class="dock-ctrl-btn minimize-btn" onclick="toggleWidgetCollapse(\'' + widget.id + '\')" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '">' + collapseIcon + '</button>' +
-            '<button class="dock-ctrl-btn maximize-btn" onclick="toggleWidgetMaximize(\'' + widget.id + '\')" title="Maximize">' + maximizeIcon + '</button>' +
+        '<div class="docked-panel-actions">' +
+            '<button class="docked-panel-btn minimize-btn" onclick="toggleWidgetCollapse(\'' + widget.id + '\')" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '">' + collapseIcon + '</button>' +
+            '<button class="docked-panel-btn maximize-btn" onclick="toggleWidgetMaximize(\'' + widget.id + '\')" title="Maximize">' + maximizeIcon + '</button>' +
+            (hasPopout ? '<button class="docked-panel-btn" onclick="popoutWidget(\'' + widget.id + '\')" title="Pop out">' + popoutIcon + '</button>' : '') +
         '</div>';
     
     const contentStyle = 'height:' + currentHeight + 'px;' + (isCollapsed ? 'display:none;' : '');
@@ -930,12 +933,12 @@ function createWidgetElement(widget, user) {
     '</div>';
     
     if (widget.embedded && widget.id === 'user-admin') {
-        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span><span class="widget-badge">ADMIN</span></div><div class="dock-panel-actions">' + windowControls + '</div></div><div class="widget-content admin-widget-content" id="adminWidgetContent" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span><span class="widget-badge">ADMIN</span></div>' + windowControls + '</div><div class="widget-content admin-widget-content" id="adminWidgetContent" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     } else if (widget.embedded && widget.id === 'ai-assistant') {
-        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span><span class="widget-badge" style="background:var(--accent-info);">BETA</span></div><div class="dock-panel-actions">' + windowControls + '</div></div><div class="widget-content ai-assistant-content" id="aiAssistantContent" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span><span class="widget-badge" style="background:var(--accent-info);">BETA</span></div>' + windowControls + '</div><div class="widget-content ai-assistant-content" id="aiAssistantContent" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     } else if (widget.embedded && widget.id === 'analysis-history') {
-        const extraBtns = '<button class="dock-action-btn" onclick="exportMyAnalysisRecords()" title="Export"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button><button class="dock-action-btn" onclick="refreshAnalysisHistory()" title="Refresh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>';
-        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span></div><div class="dock-panel-actions">' + extraBtns + windowControls + '</div></div><div class="widget-content analysis-history-content" id="analysisHistoryContent" style="' + contentStyle + 'overflow-y:auto;" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        const extraBtns = '<button class="docked-panel-btn" onclick="exportMyAnalysisRecords()" title="Export"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button><button class="docked-panel-btn" onclick="refreshAnalysisHistory()" title="Refresh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>';
+        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span></div><div class="docked-panel-actions">' + extraBtns + '</div>' + windowControls + '</div><div class="widget-content analysis-history-content" id="analysisHistoryContent" style="' + contentStyle + 'overflow-y:auto;" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     } else {
         // Standard iframe widget
         let widgetSrc = widget.src;
@@ -945,7 +948,7 @@ function createWidgetElement(widget, user) {
             adminBadge = '<span class="widget-badge">ADMIN</span>';
         }
         
-        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span>' + adminBadge + '</div><div class="dock-panel-actions">' + windowControls + '</div></div><div class="widget-content" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"><iframe class="widget-iframe" src="' + widgetSrc + '" title="' + widget.name + '"></iframe></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span>' + adminBadge + '</div>' + windowControls + '</div><div class="widget-content" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"><iframe class="widget-iframe" src="' + widgetSrc + '" title="' + widget.name + '"></iframe></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     }
     return div;
 }
@@ -957,7 +960,7 @@ function initDragAndDrop() {
         if (header) {
             header.addEventListener('mousedown', function(e) {
                 // Don't start drag if clicking on buttons or action controls
-                if (e.target.closest('.dock-ctrl-btn') || e.target.closest('.dock-action-btn') || e.target.closest('button')) return;
+                if (e.target.closest('.docked-panel-btn') || e.target.closest('button')) return;
                 widget.dataset.dragReady = 'true';
             });
         }
