@@ -1,5 +1,14 @@
 /**
- * Secure Energy Analytics Portal - Main Controller v3.4
+ * Secure Energy Analytics Portal - Main Controller v3.5
+ * 
+ * v3.5 Updates:
+ * - Docked Panel System: User Admin, Command Center, Energy Utilization, LMP Comparison
+ *   all render as collapsible/maximizable dock panels ABOVE the widget grid
+ * - Admin users see User Admin dock at top, then Command Center, Energy Util, LMP Comparison
+ * - Standard users see Command Center, Energy Util, LMP Comparison (no User Admin)
+ * - Each dock panel has Collapse, Maximize, and Pop-out controls
+ * - Collapse state persisted per-panel in localStorage
+ * - Generalized renderDockedPanels() replaces renderCommandCenterDock()
  * 
  * v3.4 Updates:
  * - Dual Layout Mode: Wide (single-column) or Grid (2-per-row) — user toggleable
@@ -79,24 +88,73 @@ let sessionWarningId = null;
 let lastActivityTime = Date.now();
 
 const DEFAULT_WIDGETS = [
-    { id: 'user-admin', name: 'User Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, adminWide: true, fullWidth: true, embedded: true, defaultHeight: 800, minHeight: 500, maxHeight: 1400, doubleHeight: true },
-    { id: 'client-admin', name: 'Client Administration', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', src: 'widgets/client-admin-widget.html', adminOnly: true, adminWide: true, fullWidth: true, defaultHeight: 800, minHeight: 500, maxHeight: 1400, doubleHeight: true },
-    { id: 'client-lookup', name: 'Client Lookup', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>', src: 'widgets/client-lookup-widget.html', fullWidth: false, defaultHeight: 220, minHeight: 180, maxHeight: 350 },
-    { id: 'energy-utilization', name: 'Energy Utilization', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/energy-utilization-widget.html', fullWidth: false, defaultHeight: 650, minHeight: 500, maxHeight: 900 },
-    { id: 'bid-management', name: 'Bid Management', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', src: 'widgets/bid-management-widget.html', fullWidth: true, defaultHeight: 900, minHeight: 500, maxHeight: 1400 },
-    { id: 'ai-assistant', name: 'AI Assistant', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 800 },
-    { id: 'aei-intelligence', name: 'AE Intelligence (BUDA)', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', src: 'widgets/aei-widget.html', fullWidth: true, defaultHeight: 700, minHeight: 400, maxHeight: 1200 },
-    { id: 'lmp-analytics', name: 'LMP Analytics V2', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>', src: 'widgets/lmp-analytics.html', fullWidth: true, defaultHeight: 800, minHeight: 400, maxHeight: 1200 },
-    { id: 'data-manager', name: 'LMP Data Manager', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>', src: 'widgets/lmp-data-manager.html', defaultHeight: 500, minHeight: 300, maxHeight: 900 },
-    { id: 'arcadia-fetcher', name: 'Arcadia LMP Data Fetcher', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/arcadia-lmp-fetcher.html', defaultHeight: 500, minHeight: 300, maxHeight: 800 },
-    { id: 'lmp-comparison', name: 'LMP Comparison Portal', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', src: 'widgets/lmp-comparison-portal.html', fullWidth: true, defaultHeight: 700, minHeight: 400, maxHeight: 1100 },
-    { id: 'peak-demand', name: 'Peak Demand Analytics', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/peak-demand-widget.html', fullWidth: true, defaultHeight: 750, minHeight: 400, maxHeight: 1100 },
-    { id: 'analysis-history', name: 'My Analysis History', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 900 },
-    { id: 'feedback', name: 'Feedback & Support', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>', src: 'widgets/feedback-widget-light.html', adminSrc: 'widgets/feedback-admin-portal.html', fullWidth: true, defaultHeight: 600, minHeight: 400, maxHeight: 1000, permission: 'feedback' },
-    { id: 'password-reset', name: 'Change Password', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>', src: 'widgets/password-reset-widget.html', fullWidth: false, defaultHeight: 650, minHeight: 400, maxHeight: 900, permission: 'password-reset' }
+    { id: 'user-admin', name: 'User Administration', version: '3.5', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', adminOnly: true, adminWide: true, fullWidth: true, embedded: true, defaultHeight: 800, minHeight: 500, maxHeight: 1400, doubleHeight: true },
+    { id: 'client-admin', name: 'Client Administration', version: '2.1', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>', src: 'widgets/client-admin-widget.html', adminOnly: true, adminWide: true, fullWidth: true, defaultHeight: 800, minHeight: 500, maxHeight: 1400, doubleHeight: true },
+    { id: 'client-lookup', name: 'Client Lookup', version: '1.3', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>', src: 'widgets/client-lookup-widget.html', fullWidth: false, defaultHeight: 220, minHeight: 180, maxHeight: 350 },
+    { id: 'energy-utilization', name: 'Energy Utilization', version: '2.0', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/energy-utilization-widget.html', fullWidth: false, defaultHeight: 650, minHeight: 500, maxHeight: 900 },
+    { id: 'bid-management', name: 'Bid Management', version: '1.2', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>', src: 'widgets/bid-management-widget.html', fullWidth: true, defaultHeight: 900, minHeight: 500, maxHeight: 1400 },
+    { id: 'lmp-analytics', name: 'LMP Analytics V2', version: '2.0', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>', src: 'widgets/lmp-analytics.html', fullWidth: true, defaultHeight: 800, minHeight: 400, maxHeight: 1200 },
+    { id: 'data-manager', name: 'LMP Data Manager', version: '1.5', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>', src: 'widgets/lmp-data-manager.html', defaultHeight: 500, minHeight: 300, maxHeight: 900 },
+    { id: 'arcadia-fetcher', name: 'Arcadia LMP Data Fetcher', version: '1.1', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/arcadia-lmp-fetcher.html', defaultHeight: 500, minHeight: 300, maxHeight: 800 },
+    { id: 'lmp-comparison', name: 'LMP Comparison Portal', version: '3.2', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>', src: 'widgets/lmp-comparison-portal.html', fullWidth: true, defaultHeight: 700, minHeight: 400, maxHeight: 1100 },
+    { id: 'peak-demand', name: 'Peak Demand Analytics', version: '1.0', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>', src: 'widgets/peak-demand-widget.html', fullWidth: true, defaultHeight: 750, minHeight: 400, maxHeight: 1100 },
+    { id: 'analysis-history', name: 'My Analysis History', version: '1.4', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 900 },
+    { id: 'feedback', name: 'Feedback & Support', version: '1.2', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>', src: 'widgets/feedback-widget-light.html', adminSrc: 'widgets/feedback-admin-portal.html', fullWidth: true, defaultHeight: 600, minHeight: 400, maxHeight: 1000, permission: 'feedback' },
+    { id: 'password-reset', name: 'Change Password', version: '1.0', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>', src: 'widgets/password-reset-widget.html', fullWidth: false, defaultHeight: 650, minHeight: 400, maxHeight: 900, permission: 'password-reset' },
+    { id: 'aei-intelligence', name: 'AE Intelligence (BUDA)', version: '1.3', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>', src: 'widgets/aei-widget.html', fullWidth: true, defaultHeight: 700, minHeight: 400, maxHeight: 1200 },
+    { id: 'ai-assistant', name: 'AI Assistant', version: '2.1', updated: '2026-02-06', icon: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>', fullWidth: true, embedded: true, defaultHeight: 500, minHeight: 300, maxHeight: 800 }
 ];
 
 let WIDGETS = JSON.parse(JSON.stringify(DEFAULT_WIDGETS));
+
+// =====================================================
+// DOCKED PANELS — Render above widget grid (not in grid)
+// Order: User Admin (admin-only), Command Center, Energy Util, LMP Comparison
+// =====================================================
+const DOCKED_PANELS = [
+    { 
+        id: 'user-admin', 
+        name: 'User Administration', 
+        version: '3.5',
+        updated: '2026-02-06',
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        adminOnly: true,
+        embedded: true,
+        height: 800,
+        badge: 'ADMIN',
+        permission: 'user-admin'
+    },
+    { 
+        id: 'client-command-center', 
+        name: 'Client Command Center', 
+        version: '4.0',
+        updated: '2026-02-06',
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+        src: 'widgets/client-command-center.html',
+        height: 850,
+        permission: 'client-command-center'
+    },
+    { 
+        id: 'energy-utilization', 
+        name: 'Energy Utilization', 
+        version: '2.0',
+        updated: '2026-02-06',
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>',
+        src: 'widgets/energy-utilization-widget.html',
+        height: 650,
+        permission: 'energy-utilization'
+    },
+    { 
+        id: 'lmp-comparison', 
+        name: 'LMP Comparison Portal', 
+        version: '3.2',
+        updated: '2026-02-06',
+        icon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+        src: 'widgets/lmp-comparison-portal.html',
+        height: 700,
+        permission: 'lmp-comparison'
+    }
+];
 
 const WidgetLayout = {
     getWidgetConfig(userId, widgetId) {
@@ -555,6 +613,25 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             SecureEnergyClients.setCurrentUser(result.user.id);
         }
         
+        // Refresh stores from Azure on login to ensure cross-device data is available
+        if (typeof AnalysisStore !== 'undefined' && AnalysisStore.refresh) {
+            AnalysisStore.refresh().then(function(r) {
+                if (r.success) {
+                    console.log('[Login] AnalysisStore refreshed from Azure:', r.count, 'records');
+                    if (document.getElementById('analysisHistoryContent')) renderAnalysisHistory();
+                }
+            }).catch(function(e) { console.warn('[Login] AnalysisStore refresh failed:', e); });
+        }
+        if (typeof ActivityLog !== 'undefined' && ActivityLog.refresh) {
+            ActivityLog.refresh().then(function(r) {
+                if (r.success) {
+                    console.log('[Login] ActivityLog refreshed from Azure:', r.count, 'entries');
+                    refreshActivityLogIfVisible();
+                    if (document.getElementById('analysisHistoryContent')) renderAnalysisHistory();
+                }
+            }).catch(function(e) { console.warn('[Login] ActivityLog refresh failed:', e); });
+        }
+        
         // Check if user must reset their password before accessing the portal
         if (result.user.forcePasswordReset) {
             showForcePasswordReset(result.user);
@@ -592,77 +669,181 @@ let draggedWidget = null;
 let dragOverWidget = null;
 
 // =====================================================
-// CLIENT COMMAND CENTER — DOCKED TOP-OF-SCREEN
+// DOCKED PANELS — Generalized dock system above widget grid
 // =====================================================
-function renderCommandCenterDock(user) {
-    const dockId = 'commandCenterDock';
-    let dock = document.getElementById(dockId);
-    
-    // Check permission — if explicitly disabled, remove and bail
-    if (user.permissions && user.permissions['client-command-center'] === false) {
-        if (dock) dock.remove();
-        return;
-    }
-    
-    // Already rendered? Don't duplicate
-    if (dock) return;
-    
-    // Find the insertion point — before the widgetsGrid, inside mainContent
+function renderDockedPanels(user) {
     const mainContent = document.getElementById('mainContent');
     const widgetsGrid = document.getElementById('widgetsGrid');
     if (!mainContent || !widgetsGrid) return;
     
-    dock = document.createElement('div');
-    dock.id = dockId;
-    dock.className = 'command-center-dock';
+    // One-time migration: old command center key → new format
+    const oldKey = localStorage.getItem('commandCenter_collapsed');
+    if (oldKey !== null) {
+        localStorage.setItem('dockPanel_client-command-center_collapsed', oldKey);
+        localStorage.removeItem('commandCenter_collapsed');
+    }
     
-    // Collapse state from localStorage
-    const isCollapsed = localStorage.getItem('commandCenter_collapsed') === 'true';
-    
-    dock.innerHTML = 
-        '<div class="command-center-dock-header">' +
-            '<div class="command-center-dock-title">' +
-                '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>' +
-                '<span>Client Command Center</span>' +
-            '</div>' +
-            '<div class="command-center-dock-actions">' +
-                '<button class="command-center-dock-btn" onclick="toggleCommandCenterDock()" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" id="cmdCenterToggleBtn">' +
-                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>' +
-                '</button>' +
-                '<button class="command-center-dock-btn" onclick="popoutWidget(\'client-command-center\')" title="Pop out">' +
-                    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
-                '</button>' +
-            '</div>' +
-        '</div>' +
-        '<div class="command-center-dock-body" id="commandCenterBody" style="' + (isCollapsed ? 'display:none;' : '') + '">' +
-            '<iframe class="command-center-iframe" id="commandCenterIframe" src="widgets/client-command-center.html" title="Client Command Center"></iframe>' +
+    DOCKED_PANELS.forEach(panel => {
+        const dockId = 'dock_' + panel.id;
+        let dock = document.getElementById(dockId);
+        
+        // Check admin-only restriction
+        if (panel.adminOnly && user.role !== 'admin') {
+            if (dock) dock.remove();
+            return;
+        }
+        
+        // Check permission — if explicitly disabled, remove and bail
+        if (panel.permission && user.permissions && user.permissions[panel.permission] === false) {
+            if (dock) dock.remove();
+            return;
+        }
+        
+        // Already rendered? Don't duplicate
+        if (dock) return;
+        
+        // Collapse state from localStorage
+        const storageKey = 'dockPanel_' + panel.id + '_collapsed';
+        const isCollapsed = localStorage.getItem(storageKey) === 'true';
+        
+        dock = document.createElement('div');
+        dock.id = dockId;
+        dock.className = 'docked-panel';
+        if (panel.adminOnly) dock.classList.add('docked-panel-admin');
+        
+        // Badge HTML
+        const badgeHtml = panel.badge 
+            ? '<span class="docked-panel-badge">' + panel.badge + '</span>' 
+            : '';
+        
+        // Build header
+        const headerHtml = 
+            '<div class="docked-panel-header">' +
+                '<div class="docked-panel-title">' +
+                    panel.icon +
+                    '<span>' + panel.name + '</span>' +
+                    badgeHtml +
+                '</div>' +
+                '<div class="docked-panel-actions">' +
+                    '<button class="docked-panel-btn minimize-btn" onclick="toggleDockedPanel(\'' + panel.id + '\')" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '" id="dockToggle_' + panel.id + '">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>' +
+                    '</button>' +
+                    '<button class="docked-panel-btn maximize-btn" onclick="toggleDockedPanelMaximize(\'' + panel.id + '\')" title="Maximize" id="dockMax_' + panel.id + '">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>' +
+                    '</button>' +
+                    (panel.src ? '<button class="docked-panel-btn" onclick="popoutWidget(\'' + panel.id + '\')" title="Pop out">' +
+                        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>' +
+                    '</button>' : '') +
+                '</div>' +
+            '</div>';
+        
+        // Build body — embedded (user-admin) or iframe
+        let bodyHtml;
+        if (panel.embedded && panel.id === 'user-admin') {
+            bodyHtml = '<div class="docked-panel-body" id="dockBody_' + panel.id + '" style="height:' + panel.height + 'px;' + (isCollapsed ? 'display:none;' : '') + '">' +
+                '<div class="admin-widget-content" id="adminWidgetContent" style="height:100%;overflow-y:auto;"></div>' +
+            '</div>';
+        } else {
+            bodyHtml = '<div class="docked-panel-body" id="dockBody_' + panel.id + '" style="height:' + panel.height + 'px;' + (isCollapsed ? 'display:none;' : '') + '">' +
+                '<iframe class="docked-panel-iframe" id="dockIframe_' + panel.id + '" src="' + panel.src + '" title="' + panel.name + '"></iframe>' +
+            '</div>';
+        }
+        
+        // Build footer with version/date
+        const versionStr = panel.version || '1.0';
+        const updatedStr = panel.updated || '';
+        const formattedDate = updatedStr ? new Date(updatedStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+        const footerHtml = '<div class="widget-footer"' + (isCollapsed ? ' style="display:none;"' : '') + '>' +
+            '<span class="widget-footer-version">v' + versionStr + '</span>' +
+            (formattedDate ? '<span class="widget-footer-updated">Updated ' + formattedDate + '</span>' : '') +
         '</div>';
-    
-    // Insert before the widgets grid
-    mainContent.insertBefore(dock, widgetsGrid);
+        
+        dock.innerHTML = headerHtml + bodyHtml + footerHtml;
+        
+        // Insert before the widgets grid
+        mainContent.insertBefore(dock, widgetsGrid);
+    });
 }
 
-function toggleCommandCenterDock() {
-    const body = document.getElementById('commandCenterBody');
-    const btn = document.getElementById('cmdCenterToggleBtn');
+function toggleDockedPanel(panelId) {
+    const body = document.getElementById('dockBody_' + panelId);
+    const btn = document.getElementById('dockToggle_' + panelId);
+    const dock = document.getElementById('dock_' + panelId);
     if (!body) return;
+    
+    // Don't toggle if maximized
+    if (dock && dock.classList.contains('docked-panel-maximized')) return;
     
     const isHidden = body.style.display === 'none';
     body.style.display = isHidden ? '' : 'none';
-    localStorage.setItem('commandCenter_collapsed', isHidden ? 'false' : 'true');
+    localStorage.setItem('dockPanel_' + panelId + '_collapsed', isHidden ? 'false' : 'true');
+    
+    // Toggle footer visibility
+    if (dock) {
+        const footer = dock.querySelector('.widget-footer');
+        if (footer) footer.style.display = isHidden ? '' : 'none';
+    }
     
     if (btn) {
         btn.title = isHidden ? 'Collapse' : 'Expand';
         btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isHidden ? '18 15 12 9 6 15' : '6 9 12 15 18 9') + '"/></svg>';
     }
+    
+    logWidgetAction(isHidden ? 'Dock Expand' : 'Dock Collapse', panelId);
 }
+
+function toggleDockedPanelMaximize(panelId) {
+    const dock = document.getElementById('dock_' + panelId);
+    const body = document.getElementById('dockBody_' + panelId);
+    const maxBtn = document.getElementById('dockMax_' + panelId);
+    if (!dock || !body) return;
+    
+    const isMaximized = dock.classList.contains('docked-panel-maximized');
+    
+    if (isMaximized) {
+        // Restore
+        dock.classList.remove('docked-panel-maximized');
+        const savedHeight = dock.dataset.preMaxHeight;
+        if (savedHeight) body.style.height = savedHeight;
+        const backdrop = document.getElementById('dockMaximizeBackdrop');
+        if (backdrop) backdrop.remove();
+        document.body.style.overflow = '';
+        if (maxBtn) {
+            maxBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
+            maxBtn.title = 'Maximize';
+        }
+        logWidgetAction('Dock Restore', panelId);
+    } else {
+        // Maximize — expand if collapsed first
+        if (body.style.display === 'none') toggleDockedPanel(panelId);
+        dock.dataset.preMaxHeight = body.style.height;
+        let backdrop = document.getElementById('dockMaximizeBackdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'dockMaximizeBackdrop';
+            backdrop.className = 'widget-maximize-backdrop';
+            backdrop.onclick = function() { toggleDockedPanelMaximize(panelId); };
+            document.body.appendChild(backdrop);
+        }
+        dock.classList.add('docked-panel-maximized');
+        document.body.style.overflow = 'hidden';
+        if (maxBtn) {
+            maxBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
+            maxBtn.title = 'Restore';
+        }
+        logWidgetAction('Dock Maximize', panelId);
+    }
+}
+
+// Legacy alias for backward compatibility
+function toggleCommandCenterDock() { toggleDockedPanel('client-command-center'); }
 
 function renderWidgets(user) {
     const container = document.getElementById('widgetsGrid');
     container.innerHTML = '';
     
-    // === DOCK: Client Command Center above widget grid ===
-    renderCommandCenterDock(user);
+    // === DOCK: Render all docked panels above widget grid ===
+    renderDockedPanels(user);
     
     // === LAYOUT MODE: Determine wide vs grid ===
     // Priority: user toggle > admin default > 'wide'
@@ -675,7 +856,12 @@ function renderWidgets(user) {
     container.classList.add('layout-' + layoutMode);
     window._currentLayoutMode = layoutMode;
     
+    // IDs of widgets rendered as docked panels (excluded from grid)
+    const dockedIds = DOCKED_PANELS.map(p => p.id);
+    
     let availableWidgets = DEFAULT_WIDGETS.filter(w => {
+        // Skip widgets that are now docked panels
+        if (dockedIds.includes(w.id)) return false;
         if (w.adminOnly && user.role !== 'admin') return false;
         if (user.permissions && user.permissions[w.id] === false) return false;
         return true;
@@ -741,40 +927,39 @@ function createWidgetElement(widget, user) {
     div.dataset.widgetId = widget.id;
     div.draggable = true;
     
-    // === SVG Icons for the 3 window controls ===
-    const minimizeIcon = '<svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>';
+    // === Controls: Collapse + Maximize + Pop-out — mirrors docked panels exactly ===
+    const collapseIcon = '<svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="' + (isCollapsed ? '6 9 12 15 18 9' : '18 15 12 9 6 15') + '"/></svg>';
     const maximizeIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
-    const restoreIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
     const popoutIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
-    const dragIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>';
-    
-    // Width toggle icon — only visible in grid mode
-    const widthIcon = isFullWidth
-        ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="7" height="14" rx="1"/><rect x="14" y="5" width="7" height="14" rx="1"/></svg>'
-        : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="1"/></svg>';
+    const hasPopout = widget.src || false;
 
-    // === Window Controls: Drag | Width | Minimize | Maximize | Pop-out ===
-    const hasPopout = widget.src || widget.id === 'client-command-center';
     const windowControls = 
-        '<div class="dock-panel-controls">' +
-            '<div class="dock-drag-handle" title="Drag to reorder">' + dragIcon + '</div>' +
-            '<button class="dock-ctrl-btn width-btn grid-only-ctrl" onclick="toggleWidgetWidth(\'' + widget.id + '\')" title="' + (isFullWidth ? 'Half width' : 'Full width') + '">' + widthIcon + '</button>' +
-            '<button class="dock-ctrl-btn minimize-btn" onclick="toggleWidgetCollapse(\'' + widget.id + '\')" title="' + (isCollapsed ? 'Expand' : 'Minimize') + '">' + minimizeIcon + '</button>' +
-            '<button class="dock-ctrl-btn maximize-btn" onclick="toggleWidgetMaximize(\'' + widget.id + '\')" title="Maximize">' + maximizeIcon + '</button>' +
-            (hasPopout ? '<button class="dock-ctrl-btn popout-btn" onclick="popoutWidget(\'' + widget.id + '\')" title="Open in new window">' + popoutIcon + '</button>' : '') +
+        '<div class="docked-panel-actions">' +
+            '<button class="docked-panel-btn minimize-btn" onclick="toggleWidgetCollapse(\'' + widget.id + '\')" title="' + (isCollapsed ? 'Expand' : 'Collapse') + '">' + collapseIcon + '</button>' +
+            '<button class="docked-panel-btn maximize-btn" onclick="toggleWidgetMaximize(\'' + widget.id + '\')" title="Maximize">' + maximizeIcon + '</button>' +
+            (hasPopout ? '<button class="docked-panel-btn" onclick="popoutWidget(\'' + widget.id + '\')" title="Pop out">' + popoutIcon + '</button>' : '') +
         '</div>';
     
     const contentStyle = 'height:' + currentHeight + 'px;' + (isCollapsed ? 'display:none;' : '');
     
+    // === Version/Updated footer ===
+    const versionStr = widget.version || '1.0';
+    const updatedStr = widget.updated || '';
+    const formattedDate = updatedStr ? new Date(updatedStr + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const footerHtml = '<div class="widget-footer">' +
+        '<span class="widget-footer-version">v' + versionStr + '</span>' +
+        (formattedDate ? '<span class="widget-footer-updated">Updated ' + formattedDate + '</span>' : '') +
+    '</div>';
+    
     if (widget.embedded && widget.id === 'user-admin') {
-        div.innerHTML = '<div class="dock-panel-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span><span class="widget-badge">ADMIN</span></div><div class="dock-panel-actions">' + windowControls + '</div></div><div class="widget-content admin-widget-content" id="adminWidgetContent" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div><div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span><span class="widget-badge">ADMIN</span></div>' + windowControls + '</div><div class="widget-content admin-widget-content" id="adminWidgetContent" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     } else if (widget.embedded && widget.id === 'ai-assistant') {
-        div.innerHTML = '<div class="dock-panel-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span><span class="widget-badge" style="background:var(--accent-info);">BETA</span></div><div class="dock-panel-actions">' + windowControls + '</div></div><div class="widget-content ai-assistant-content" id="aiAssistantContent" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div><div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span><span class="widget-badge" style="background:var(--accent-info);">BETA</span></div>' + windowControls + '</div><div class="widget-content ai-assistant-content" id="aiAssistantContent" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     } else if (widget.embedded && widget.id === 'analysis-history') {
-        const extraBtns = '<button class="dock-action-btn" onclick="exportMyAnalysisRecords()" title="Export"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button><button class="dock-action-btn" onclick="refreshAnalysisHistory()" title="Refresh"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>';
-        div.innerHTML = '<div class="dock-panel-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span></div><div class="dock-panel-actions">' + extraBtns + windowControls + '</div></div><div class="widget-content analysis-history-content" id="analysisHistoryContent" style="' + contentStyle + 'overflow-y:auto;" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div><div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        const extraBtns = '<button class="docked-panel-btn" onclick="exportMyAnalysisRecords()" title="Export"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button><button class="docked-panel-btn" onclick="refreshAnalysisHistory()" title="Refresh"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>';
+        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span></div><div class="docked-panel-actions">' + extraBtns + '</div>' + windowControls + '</div><div class="widget-content analysis-history-content" id="analysisHistoryContent" style="' + contentStyle + 'overflow-y:auto;" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     } else {
-        // Standard iframe widget with dock-panel header
+        // Standard iframe widget
         let widgetSrc = widget.src;
         let adminBadge = '';
         if (widget.id === 'feedback' && user.role === 'admin' && widget.adminSrc) {
@@ -782,19 +967,36 @@ function createWidgetElement(widget, user) {
             adminBadge = '<span class="widget-badge">ADMIN</span>';
         }
         
-        div.innerHTML = '<div class="dock-panel-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span>' + adminBadge + '</div><div class="dock-panel-actions">' + windowControls + '</div></div><div class="widget-content" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"><iframe class="widget-iframe" src="' + widgetSrc + '" title="' + widget.name + '"></iframe></div><div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
+        div.innerHTML = '<div class="dock-panel-header widget-drag-header"><div class="dock-panel-title">' + widget.icon + '<span>' + widget.name + '</span>' + adminBadge + '</div>' + windowControls + '</div><div class="widget-content" style="' + contentStyle + '" data-default-height="' + widget.defaultHeight + '" data-min-height="' + widget.minHeight + '" data-max-height="' + widget.maxHeight + '"><iframe class="widget-iframe" src="' + widgetSrc + '" title="' + widget.name + '"></iframe></div>' + footerHtml + '<div class="widget-resize-handle" data-widget-id="' + widget.id + '"></div>';
     }
     return div;
 }
 
 function initDragAndDrop() {
     document.querySelectorAll('.widget[draggable="true"]').forEach(widget => {
-        widget.addEventListener('dragstart', handleDragStart);
+        // Drag initiates from the header only
+        const header = widget.querySelector('.widget-drag-header');
+        if (header) {
+            header.addEventListener('mousedown', function(e) {
+                // Don't start drag if clicking on buttons or action controls
+                if (e.target.closest('.docked-panel-btn') || e.target.closest('button')) return;
+                widget.dataset.dragReady = 'true';
+            });
+        }
+        widget.addEventListener('dragstart', function(e) {
+            if (this.dataset.dragReady !== 'true') { e.preventDefault(); return; }
+            delete this.dataset.dragReady;
+            handleDragStart.call(this, e);
+        });
         widget.addEventListener('dragend', handleDragEnd);
         widget.addEventListener('dragover', handleDragOver);
         widget.addEventListener('dragenter', handleDragEnter);
         widget.addEventListener('dragleave', handleDragLeave);
         widget.addEventListener('drop', handleDrop);
+    });
+    // Clear dragReady on mouseup in case drag didn't start
+    document.addEventListener('mouseup', function() {
+        document.querySelectorAll('.widget[data-drag-ready]').forEach(w => delete w.dataset.dragReady);
     });
     initResizeHandles();
 }
@@ -1676,14 +1878,20 @@ function renderAnalysisHistory() {
     
     let analyses = [];
     if (currentUser) {
-        // Prefer AnalysisStore (full records with calculation results)
-        if (typeof AnalysisStore !== 'undefined' && AnalysisStore.getAll().length > 0) {
-            analyses = currentUser.role === 'admin'
+        // Try AnalysisStore first (full records with calculation results)
+        if (typeof AnalysisStore !== 'undefined') {
+            // Filter by user FIRST, then check if we have results
+            const storeAnalyses = currentUser.role === 'admin'
                 ? AnalysisStore.getAll()
                 : AnalysisStore.getByUser(currentUser.id);
-            analyses = analyses.slice(0, 50);
-        } else {
-            // Fallback to ActivityLog for legacy records
+            
+            if (storeAnalyses.length > 0) {
+                analyses = storeAnalyses.slice(0, 50);
+            }
+        }
+        
+        // If AnalysisStore had no results for this user, check ActivityLog as fallback
+        if (analyses.length === 0) {
             const userLogs = currentUser.role === 'admin' 
                 ? ActivityLog.getAll().filter(l => l.action === 'LMP Analysis')
                 : ActivityLog.getByUser(currentUser.id).filter(l => l.action === 'LMP Analysis');
@@ -2647,7 +2855,14 @@ function downloadFile(content, filename, mimeType) {
 
 document.addEventListener('keydown', e => { 
     if (e.key === 'Escape') {
-        // First check for maximized widget
+        // First check for maximized docked panel
+        const maxDock = document.querySelector('.docked-panel-maximized');
+        if (maxDock) {
+            const panelId = maxDock.id.replace('dock_', '');
+            toggleDockedPanelMaximize(panelId);
+            return;
+        }
+        // Then check for maximized widget
         const maximized = document.querySelector('.widget.maximized');
         if (maximized) { toggleWidgetMaximize(maximized.dataset.widgetId); return; }
         closeEditModal(); 
