@@ -1,0 +1,1794 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Energy Budget Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f7fa;
+            color: #2d3748;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #003d5c 0%, #005a7f 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        
+        .card h2 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: #1a202c;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 10px;
+        }
+        
+        .upload-area {
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: #005a7f;
+            background: #f7fafc;
+        }
+        
+        .upload-area.dragover {
+            border-color: #005a7f;
+            background: #edf2f7;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #005a7f;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #003d5c;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #00a3e0;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #0087c1;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+        
+        .btn-outline {
+            background: white;
+            border: 2px solid #005a7f;
+            color: #005a7f;
+        }
+        
+        .btn-outline:hover {
+            background: #005a7f;
+            color: white;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: #718096;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: #005a7f;
+        }
+        
+        .tab.active {
+            color: #005a7f;
+            border-bottom-color: #005a7f;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #4a5568;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        tr:hover {
+            background: #f7fafc;
+        }
+        
+        .table-container {
+            max-height: 600px;
+            overflow: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #4a5568;
+            font-size: 14px;
+        }
+        
+        input[type="text"],
+        input[type="number"],
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #005a7f;
+            box-shadow: 0 0 0 3px rgba(0, 90, 127, 0.1);
+        }
+        
+        .modifier-list {
+            margin-top: 20px;
+        }
+        
+        .modifier-item {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 4px solid #005a7f;
+        }
+        
+        .modifier-item h4 {
+            margin-bottom: 8px;
+            color: #2d3748;
+        }
+        
+        .modifier-item p {
+            font-size: 13px;
+            color: #718096;
+            margin: 4px 0;
+        }
+        
+        .group-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #005a7f;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-right: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .account-selector {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 12px;
+            background: white;
+        }
+        
+        .account-item {
+            padding: 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        
+        .account-item:hover {
+            background: #edf2f7;
+        }
+        
+        .account-item input[type="checkbox"] {
+            margin-right: 8px;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 20px;
+        }
+        
+        .summary-box {
+            background: linear-gradient(135deg, #003d5c 0%, #005a7f 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+        
+        .summary-item h3 {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-bottom: 4px;
+        }
+        
+        .summary-item p {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .status-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .status-warning {
+            background: #feebc8;
+            color: #7c2d12;
+        }
+        
+        .number-right {
+            text-align: right;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+        
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .chart-container {
+            margin: 24px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        
+        .chart-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+        
+        .custom-adjustments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+        
+        .month-input-card {
+            background: #f7fafc;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .month-input-card label {
+            font-size: 12px;
+            margin-bottom: 4px;
+        }
+        
+        .month-input-card input {
+            font-size: 13px;
+            padding: 6px;
+        }
+        
+        .account-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .account-item.disabled input {
+            cursor: not-allowed;
+        }
+        
+        .account-item .group-indicator {
+            font-size: 11px;
+            color: #718096;
+            font-style: italic;
+            margin-left: 8px;
+        }
+        
+        #adjustmentTable input[type="number"] {
+            font-family: inherit;
+        }
+        
+        #adjustmentTable tbody tr {
+            transition: background-color 0.2s;
+        }
+        
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            cursor: help;
+            color: #005a7f;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .tooltip .tooltiptext {
+            visibility: hidden;
+            width: 350px;
+            background-color: #2d3748;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -175px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 13px;
+            line-height: 1.5;
+            font-weight: normal;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .tooltip .tooltiptext::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #2d3748 transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .comparison-item {
+            background: white;
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .comparison-item h4 {
+            font-size: 13px;
+            color: #718096;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        
+        .comparison-values {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 8px;
+        }
+        
+        .comparison-values .actual {
+            font-size: 16px;
+            color: #4a5568;
+        }
+        
+        .comparison-values .budget {
+            font-size: 20px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .comparison-variance {
+            font-size: 13px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        
+        .variance-positive {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+        
+        .variance-negative {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+        
+        .variance-neutral {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Energy Budget Tool</h1>
+            <p class="subtitle">Upload usage data, apply modifiers, create groups, and generate budgets</p>
+        </header>
+
+        <!-- Upload Section -->
+        <div class="card">
+            <h2>1. Upload Data</h2>
+            <p style="font-size: 13px; color: #718096; margin-bottom: 16px;">
+                Upload an Excel file below, <strong>or</strong> data will load automatically when you click "Open Budget Tool" from the Energy Utilization widget.
+            </p>
+            <div class="upload-area" id="uploadArea">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin: 0 auto 12px; display: block; color: #a0aec0;">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p style="font-weight: 500; margin-bottom: 8px;">Click to upload or drag and drop</p>
+                <p style="font-size: 13px; color: #a0aec0;">Excel file with Usage, Supply Cost, and DT Cost data</p>
+                <input type="file" id="fileInput" accept=".xlsx,.xls">
+            </div>
+            <div id="fileStatus" style="margin-top: 16px;"></div>
+            
+            <!-- Auto-loaded from Energy Utilization banner (hidden by default) -->
+            <div id="utilizationLoadedBanner" style="display:none; margin-top:16px; padding:14px 18px; background:linear-gradient(135deg, #f0f9ff 0%, #f0fdf4 100%); border:1px solid #86efac; border-left:4px solid #22c55e; border-radius:8px;">
+                <div style="display:flex; align-items:flex-start; gap:12px;">
+                    <span style="font-size:1.2rem; flex-shrink:0;">✅</span>
+                    <div>
+                        <div style="font-weight:600; color:#166534; font-size:14px; margin-bottom:4px;" id="loadedBannerTitle">Data loaded from Energy Utilization</div>
+                        <div style="font-size:13px; color:#4b5563; line-height:1.5;" id="loadedBannerDetail">Account data has been automatically loaded. You can now create groups, apply modifiers, and generate budget reports below.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="mainContent" style="display: none;">
+            <!-- Summary -->
+            <div class="summary-box">
+                <h2 style="color: white; border: none; padding: 0; margin-bottom: 12px;">Portfolio Summary</h2>
+                <div class="summary-grid" id="summaryGrid"></div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="card">
+                <div class="tabs">
+                    <button class="tab active" data-tab="accounts">Accounts</button>
+                    <button class="tab" data-tab="groups">Groups</button>
+                    <button class="tab" data-tab="modifiers">Modifiers</button>
+                    <button class="tab" data-tab="budget">Budget View</button>
+                </div>
+
+                <!-- Accounts Tab -->
+                <div class="tab-content active" data-content="accounts">
+                    <div class="table-container" id="accountsTable"></div>
+                </div>
+
+                <!-- Groups Tab -->
+                <div class="tab-content" data-content="groups">
+                    <div class="grid-2" style="margin-bottom: 24px;">
+                        <div>
+                            <h3 style="margin-bottom: 16px;">Create New Group</h3>
+                            <div class="form-group">
+                                <label>Group Name</label>
+                                <input type="text" id="groupName" placeholder="e.g., Street Lights">
+                            </div>
+                            <div class="form-group">
+                                <label>Select Accounts</label>
+                                <div class="account-selector" id="accountSelector"></div>
+                            </div>
+                            <button class="btn btn-primary" onclick="createGroup()">Create Group</button>
+                        </div>
+                        <div>
+                            <h3 style="margin-bottom: 16px;">Existing Groups</h3>
+                            <div id="groupsList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modifiers Tab -->
+                <div class="tab-content" data-content="modifiers">
+                    <div class="grid-2" style="margin-bottom: 24px;">
+                        <div>
+                            <h3 style="margin-bottom: 16px;">Add Modifier</h3>
+                            <div class="form-group">
+                                <label>Modifier Name</label>
+                                <input type="text" id="modifierName" placeholder="e.g., 2025 Rate Increase">
+                            </div>
+                            <div class="form-group">
+                                <label>
+                                    Type
+                                    <span class="tooltip">ℹ️
+                                        <span class="tooltiptext">
+                                            <strong>How Modifiers Work:</strong><br><br>
+                                            <strong>Percent Changes (%):</strong> Multiply the value by (1 + value/100). Example: 5% increase on $100 = $100 × 1.05 = $105<br><br>
+                                            <strong>Fixed Changes:</strong> Add the value directly. Example: +$10 on $100 = $110<br><br>
+                                            <strong>Application Order:</strong><br>
+                                            1. Portfolio Modifiers (affect all accounts)<br>
+                                            2. Group Modifiers (affect accounts in group)<br>
+                                            3. Account Modifiers (highest priority)<br><br>
+                                            <strong>Usage Modifiers:</strong> Change usage, then costs recalculate as: Cost = New Usage × Rate
+                                        </span>
+                                    </span>
+                                </label>
+                                <select id="modifierType">
+                                    <option value="usage_percent">Usage % Change</option>
+                                    <option value="usage_fixed">Usage Fixed Change (kWh)</option>
+                                    <option value="supply_percent">Supply Cost % Change</option>
+                                    <option value="supply_fixed">Supply Cost Fixed Change ($)</option>
+                                    <option value="dt_percent">DT Cost % Change</option>
+                                    <option value="dt_fixed">DT Cost Fixed Change ($)</option>
+                                    <option value="total_percent">Total Cost % Change</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Value</label>
+                                <input type="number" id="modifierValue" placeholder="e.g., 5 for 5% increase" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>Apply To</label>
+                                <select id="modifierTarget">
+                                    <option value="portfolio">Entire Portfolio</option>
+                                    <option value="account">Specific Account</option>
+                                    <option value="group">Specific Group</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="targetSelector" style="display: none;">
+                                <label>Select Target</label>
+                                <select id="targetValue"></select>
+                            </div>
+                            <button class="btn btn-primary" onclick="addModifier()">Add Modifier</button>
+                        </div>
+                        <div>
+                            <h3 style="margin-bottom: 16px;">Active Modifiers</h3>
+                            <div class="modifier-list" id="modifiersList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Budget View Tab -->
+                <div class="tab-content" data-content="budget">
+                    <div style="margin-bottom: 20px;">
+                        <label>View:</label>
+                        <select id="budgetView" onchange="updateBudgetView()" style="width: auto; margin-left: 12px;">
+                            <option value="portfolio">Portfolio (All Accounts)</option>
+                            <option value="account">Individual Account</option>
+                            <option value="group">Group</option>
+                        </select>
+                        <select id="budgetViewTarget" style="width: auto; margin-left: 12px; display: none;" onchange="updateBudgetView()"></select>
+                    </div>
+                    
+                    <!-- Budget vs Actuals Comparison -->
+                    <div class="card" style="background: #f7fafc; padding: 20px; margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 16px; font-size: 18px; color: #2d3748;">Budget vs Actuals Comparison</h3>
+                        <div class="summary-grid" id="comparisonGrid" style="background: transparent;"></div>
+                    </div>
+                    
+                    <!-- Charts -->
+                    <div class="chart-grid">
+                        <div class="chart-container">
+                            <h3 style="margin-bottom: 16px; font-size: 16px;">Usage Trend</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="usageChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <h3 style="margin-bottom: 16px; font-size: 16px;">Cost Breakdown</h3>
+                            <div class="chart-wrapper">
+                                <canvas id="costChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chart-container" style="margin-bottom: 24px;">
+                        <h3 style="margin-bottom: 16px; font-size: 16px;">Monthly Cost Breakdown</h3>
+                        <div class="chart-wrapper" style="height: 400px;">
+                            <canvas id="stackedChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="table-container" id="budgetTable"></div>
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="exportToCSV()">Export to CSV</button>
+                        <button class="btn btn-outline" onclick="exportAllToCSV()">Export All Data (Accounts + Groups + Budget)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let energyData = {
+            accounts: [],
+            groups: [],
+            modifiers: [],
+            rawData: null
+        };
+        
+        // Chart instances
+        let charts = {
+            usage: null,
+            cost: null,
+            stacked: null
+        };
+
+        // File upload handling
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) handleFile(file);
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) handleFile(file);
+        });
+
+        function handleFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    parseExcelData(workbook);
+                    document.getElementById('fileStatus').innerHTML = `
+                        <span class="status-badge status-success">✓ File loaded: ${file.name}</span>
+                    `;
+                    document.getElementById('mainContent').style.display = 'block';
+                } catch (error) {
+                    document.getElementById('fileStatus').innerHTML = `
+                        <span class="status-badge status-warning">✗ Error reading file: ${error.message}</span>
+                    `;
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseExcelData(workbook) {
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const range = XLSX.utils.decode_range(sheet['!ref']);
+            
+            energyData.accounts = [];
+            energyData.rawData = sheet;
+            
+            // Parse accounts (assuming structure from the uploaded file)
+            // Usage data starts at row 4, Supply at row 16, DT at row 28
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            // Find account rows (between usage header and total)
+            for (let row = 3; row <= 8; row++) { // Rows 4-9 in Excel (0-indexed: 3-8)
+                const accountCell = sheet[XLSX.utils.encode_cell({ r: row, c: 0 })];
+                if (!accountCell || !accountCell.v) continue;
+                
+                const accountName = accountCell.v;
+                const account = {
+                    id: `account_${row}`,
+                    name: accountName,
+                    usage: [],
+                    supplyCost: [],
+                    dtCost: []
+                };
+                
+                // Parse 12 months of data
+                for (let col = 1; col <= 12; col++) {
+                    // Usage
+                    const usageCell = sheet[XLSX.utils.encode_cell({ r: row, c: col })];
+                    account.usage.push(usageCell ? (usageCell.v || 0) : 0);
+                    
+                    // Supply Cost (12 rows down)
+                    const supplyCell = sheet[XLSX.utils.encode_cell({ r: row + 12, c: col })];
+                    account.supplyCost.push(supplyCell ? (supplyCell.v || 0) : 0);
+                    
+                    // DT Cost (24 rows down)
+                    const dtCell = sheet[XLSX.utils.encode_cell({ r: row + 24, c: col })];
+                    account.dtCost.push(dtCell ? (dtCell.v || 0) : 0);
+                }
+                
+                energyData.accounts.push(account);
+            }
+            
+            updateAllViews();
+        }
+
+        // Tab handling
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const contentId = tab.dataset.tab;
+                document.querySelector(`[data-content="${contentId}"]`).classList.add('active');
+            });
+        });
+
+        // Update views
+        function updateAllViews() {
+            updateSummary();
+            updateAccountsTable();
+            updateAccountSelector();
+            updateGroupsList();
+            updateModifiersList();
+            updateBudgetView();
+            updateTargetSelectors();
+        }
+
+        function updateSummary() {
+            const budget = calculateBudget('portfolio');
+            const totalUsage = budget.reduce((sum, m) => sum + m.usage, 0);
+            const totalSupply = budget.reduce((sum, m) => sum + m.supplyCost, 0);
+            const totalDT = budget.reduce((sum, m) => sum + m.dtCost, 0);
+            const totalCost = totalSupply + totalDT;
+            
+            document.getElementById('summaryGrid').innerHTML = `
+                <div class="summary-item">
+                    <h3>Total Usage</h3>
+                    <p>${totalUsage.toLocaleString()} kWh</p>
+                </div>
+                <div class="summary-item">
+                    <h3>Supply Cost</h3>
+                    <p>$${totalSupply.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                </div>
+                <div class="summary-item">
+                    <h3>DT Cost</h3>
+                    <p>$${totalDT.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                </div>
+                <div class="summary-item">
+                    <h3>Total Cost</h3>
+                    <p>$${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</p>
+                </div>
+                <div class="summary-item">
+                    <h3>Accounts</h3>
+                    <p>${energyData.accounts.length}</p>
+                </div>
+                <div class="summary-item">
+                    <h3>Groups</h3>
+                    <p>${energyData.groups.length}</p>
+                </div>
+            `;
+        }
+
+        function updateAccountsTable() {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            let html = '<table><thead><tr>';
+            html += '<th>Account</th>';
+            months.forEach(m => html += `<th class="number-right">${m} Usage</th>`);
+            html += '<th class="number-right">Total Usage</th>';
+            html += '<th class="number-right">Total Cost</th>';
+            html += '</tr></thead><tbody>';
+            
+            energyData.accounts.forEach(account => {
+                const totalUsage = account.usage.reduce((a, b) => a + b, 0);
+                const totalCost = account.supplyCost.reduce((a, b) => a + b, 0) + account.dtCost.reduce((a, b) => a + b, 0);
+                
+                html += `<tr><td>${account.name}</td>`;
+                account.usage.forEach(u => html += `<td class="number-right">${u.toLocaleString()}</td>`);
+                html += `<td class="number-right"><strong>${totalUsage.toLocaleString()}</strong></td>`;
+                html += `<td class="number-right"><strong>$${totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>`;
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            document.getElementById('accountsTable').innerHTML = html;
+        }
+
+        function updateAccountSelector() {
+            let html = '';
+            energyData.accounts.forEach(account => {
+                // Check if account is already in a group
+                const existingGroup = energyData.groups.find(g => g.accounts.includes(account.id));
+                const isDisabled = existingGroup ? 'disabled' : '';
+                const groupIndicator = existingGroup ? `<span class="group-indicator">(in "${existingGroup.name}")</span>` : '';
+                
+                html += `
+                    <div class="account-item ${isDisabled}">
+                        <input type="checkbox" id="acc_${account.id}" value="${account.id}" ${isDisabled ? 'disabled' : ''}>
+                        <label for="acc_${account.id}" style="cursor: ${isDisabled ? 'not-allowed' : 'pointer'};">${account.name}${groupIndicator}</label>
+                    </div>
+                `;
+            });
+            document.getElementById('accountSelector').innerHTML = html;
+        }
+
+        function createGroup() {
+            const name = document.getElementById('groupName').value.trim();
+            if (!name) {
+                alert('Please enter a group name');
+                return;
+            }
+            
+            const selectedAccounts = [];
+            energyData.accounts.forEach(account => {
+                const checkbox = document.getElementById(`acc_${account.id}`);
+                if (checkbox && checkbox.checked) {
+                    selectedAccounts.push(account.id);
+                }
+            });
+            
+            if (selectedAccounts.length === 0) {
+                alert('Please select at least one account');
+                return;
+            }
+            
+            energyData.groups.push({
+                id: `group_${Date.now()}`,
+                name: name,
+                accounts: selectedAccounts
+            });
+            
+            document.getElementById('groupName').value = '';
+            energyData.accounts.forEach(account => {
+                const checkbox = document.getElementById(`acc_${account.id}`);
+                if (checkbox) checkbox.checked = false;
+            });
+            
+            updateAllViews();
+        }
+
+        function updateGroupsList() {
+            let html = '';
+            
+            if (energyData.groups.length === 0) {
+                html = '<div class="empty-state"><p>No groups created yet</p></div>';
+            } else {
+                energyData.groups.forEach((group, index) => {
+                    const accountNames = group.accounts.map(accId => {
+                        const acc = energyData.accounts.find(a => a.id === accId);
+                        return acc ? acc.name : 'Unknown';
+                    });
+                    
+                    html += `
+                        <div class="modifier-item" style="border-left-color: #00a3e0;">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <h4>${group.name}</h4>
+                                    <p style="margin-top: 8px;"><strong>${group.accounts.length} accounts</strong></p>
+                                    <div style="margin-top: 8px;">
+                                        ${accountNames.map(name => `<span class="group-badge" style="background: #00a3e0;">${name.substring(0, 30)}${name.length > 30 ? '...' : ''}</span>`).join('')}
+                                    </div>
+                                </div>
+                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteGroup(${index})">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            document.getElementById('groupsList').innerHTML = html;
+        }
+
+        function deleteGroup(index) {
+            if (confirm('Are you sure you want to delete this group?')) {
+                energyData.groups.splice(index, 1);
+                // Remove modifiers targeting this group
+                energyData.modifiers = energyData.modifiers.filter(m => m.target !== energyData.groups[index]?.id);
+                updateAllViews();
+            }
+        }
+
+        // Modifier handling
+        document.getElementById('modifierTarget').addEventListener('change', (e) => {
+            const targetSelector = document.getElementById('targetSelector');
+            const targetValue = document.getElementById('targetValue');
+            
+            if (e.target.value === 'portfolio') {
+                targetSelector.style.display = 'none';
+            } else {
+                targetSelector.style.display = 'block';
+                
+                let options = '<option value="">Select...</option>';
+                if (e.target.value === 'account') {
+                    energyData.accounts.forEach(acc => {
+                        options += `<option value="${acc.id}">${acc.name}</option>`;
+                    });
+                } else if (e.target.value === 'group') {
+                    energyData.groups.forEach(grp => {
+                        options += `<option value="${grp.id}">${grp.name}</option>`;
+                    });
+                }
+                targetValue.innerHTML = options;
+            }
+        });
+
+        function addModifier() {
+            const name = document.getElementById('modifierName').value.trim();
+            const type = document.getElementById('modifierType').value;
+            const value = parseFloat(document.getElementById('modifierValue').value);
+            const targetType = document.getElementById('modifierTarget').value;
+            const targetValue = document.getElementById('targetValue').value;
+            
+            if (!name || isNaN(value)) {
+                alert('Please fill in all fields');
+                return;
+            }
+            
+            if (targetType !== 'portfolio' && !targetValue) {
+                alert('Please select a target');
+                return;
+            }
+            
+            const modifier = {
+                id: `mod_${Date.now()}`,
+                name: name,
+                type: type,
+                value: value,
+                targetType: targetType,
+                target: targetType === 'portfolio' ? 'portfolio' : targetValue
+            };
+            
+            energyData.modifiers.push(modifier);
+            
+            document.getElementById('modifierName').value = '';
+            document.getElementById('modifierValue').value = '';
+            
+            updateAllViews();
+        }
+
+        function updateModifiersList() {
+            let html = '';
+            
+            if (energyData.modifiers.length === 0) {
+                html = '<div class="empty-state"><p>No modifiers added yet</p></div>';
+            } else {
+                energyData.modifiers.forEach((mod, index) => {
+                    let targetName = 'Entire Portfolio';
+                    if (mod.targetType === 'account') {
+                        const acc = energyData.accounts.find(a => a.id === mod.target);
+                        targetName = acc ? acc.name : 'Unknown Account';
+                    } else if (mod.targetType === 'group') {
+                        const grp = energyData.groups.find(g => g.id === mod.target);
+                        targetName = grp ? grp.name : 'Unknown Group';
+                    }
+                    
+                    const typeLabel = {
+                        'usage_percent': 'Usage % Change',
+                        'usage_fixed': 'Usage Fixed Change',
+                        'supply_percent': 'Supply Cost % Change',
+                        'supply_fixed': 'Supply Cost Fixed Change',
+                        'dt_percent': 'DT Cost % Change',
+                        'dt_fixed': 'DT Cost Fixed Change',
+                        'total_percent': 'Total Cost % Change'
+                    }[mod.type];
+                    
+                    html += `
+                        <div class="modifier-item">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div>
+                                    <h4>${mod.name}</h4>
+                                    <p><strong>Type:</strong> ${typeLabel}</p>
+                                    <p><strong>Value:</strong> ${mod.value}${mod.type.includes('percent') ? '%' : ''}</p>
+                                    <p><strong>Applied to:</strong> ${targetName}</p>
+                                </div>
+                                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;" onclick="deleteModifier(${index})">Remove</button>
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+            
+            document.getElementById('modifiersList').innerHTML = html;
+        }
+
+        function deleteModifier(index) {
+            energyData.modifiers.splice(index, 1);
+            updateAllViews();
+        }
+
+        function updateTargetSelectors() {
+            // Update budget view target selector
+            const budgetViewTarget = document.getElementById('budgetViewTarget');
+            const budgetView = document.getElementById('budgetView').value;
+            
+            let options = '';
+            if (budgetView === 'account') {
+                energyData.accounts.forEach(acc => {
+                    options += `<option value="${acc.id}">${acc.name}</option>`;
+                });
+            } else if (budgetView === 'group') {
+                energyData.groups.forEach(grp => {
+                    options += `<option value="${grp.id}">${grp.name}</option>`;
+                });
+            }
+            budgetViewTarget.innerHTML = options;
+        }
+
+        document.getElementById('budgetView').addEventListener('change', () => {
+            const view = document.getElementById('budgetView').value;
+            const targetSelector = document.getElementById('budgetViewTarget');
+            
+            if (view === 'portfolio') {
+                targetSelector.style.display = 'none';
+            } else {
+                targetSelector.style.display = 'inline-block';
+                updateTargetSelectors();
+            }
+        });
+
+        function calculateBudget(viewType, targetId = null) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            let accountsToProcess = [];
+            
+            if (viewType === 'portfolio') {
+                accountsToProcess = energyData.accounts;
+            } else if (viewType === 'account') {
+                const account = energyData.accounts.find(a => a.id === targetId);
+                accountsToProcess = account ? [account] : [];
+            } else if (viewType === 'group') {
+                const group = energyData.groups.find(g => g.id === targetId);
+                if (group) {
+                    accountsToProcess = energyData.accounts.filter(a => group.accounts.includes(a.id));
+                }
+            }
+            
+            // Calculate budget for each month
+            const budget = months.map((month, monthIndex) => {
+                let usage = 0, supplyCost = 0, dtCost = 0;
+                
+                accountsToProcess.forEach(account => {
+                    // Start with base data
+                    let accountUsage = account.usage[monthIndex] || 0;
+                    let accountSupply = account.supplyCost[monthIndex] || 0;
+                    let accountDT = account.dtCost[monthIndex] || 0;
+                    
+                    // Calculate base rates BEFORE any modifications
+                    const baseSupplyRate = accountUsage > 0 ? (accountSupply / accountUsage) : 0;
+                    const baseDTRate = accountUsage > 0 ? (accountDT / accountUsage) : 0;
+                    
+                    // Step 1: Apply USAGE modifiers hierarchically
+                    const applicableModifiers = [];
+                    
+                    // Portfolio modifiers
+                    energyData.modifiers.forEach(mod => {
+                        if (mod.targetType === 'portfolio') {
+                            applicableModifiers.push(mod);
+                        }
+                    });
+                    
+                    // Group modifiers
+                    energyData.modifiers.forEach(mod => {
+                        if (mod.targetType === 'group') {
+                            const group = energyData.groups.find(g => g.id === mod.target);
+                            if (group && group.accounts.includes(account.id)) {
+                                applicableModifiers.push(mod);
+                            }
+                        }
+                    });
+                    
+                    // Account-specific modifiers (highest priority)
+                    energyData.modifiers.forEach(mod => {
+                        if (mod.targetType === 'account' && mod.target === account.id) {
+                            applicableModifiers.push(mod);
+                        }
+                    });
+                    
+                    // Apply usage modifiers to get new usage
+                    applicableModifiers.forEach(mod => {
+                        if (mod.type === 'usage_percent') {
+                            accountUsage *= (1 + mod.value / 100);
+                        } else if (mod.type === 'usage_fixed') {
+                            accountUsage += mod.value;
+                        }
+                    });
+                    
+                    // Step 2: Recalculate costs based on NEW usage and ORIGINAL rates
+                    // This is the key: Cost = New Usage × Original Rate
+                    accountSupply = accountUsage * baseSupplyRate;
+                    accountDT = accountUsage * baseDTRate;
+                    
+                    // Step 3: Now apply cost/rate modifiers on top of the recalculated costs
+                    applicableModifiers.forEach(mod => {
+                        if (mod.type === 'supply_percent') {
+                            accountSupply *= (1 + mod.value / 100);
+                        } else if (mod.type === 'supply_fixed') {
+                            accountSupply += mod.value;
+                        } else if (mod.type === 'dt_percent') {
+                            accountDT *= (1 + mod.value / 100);
+                        } else if (mod.type === 'dt_fixed') {
+                            accountDT += mod.value;
+                        } else if (mod.type === 'total_percent') {
+                            accountSupply *= (1 + mod.value / 100);
+                            accountDT *= (1 + mod.value / 100);
+                        }
+                    });
+                    
+                    usage += accountUsage;
+                    supplyCost += accountSupply;
+                    dtCost += accountDT;
+                });
+                
+                return {
+                    month: month,
+                    usage: usage,
+                    supplyCost: supplyCost,
+                    dtCost: dtCost,
+                    totalCost: supplyCost + dtCost
+                };
+            });
+            
+            return budget;
+        }
+
+        function calculateActuals(viewType, targetId = null) {
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            let accountsToProcess = [];
+            
+            if (viewType === 'portfolio') {
+                accountsToProcess = energyData.accounts;
+            } else if (viewType === 'account') {
+                const account = energyData.accounts.find(a => a.id === targetId);
+                accountsToProcess = account ? [account] : [];
+            } else if (viewType === 'group') {
+                const group = energyData.groups.find(g => g.id === targetId);
+                if (group) {
+                    accountsToProcess = energyData.accounts.filter(a => group.accounts.includes(a.id));
+                }
+            }
+            
+            // Calculate actuals for each month (original data without any modifications)
+            const actuals = months.map((month, monthIndex) => {
+                let usage = 0, supplyCost = 0, dtCost = 0;
+                
+                accountsToProcess.forEach(account => {
+                    usage += account.usage[monthIndex] || 0;
+                    supplyCost += account.supplyCost[monthIndex] || 0;
+                    dtCost += account.dtCost[monthIndex] || 0;
+                });
+                
+                return {
+                    month: month,
+                    usage: usage,
+                    supplyCost: supplyCost,
+                    dtCost: dtCost,
+                    totalCost: supplyCost + dtCost
+                };
+            });
+            
+            return actuals;
+        }
+        
+        function updateBudgetView() {
+            const view = document.getElementById('budgetView').value;
+            const targetId = document.getElementById('budgetViewTarget').value;
+            
+            const budget = calculateBudget(view, targetId);
+            const actuals = calculateActuals(view, targetId);
+            
+            // Calculate comparison totals
+            const budgetTotals = budget.reduce((acc, m) => ({
+                usage: acc.usage + m.usage,
+                supplyCost: acc.supplyCost + m.supplyCost,
+                dtCost: acc.dtCost + m.dtCost,
+                totalCost: acc.totalCost + m.totalCost
+            }), { usage: 0, supplyCost: 0, dtCost: 0, totalCost: 0 });
+            
+            const actualTotals = actuals.reduce((acc, m) => ({
+                usage: acc.usage + m.usage,
+                supplyCost: acc.supplyCost + m.supplyCost,
+                dtCost: acc.dtCost + m.dtCost,
+                totalCost: acc.totalCost + m.totalCost
+            }), { usage: 0, supplyCost: 0, dtCost: 0, totalCost: 0 });
+            
+            // Calculate variances
+            const usageVariance = budgetTotals.usage - actualTotals.usage;
+            const supplyVariance = budgetTotals.supplyCost - actualTotals.supplyCost;
+            const dtVariance = budgetTotals.dtCost - actualTotals.dtCost;
+            const totalVariance = budgetTotals.totalCost - actualTotals.totalCost;
+            
+            const usageVariancePct = actualTotals.usage > 0 ? ((usageVariance / actualTotals.usage) * 100) : 0;
+            const supplyVariancePct = actualTotals.supplyCost > 0 ? ((supplyVariance / actualTotals.supplyCost) * 100) : 0;
+            const dtVariancePct = actualTotals.dtCost > 0 ? ((dtVariance / actualTotals.dtCost) * 100) : 0;
+            const totalVariancePct = actualTotals.totalCost > 0 ? ((totalVariance / actualTotals.totalCost) * 100) : 0;
+            
+            // Render comparison
+            const getVarianceClass = (value) => {
+                if (Math.abs(value) < 0.01) return 'variance-neutral';
+                return value > 0 ? 'variance-negative' : 'variance-positive';
+            };
+            
+            const formatVariance = (value, pct) => {
+                const sign = value > 0 ? '+' : '';
+                return `${sign}${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${sign}${pct.toFixed(1)}%)`;
+            };
+            
+            document.getElementById('comparisonGrid').innerHTML = `
+                <div class="comparison-item">
+                    <h4>Usage (kWh)</h4>
+                    <div class="comparison-values">
+                        <span class="actual">Actual: ${actualTotals.usage.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                        <span class="budget">${budgetTotals.usage.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <span class="comparison-variance ${getVarianceClass(usageVariance)}">${formatVariance(usageVariance, usageVariancePct)}</span>
+                </div>
+                <div class="comparison-item">
+                    <h4>Supply Cost</h4>
+                    <div class="comparison-values">
+                        <span class="actual">Actual: $${actualTotals.supplyCost.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                        <span class="budget">$${budgetTotals.supplyCost.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <span class="comparison-variance ${getVarianceClass(supplyVariance)}">$${formatVariance(supplyVariance, supplyVariancePct)}</span>
+                </div>
+                <div class="comparison-item">
+                    <h4>DT Cost</h4>
+                    <div class="comparison-values">
+                        <span class="actual">Actual: $${actualTotals.dtCost.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                        <span class="budget">$${budgetTotals.dtCost.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <span class="comparison-variance ${getVarianceClass(dtVariance)}">$${formatVariance(dtVariance, dtVariancePct)}</span>
+                </div>
+                <div class="comparison-item">
+                    <h4>Total Cost</h4>
+                    <div class="comparison-values">
+                        <span class="actual">Actual: $${actualTotals.totalCost.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                        <span class="budget">$${budgetTotals.totalCost.toLocaleString(undefined, {maximumFractionDigits: 0})}</span>
+                    </div>
+                    <span class="comparison-variance ${getVarianceClass(totalVariance)}">$${formatVariance(totalVariance, totalVariancePct)}</span>
+                </div>
+            `;
+            
+            // Render table
+            let html = '<table><thead><tr>';
+            html += '<th>Month</th>';
+            html += '<th class="number-right">Usage (kWh)</th>';
+            html += '<th class="number-right">Supply Cost ($)</th>';
+            html += '<th class="number-right">Supply Rate ($/kWh)</th>';
+            html += '<th class="number-right">DT Cost ($)</th>';
+            html += '<th class="number-right">DT Rate ($/kWh)</th>';
+            html += '<th class="number-right">Total Cost ($)</th>';
+            html += '</tr></thead><tbody>';
+            
+            budget.forEach(month => {
+                const supplyRate = month.usage > 0 ? (month.supplyCost / month.usage) : 0;
+                const dtRate = month.usage > 0 ? (month.dtCost / month.usage) : 0;
+                
+                html += `<tr>
+                    <td>${month.month}</td>
+                    <td class="number-right">${month.usage.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="number-right">$${month.supplyCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="number-right">$${supplyRate.toFixed(4)}</td>
+                    <td class="number-right">$${month.dtCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                    <td class="number-right">$${dtRate.toFixed(4)}</td>
+                    <td class="number-right"><strong>$${month.totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong></td>
+                </tr>`;
+            });
+            
+            // Add totals row
+            const avgSupplyRate = budgetTotals.usage > 0 ? (budgetTotals.supplyCost / budgetTotals.usage) : 0;
+            const avgDTRate = budgetTotals.usage > 0 ? (budgetTotals.dtCost / budgetTotals.usage) : 0;
+            
+            html += `<tr style="background: #f7fafc; font-weight: 600;">
+                <td>TOTAL / AVG</td>
+                <td class="number-right">${budgetTotals.usage.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="number-right">$${budgetTotals.supplyCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="number-right">$${avgSupplyRate.toFixed(4)}</td>
+                <td class="number-right">$${budgetTotals.dtCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+                <td class="number-right">$${avgDTRate.toFixed(4)}</td>
+                <td class="number-right">$${budgetTotals.totalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            </tr>`;
+            
+            html += '</tbody></table>';
+            document.getElementById('budgetTable').innerHTML = html;
+            
+            // Render charts
+            renderCharts(budget);
+        }
+        
+        function renderCharts(budget) {
+            const months = budget.map(b => b.month);
+            const usage = budget.map(b => b.usage);
+            const supplyCost = budget.map(b => b.supplyCost);
+            const dtCost = budget.map(b => b.dtCost);
+            const totalCost = budget.map(b => b.totalCost);
+            const supplyRates = budget.map(b => b.usage > 0 ? (b.supplyCost / b.usage) : 0);
+            const dtRates = budget.map(b => b.usage > 0 ? (b.dtCost / b.usage) : 0);
+            
+            // Destroy existing charts
+            if (charts.usage) charts.usage.destroy();
+            if (charts.cost) charts.cost.destroy();
+            if (charts.stacked) charts.stacked.destroy();
+            
+            // Usage Trend Chart
+            const usageCtx = document.getElementById('usageChart').getContext('2d');
+            charts.usage = new Chart(usageCtx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [{
+                        label: 'Usage (kWh)',
+                        data: usage,
+                        borderColor: '#005a7f',
+                        backgroundColor: 'rgba(0, 90, 127, 0.1)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#005a7f'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.parsed.y.toLocaleString() + ' kWh';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Cost Pie Chart
+            const totalSupply = supplyCost.reduce((a, b) => a + b, 0);
+            const totalDT = dtCost.reduce((a, b) => a + b, 0);
+            
+            const costCtx = document.getElementById('costChart').getContext('2d');
+            charts.cost = new Chart(costCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Supply Cost', 'DT Cost'],
+                    datasets: [{
+                        data: [totalSupply, totalDT],
+                        backgroundColor: ['#00a3e0', '#003d5c'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = totalSupply + totalDT;
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': $' + context.parsed.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Stacked Bar Chart
+            const stackedCtx = document.getElementById('stackedChart').getContext('2d');
+            charts.stacked = new Chart(stackedCtx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Supply Cost',
+                            data: supplyCost,
+                            backgroundColor: '#00a3e0',
+                            borderWidth: 0
+                        },
+                        {
+                            label: 'DT Cost',
+                            data: dtCost,
+                            backgroundColor: '#003d5c',
+                            borderWidth: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                },
+                                footer: function(tooltipItems) {
+                                    let total = 0;
+                                    tooltipItems.forEach(item => {
+                                        total += item.parsed.y;
+                                    });
+                                    return 'Total: $' + total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function exportToCSV() {
+            const view = document.getElementById('budgetView').value;
+            const targetId = document.getElementById('budgetViewTarget').value;
+            const budget = calculateBudget(view, targetId);
+            
+            let viewName = 'Portfolio';
+            if (view === 'account') {
+                const acc = energyData.accounts.find(a => a.id === targetId);
+                viewName = acc ? acc.name : 'Account';
+            } else if (view === 'group') {
+                const grp = energyData.groups.find(g => g.id === targetId);
+                viewName = grp ? grp.name : 'Group';
+            }
+            
+            let csv = `Energy Budget - ${viewName}\n\n`;
+            csv += 'Month,Usage (kWh),Supply Cost ($),DT Cost ($),Total Cost ($)\n';
+            
+            budget.forEach(month => {
+                csv += `${month.month},${month.usage.toFixed(2)},${month.supplyCost.toFixed(2)},${month.dtCost.toFixed(2)},${month.totalCost.toFixed(2)}\n`;
+            });
+            
+            // Add totals
+            const totals = budget.reduce((acc, m) => ({
+                usage: acc.usage + m.usage,
+                supplyCost: acc.supplyCost + m.supplyCost,
+                dtCost: acc.dtCost + m.dtCost,
+                totalCost: acc.totalCost + m.totalCost
+            }), { usage: 0, supplyCost: 0, dtCost: 0, totalCost: 0 });
+            
+            csv += `TOTAL,${totals.usage.toFixed(2)},${totals.supplyCost.toFixed(2)},${totals.dtCost.toFixed(2)},${totals.totalCost.toFixed(2)}\n`;
+            
+            downloadCSV(csv, `energy_budget_${viewName.replace(/\s+/g, '_')}.csv`);
+        }
+
+        function exportAllToCSV() {
+            let csv = 'ENERGY BUDGET - COMPLETE EXPORT\n\n';
+            
+            // Portfolio Budget
+            csv += '=== PORTFOLIO BUDGET ===\n';
+            const portfolioBudget = calculateBudget('portfolio');
+            csv += 'Month,Usage (kWh),Supply Cost ($),DT Cost ($),Total Cost ($)\n';
+            portfolioBudget.forEach(month => {
+                csv += `${month.month},${month.usage.toFixed(2)},${month.supplyCost.toFixed(2)},${month.dtCost.toFixed(2)},${month.totalCost.toFixed(2)}\n`;
+            });
+            csv += '\n\n';
+            
+            // Individual Accounts
+            csv += '=== INDIVIDUAL ACCOUNTS ===\n';
+            energyData.accounts.forEach(account => {
+                csv += `\n${account.name}\n`;
+                csv += 'Month,Usage (kWh),Supply Cost ($),DT Cost ($),Total Cost ($)\n';
+                const accountBudget = calculateBudget('account', account.id);
+                accountBudget.forEach(month => {
+                    csv += `${month.month},${month.usage.toFixed(2)},${month.supplyCost.toFixed(2)},${month.dtCost.toFixed(2)},${month.totalCost.toFixed(2)}\n`;
+                });
+            });
+            csv += '\n\n';
+            
+            // Groups
+            if (energyData.groups.length > 0) {
+                csv += '=== GROUPS ===\n';
+                energyData.groups.forEach(group => {
+                    csv += `\n${group.name}\n`;
+                    csv += 'Month,Usage (kWh),Supply Cost ($),DT Cost ($),Total Cost ($)\n';
+                    const groupBudget = calculateBudget('group', group.id);
+                    groupBudget.forEach(month => {
+                        csv += `${month.month},${month.usage.toFixed(2)},${month.supplyCost.toFixed(2)},${month.dtCost.toFixed(2)},${month.totalCost.toFixed(2)}\n`;
+                    });
+                });
+            }
+            
+            downloadCSV(csv, 'energy_budget_complete_export.csv');
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', filename);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        // ============================================================
+        // PORTAL INTEGRATION
+        // Receives utilization data from Energy Utilization widget
+        // via main.js LAUNCH_BUDGET_TOOL → LOAD_UTILIZATION_DATA
+        // ============================================================
+        
+        /**
+         * Load utilization data into the budget tool.
+         * Converts the energy widget's flat array format into the
+         * account-based structure the budget tool expects.
+         */
+        function loadFromUtilization(payload) {
+            var data = payload.data;
+            var clientName = payload.clientName || 'Client';
+            var year = payload.year || new Date().getFullYear();
+            
+            console.log('[BudgetTool] Loading from utilization:', clientName, year);
+            
+            if (!data) {
+                console.warn('[BudgetTool] No data in payload');
+                return;
+            }
+            
+            // Reset state
+            energyData.accounts = [];
+            energyData.groups = [];
+            energyData.modifiers = [];
+            energyData.rawData = null;
+            
+            // If per-account data exists (from 3-level Excel import), use it
+            if (data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
+                for (var i = 0; i < data.accounts.length; i++) {
+                    var acc = data.accounts[i];
+                    energyData.accounts.push({
+                        id: 'account_' + i,
+                        name: acc.name || acc.accountName || ('Account ' + (i + 1)),
+                        usage: Array.isArray(acc.usage) ? acc.usage.slice() : new Array(12).fill(0),
+                        supplyCost: Array.isArray(acc.supplyCost) ? acc.supplyCost.slice() : new Array(12).fill(0),
+                        dtCost: Array.isArray(acc.dtCost) ? acc.dtCost.slice() : new Array(12).fill(0)
+                    });
+                }
+            } else {
+                // Fallback: create a single aggregate account from the totals
+                energyData.accounts.push({
+                    id: 'account_0',
+                    name: clientName + ' (Aggregate)',
+                    usage: Array.isArray(data.electric) ? data.electric.slice() : new Array(12).fill(0),
+                    supplyCost: Array.isArray(data.supplyCost) ? data.supplyCost.slice() : new Array(12).fill(0),
+                    dtCost: Array.isArray(data.dtCost) ? data.dtCost.slice() : new Array(12).fill(0)
+                });
+            }
+            
+            // Show main content (same as after file upload)
+            document.getElementById('mainContent').style.display = 'block';
+            
+            // Update file status badge
+            document.getElementById('fileStatus').innerHTML = 
+                '<span class="status-badge status-success">\u2713 Data loaded from Energy Utilization (' + 
+                clientName + ' \u2014 ' + year + ')</span>';
+            
+            // Show auto-loaded banner
+            var banner = document.getElementById('utilizationLoadedBanner');
+            if (banner) {
+                banner.style.display = 'block';
+                document.getElementById('loadedBannerTitle').textContent = 
+                    'Data loaded: ' + clientName + ' (' + year + ')';
+                document.getElementById('loadedBannerDetail').textContent = 
+                    energyData.accounts.length + ' account(s) loaded with usage, supply cost, and DT cost data. ' +
+                    'You can now create groups, apply modifiers, and generate budget reports below.';
+            }
+            
+            // Update header to show context
+            document.querySelector('header h1').textContent = 'Energy Budget Tool \u2014 ' + clientName;
+            document.querySelector('header .subtitle').textContent = 
+                'Budget analysis for ' + year + ' \u2022 ' + energyData.accounts.length + ' account(s) loaded from utilization data';
+            
+            // Refresh all views (summary, accounts table, charts, etc.)
+            updateAllViews();
+            
+            console.log('[BudgetTool] Loaded ' + energyData.accounts.length + ' accounts from utilization');
+        }
+        
+        // Listen for messages from parent (main.js portal)
+        window.addEventListener('message', function(event) {
+            if (!event.data || !event.data.type) return;
+            
+            // LOAD_UTILIZATION_DATA — sent by main.js when user clicks "Open Budget Tool"
+            if (event.data.type === 'LOAD_UTILIZATION_DATA') {
+                console.log('[BudgetTool] Received LOAD_UTILIZATION_DATA message');
+                loadFromUtilization(event.data);
+            }
+            
+            // ACTIVE_CLIENT_CHANGED — portal context switch
+            if (event.data.type === 'ACTIVE_CLIENT_CHANGED') {
+                var client = event.data.client;
+                if (client && client.name) {
+                    document.querySelector('header .subtitle').textContent = 
+                        'Upload usage data or load from utilization \u2022 Client: ' + client.name;
+                }
+            }
+        });
+        
+        // Check for deferred data in sessionStorage
+        // (main.js stores data here as fallback when budget iframe wasn't ready yet)
+        (function checkDeferredBudgetData() {
+            try {
+                var pending = sessionStorage.getItem('pendingBudgetData');
+                if (pending) {
+                    var payload = JSON.parse(pending);
+                    // Only use if less than 5 minutes old
+                    var age = Date.now() - new Date(payload.timestamp).getTime();
+                    if (age < 5 * 60 * 1000) {
+                        console.log('[BudgetTool] Found deferred budget data in sessionStorage');
+                        // Small delay to ensure DOM is ready
+                        setTimeout(function() {
+                            loadFromUtilization(payload);
+                        }, 500);
+                    }
+                    sessionStorage.removeItem('pendingBudgetData');
+                }
+            } catch(e) {
+                console.warn('[BudgetTool] Failed to load deferred data:', e);
+            }
+        })();
+    </script>
+</body>
+</html>

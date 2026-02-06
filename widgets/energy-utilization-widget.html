@@ -508,6 +508,34 @@
             margin-bottom: 12px;
         }
         
+        /* Budget-ready hint banner — visible after data entry/import, BEFORE save */
+        .budget-hint-banner {
+            display: none;
+            background: linear-gradient(135deg, rgba(59,130,246,0.06) 0%, rgba(62,180,137,0.06) 100%);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-left: 3px solid var(--info);
+            border-radius: 8px;
+            padding: 10px 14px;
+            margin-top: 12px;
+            align-items: flex-start;
+            gap: 10px;
+            animation: hintSlideIn 0.35s ease;
+        }
+        .budget-hint-banner.show { display: flex; }
+        .budget-hint-banner .hint-icon { font-size: 1rem; flex-shrink: 0; margin-top: 1px; }
+        .budget-hint-banner .hint-body { flex: 1; }
+        .budget-hint-banner .hint-title {
+            font-size: 0.8rem; font-weight: 600; color: var(--info); margin-bottom: 3px;
+        }
+        .budget-hint-banner .hint-text {
+            font-size: 0.73rem; color: var(--text-secondary); line-height: 1.5;
+        }
+        .budget-hint-banner .hint-text strong { color: var(--text-primary); }
+        @keyframes hintSlideIn {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
         /* Duplicate conflict panel */
         .conflict-panel {
             background: rgba(255,193,7,0.1);
@@ -636,6 +664,15 @@
                 <div class="usage-grid" id="electricGrid"></div>
                 <div class="chart-container"><canvas id="electricChart"></canvas></div>
                 
+                <!-- Budget hint — shows when data is present but not yet saved -->
+                <div class="budget-hint-banner" id="budgetHintElectric">
+                    <span class="hint-icon">💡</span>
+                    <div class="hint-body">
+                        <div class="hint-title">Budget Report Available</div>
+                        <div class="hint-text">Click <strong>Save to Client</strong> to store this data, then you'll be prompted to open the <strong>Energy Budget Tool</strong> to create detailed budget projections with account grouping, cost modifiers, and exportable reports.</div>
+                    </div>
+                </div>
+                
                 <div class="btn-group">
                     <button class="btn btn-primary" onclick="saveToClient()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -690,6 +727,15 @@
                 
                 <div class="usage-grid" id="gasGrid"></div>
                 <div class="chart-container"><canvas id="gasChart"></canvas></div>
+                
+                <!-- Budget hint — shows when data is present but not yet saved -->
+                <div class="budget-hint-banner" id="budgetHintGas">
+                    <span class="hint-icon">💡</span>
+                    <div class="hint-body">
+                        <div class="hint-title">Budget Report Available</div>
+                        <div class="hint-text">Click <strong>Save to Client</strong> to store this data, then you'll be prompted to open the <strong>Energy Budget Tool</strong>.</div>
+                    </div>
+                </div>
                 
                 <div class="btn-group">
                     <button class="btn btn-primary" onclick="saveToClient()">
@@ -884,16 +930,24 @@
             </div>
             <div class="modal-body">
                 <p style="margin-bottom:16px;">
-                    Utilization data for <strong id="budgetClientName"></strong> (<span id="budgetYearLabel"></span>) has been saved.
+                    ✅ Utilization data for <strong id="budgetClientName"></strong> (<span id="budgetYearLabel"></span>) has been <strong>saved successfully</strong>.
                 </p>
                 <div id="budgetDataStatus" style="margin-bottom:16px;"></div>
-                <p style="color:var(--text-secondary);font-size:0.85rem;">
-                    Would you like to open the Energy Budget Tool with this data to create a budget report?
+                <div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:8px;padding:12px 14px;margin-bottom:12px;">
+                    <p style="color:var(--text-primary);font-size:0.85rem;font-weight:600;margin-bottom:6px;">What the Budget Tool does:</p>
+                    <p style="color:var(--text-secondary);font-size:0.8rem;line-height:1.6;margin:0;">
+                        The Energy Budget Tool will automatically load your utilization data and let you create 
+                        <strong>detailed budget projections</strong> — including account grouping, cost modifiers 
+                        (escalation, weather adjustments, etc.), monthly breakdowns, charts, and exportable CSV reports.
+                    </p>
+                </div>
+                <p style="color:var(--text-secondary);font-size:0.78rem;font-style:italic;">
+                    The budget widget will scroll into view and your data will load automatically.
                 </p>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeBudgetReportModal()">Not Now</button>
-                <button class="btn btn-info" onclick="launchBudgetReport()">Open Budget Tool</button>
+                <button class="btn btn-secondary" onclick="closeBudgetReportModal()">Maybe Later</button>
+                <button class="btn btn-info" onclick="launchBudgetReport()" style="font-weight:600;">📊 Open Budget Tool</button>
             </div>
         </div>
     </div>
@@ -1591,6 +1645,7 @@
             updateChart('electric');
             updateChart('gas');
             updateCostChart();
+            updateBudgetHintBanner();
         }
 
         // ============================================================
@@ -2078,6 +2133,11 @@
             closeImportModal();
             showToast(`Imported ${pendingImportData.accounts?.length || 0} accounts, ${importedCount} data points for ${year}`, 'success');
             
+            // Delayed follow-up: let user know they can create a budget
+            setTimeout(() => {
+                showToast('💡 Click "Save to Client" to save data and create a Budget Report', 'info', 5000);
+            }, 2500);
+            
             pendingImportData = null;
         }
         
@@ -2126,6 +2186,16 @@
         // ============================================================
         // BUDGET REPORT PROMPTS
         // ============================================================
+        
+        /** Show/hide the budget hint banners based on whether utilization data exists */
+        function updateBudgetHintBanner() {
+            const hasData = electricData.some(v => v > 0) || gasData.some(v => v > 0);
+            const elBanner = document.getElementById('budgetHintElectric');
+            const gasBanner = document.getElementById('budgetHintGas');
+            if (elBanner) elBanner.classList.toggle('show', hasData);
+            if (gasBanner) gasBanner.classList.toggle('show', hasData);
+        }
+        
         function checkBudgetPrompt() {
             const hasUsage = electricData.some(v => v > 0);
             const hasSupply = supplyCostData.some(v => v > 0);
@@ -2375,12 +2445,12 @@
         // ============================================================
         // TOAST
         // ============================================================
-        function showToast(message, type = 'info') {
+        function showToast(message, type = 'info', duration = 3500) {
             const toast = document.createElement('div');
             toast.className = 'toast ' + type;
             toast.textContent = message;
             document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 3500);
+            setTimeout(() => toast.remove(), duration);
         }
     </script>
 </body>
