@@ -806,6 +806,30 @@ ISONE,2016,1,4008_NEMA,NEMA,38.63`;
             return window._standaloneDataStore;
         }
         
+        // Friendly display names for zones (dbName → user-friendly label)
+        const ZONE_DISPLAY_NAMES = {
+            'AEN': 'AEN', 'CPS': 'CPS Energy', 'HOUSTON': 'Houston', 'LCRA': 'LCRA',
+            'NORTH': 'North', 'RAYBN': 'Rayburn', 'SOUTH': 'South', 'WEST': 'West',
+            '4001_Maine': 'Maine', '4002_NH': 'New Hampshire', '4003_Vermont': 'Vermont',
+            '4004_Connecticut': 'Connecticut', '4005_Rhode_Island': 'Rhode Island',
+            '4006_SEMA': 'SE Mass (SEMA)', '4007_WCMA': 'W/C Mass (WCMA)', '4008_NEMA': 'NE Mass (NEMA)',
+            '4000_ISONE': 'ISO-NE Hub',
+            'ARKANSAS': 'Arkansas', 'ILLINOIS': 'Illinois', 'INDIANA': 'Indiana',
+            'LOUISIANA': 'Louisiana', 'MICHIGAN': 'Michigan', 'MINN': 'Minnesota',
+            'MS': 'Mississippi', 'TEXAS': 'Texas',
+            '61752': 'West (Zone A)', '61753': 'Genesee (Zone B)', '61754': 'Central (Zone C)',
+            '61755': 'North (Zone D)', '61756': 'Mohawk Valley (Zone E)', '61757': 'Capital (Zone F)',
+            '61758': 'Hudson Valley (Zone G)', '61759': 'Millwood (Zone H)',
+            '61760': 'Dunwoodie (Zone I)', '61761': 'NYC (Zone J)', '61762': 'Long Island (Zone K)',
+            '61844': 'Zone J Hub', '61845': 'Zone K Hub', '61846': 'Zone A Hub', '61847': 'Zone F Hub',
+            'AECO': 'AECO', 'AEP': 'AEP', 'APS': 'APS', 'ATSI': 'ATSI', 'BGE': 'BGE',
+            'COMED': 'ComEd', 'DAY': 'Dayton', 'DEOK': 'Duke Energy OH/KY', 'DOM': 'Dominion',
+            'DPL': 'DPL', 'DUQ': 'Duquesne', 'EKPC': 'EKPC', 'EXTERNAL': 'External',
+            'JCPL': 'JCPL', 'METED': 'Met-Ed', 'PECO': 'PECO', 'PENELEC': 'Penelec',
+            'PEPCO': 'Pepco', 'PPL': 'PPL', 'PSEG': 'PSEG', 'RECO': 'RECO'
+        };
+        function getZoneDisplayName(dbName) { return ZONE_DISPLAY_NAMES[dbName] || dbName; }
+
         // Standalone data store for local testing
         function createStandaloneDataStore() {
             const STORAGE_KEY = 'secureEnergy_LMP_Data';
@@ -1215,7 +1239,7 @@ ISONE,2016,1,4008_NEMA,NEMA,38.63`;
             }
             
             // Convert to CSV
-            const headers = ['ISO', 'Year', 'Month', 'Zone', 'Zone_Name', 'Avg_DA_LMP'];
+            const headers = ['ISO', 'Year', 'Month', 'Zone_ID', 'Zone_Name', 'Avg_DA_LMP'];
             const csvRows = [headers.join(',')];
             
             records.forEach(r => {
@@ -1224,7 +1248,7 @@ ISONE,2016,1,4008_NEMA,NEMA,38.63`;
                     r.year || '',
                     r.month || '',
                     r.zoneId || r.zone || '',
-                    r.zone || '',
+                    getZoneDisplayName(r.zone || r.zoneId || ''),
                     r.lmp || ''
                 ].join(','));
             });

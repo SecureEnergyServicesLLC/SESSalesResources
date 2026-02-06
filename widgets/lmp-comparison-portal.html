@@ -1139,7 +1139,8 @@
                     <input type="number" class="input-field" id="termMonths" value="60" min="12" max="120" step="12" onchange="updateTermInfo()">
                 </div>
                 
-                <div class="input-group">
+                <!-- Projection controls hidden - only actual Azure data is used -->
+                <div class="input-group" style="display: none;">
                     <label>LMP Projection Method</label>
                     <select class="input-field" id="projectionMethod">
                         <option value="1">1-Year Rolling Average</option>
@@ -1149,7 +1150,7 @@
                     </select>
                 </div>
                 
-                <div class="input-group">
+                <div class="input-group" style="display: none;">
                     <label>LMP YoY Escalator (%)</label>
                     <input type="number" class="input-field" id="lmpEscalator" value="0" step="0.5" min="-20" max="20" placeholder="e.g., 2.5">
                 </div>
@@ -1159,8 +1160,7 @@
                 <h3>📅 Default Settings</h3>
                 <p><strong>Contract Start Date:</strong> Automatically set to 10 years before the last available actual LMP data for your selected ISO/Zone.</p>
                 <p><strong>Contract Term:</strong> Defaults to 60 months (5 years).</p>
-                <p><strong>LMP Projection:</strong> For future months beyond available data, the tool uses a rolling average of historical LMP values from the last 1-5 available years for the same calendar month.</p>
-                <p><strong>LMP YoY Escalator:</strong> Applies a compounding annual adjustment to projected LMP values. For example, a 3% escalator increases projected LMP by 3% each year beyond the base projection year.</p>
+                <p><strong>Data Source:</strong> Only actual LMP data from Azure is used — no projections or forecasted values. Months beyond available data are skipped in calculations.</p>
             </div>
 
             <!-- TERM INFO BOX -->
@@ -1209,7 +1209,7 @@
                 <p><strong>Fixed Cost:</strong> Fixed All-In Price × Usage</p>
                 <p><strong>Index Cost:</strong> [(Non-Energy Costs) + (LMP + 5%) × Open % + (Block Rate + 5%) × Hedged %] × Usage</p>
                 <p style="margin-top: 10px; font-style: italic;">Where Non-Energy Costs = Capacity + Transmission + Ancillary Services</p>
-                <p style="margin-top: 10px;"><strong>LMP Projection:</strong> For months beyond available data, uses the last 1-5 years of available data (as selected) for the same calendar month. The YoY Escalator applies compound annual growth to projected values. Example: Forecasting March 2028 with 3-year rolling when data ends in 2025 uses March 2023, 2024, and 2025, then applies the escalator for 3 years.</p>
+                <p style="margin-top: 10px;"><strong>Data Source:</strong> All LMP values come from actual historical data stored in Azure. Months without data in the database are excluded from calculations.</p>
             </div>
         </div>
 
@@ -1542,6 +1542,39 @@
         
         // Initialize empty ISO_DATA - will be populated from external source
         let ISO_DATA = {};
+
+        // Friendly display names for zones (dbName → user-friendly label)
+        const ZONE_DISPLAY_NAMES = {
+            // ERCOT
+            'AEN': 'AEN', 'CPS': 'CPS Energy', 'HOUSTON': 'Houston', 'LCRA': 'LCRA',
+            'NORTH': 'North', 'RAYBN': 'Rayburn', 'SOUTH': 'South', 'WEST': 'West',
+            // ISO-NE
+            '4001_Maine': 'Maine', '4002_NH': 'New Hampshire', '4003_Vermont': 'Vermont',
+            '4004_Connecticut': 'Connecticut', '4005_Rhode_Island': 'Rhode Island',
+            '4006_SEMA': 'SE Mass (SEMA)', '4007_WCMA': 'W/C Mass (WCMA)', '4008_NEMA': 'NE Mass (NEMA)',
+            '4000_ISONE': 'ISO-NE Hub',
+            // MISO
+            'ARKANSAS': 'Arkansas', 'ILLINOIS': 'Illinois', 'INDIANA': 'Indiana',
+            'LOUISIANA': 'Louisiana', 'MICHIGAN': 'Michigan', 'MINN': 'Minnesota',
+            'MS': 'Mississippi', 'TEXAS': 'Texas',
+            // NYISO
+            '61752': 'West (Zone A)', '61753': 'Genesee (Zone B)', '61754': 'Central (Zone C)',
+            '61755': 'North (Zone D)', '61756': 'Mohawk Valley (Zone E)', '61757': 'Capital (Zone F)',
+            '61758': 'Hudson Valley (Zone G)', '61759': 'Millwood (Zone H)',
+            '61760': 'Dunwoodie (Zone I)', '61761': 'NYC (Zone J)', '61762': 'Long Island (Zone K)',
+            '61844': 'Zone J Hub', '61845': 'Zone K Hub', '61846': 'Zone A Hub', '61847': 'Zone F Hub',
+            // PJM
+            'AECO': 'AECO', 'AEP': 'AEP', 'APS': 'APS', 'ATSI': 'ATSI', 'BGE': 'BGE',
+            'COMED': 'ComEd', 'DAY': 'Dayton', 'DEOK': 'Duke Energy OH/KY', 'DOM': 'Dominion',
+            'DPL': 'DPL', 'DUQ': 'Duquesne', 'EKPC': 'EKPC', 'EXTERNAL': 'External',
+            'JCPL': 'JCPL', 'METED': 'Met-Ed', 'PECO': 'PECO', 'PENELEC': 'Penelec',
+            'PEPCO': 'Pepco', 'PPL': 'PPL', 'PSEG': 'PSEG', 'RECO': 'RECO'
+        };
+
+        // Helper: get friendly zone name from dbName
+        function getZoneDisplayName(dbName) {
+            return ZONE_DISPLAY_NAMES[dbName] || dbName;
+        }
         // CONSTANTS
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const monthsFull = ['January', 'February', 'March', 'April', 'May', 'June', 
@@ -2404,8 +2437,10 @@
                     }
                 });
                 
-                // Sort and add to dropdown
-                Object.keys(uniqueZones).sort().forEach(zoneValue => {
+                // Sort by display name and add to dropdown
+                Object.keys(uniqueZones)
+                    .sort((a, b) => (uniqueZones[a] || a).localeCompare(uniqueZones[b] || b))
+                    .forEach(zoneValue => {
                     const option = document.createElement('option');
                     option.value = zoneValue;
                     option.textContent = uniqueZones[zoneValue] || zoneValue;
@@ -2653,59 +2688,7 @@
                 return { lmp, isProjected: false };
             }
             
-            // Get projection method (1-5 year rolling average)
-            const projectionYears = parseInt(document.getElementById('projectionMethod').value);
-            
-            // Collect ALL available years for this zone/month, then use the last N available
-            const availableYearsData = [];
-            dataSet.forEach(r => {
-                const recordMonth = r.month;
-                const recordZone = r.zone;
-                const recordYear = parseInt(r.year);
-                
-                // Match zone and month, collect all available years (we'll sort and pick most recent)
-                if (recordZone === zone && 
-                    recordMonth === monthKey &&
-                    r.avg_da_lmp) {
-                    availableYearsData.push({
-                        year: recordYear,
-                        lmp: r.avg_da_lmp
-                    });
-                }
-            });
-            
-            // Sort by year descending to get most recent years first
-            availableYearsData.sort((a, b) => b.year - a.year);
-            
-            // Take the last N available years (up to projectionYears) from available data
-            const historicalValues = availableYearsData
-                .slice(0, projectionYears)
-                .map(d => d.lmp);
-            
-            if (historicalValues.length > 0) {
-                const avgLmp = historicalValues.reduce((a, b) => a + b, 0) / historicalValues.length;
-                let lmp = avgLmp / 1000;
-                
-                // Apply YoY escalator for projected values
-                const escalatorPercent = parseFloat(document.getElementById('lmpEscalator').value) || 0;
-                if (escalatorPercent !== 0 && availableYearsData.length > 0) {
-                    // Calculate years ahead from the most recent actual data year
-                    const lastDataYear = availableYearsData[0].year;
-                    const yearsAhead = targetYear - lastDataYear;
-                    if (yearsAhead > 0) {
-                        // Apply compound escalator
-                        lmp = lmp * Math.pow(1 + escalatorPercent / 100, yearsAhead);
-                    }
-                }
-                
-                if (useAdjustment) {
-                    const adjustPercent = parseFloat(document.getElementById('lmpAdjustSlider').value);
-                    lmp = lmp * (1 + adjustPercent / 100);
-                }
-                
-                return { lmp, isProjected: true, yearsAveraged: historicalValues.length };
-            }
-            
+            // No actual data for this month — do NOT project or forecast
             return { lmp: null, isProjected: false };
         }
 
@@ -3042,7 +3025,7 @@
             }
             
             if (hasErrors) {
-                alert('Warning: Some months have missing LMP data and could not be projected.');
+                alert('Note: Some months in the selected range have no LMP data in Azure and were skipped.');
             }
             
             if (calculationResults.length > 0) {
@@ -4922,11 +4905,12 @@
                     groupedData[iso] = [];
                 }
                 
+                const zoneName = record.zone || record.zoneId || '';
                 groupedData[iso].push({
                     month: String(record.month).padStart(2, '0'),
                     year: String(record.year),
-                    zone: record.zoneId || record.zone || '',
-                    zone_name: record.zone || record.zoneId || '',
+                    zone: zoneName,
+                    zone_name: getZoneDisplayName(zoneName),
                     avg_da_lmp: parseFloat(record.lmp) || 0
                 });
             });
@@ -4935,17 +4919,20 @@
         }
         
         // Convert Azure format { data: { ISONE: [...], PJM: [...] } } to records for this widget
+        // IMPORTANT: Use r.zone (friendly name like "4001_Maine", "AECO") as primary identifier
+        // zone_id may contain numeric Genability IDs that don't match dropdown values
         function convertAzureToGrouped(azureData) {
             const groupedData = {};
             if (azureData.data) {
                 for (const [iso, records] of Object.entries(azureData.data)) {
                     if (!groupedData[iso]) groupedData[iso] = [];
                     records.forEach(r => {
+                        const zoneName = r.zone || r.zone_id || r.zoneId || '';
                         groupedData[iso].push({
                             month: String(r.month).padStart(2, '0'),
                             year: String(r.year),
-                            zone: r.zone_id || r.zoneId || r.zone || '',
-                            zone_name: r.zone || r.zone_id || r.zoneId || '',
+                            zone: zoneName,
+                            zone_name: getZoneDisplayName(zoneName),
                             avg_da_lmp: parseFloat(r.avg_da_lmp || r.lmp) || 0
                         });
                     });

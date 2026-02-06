@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LMP Geographic Explorer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0f1117;
+            --bg-secondary: #1a1d27;
+            --bg-card: #1e2130;
+            --bg-hover: #252940;
+            --border: #2a2e3f;
+            --text-primary: #e8eaf0;
+            --text-secondary: #8b90a5;
+            --text-muted: #5a5f75;
+            --accent: #3EB489;
+            --accent-dim: rgba(62, 180, 137, 0.15);
+            --accent-glow: rgba(62, 180, 137, 0.3);
+            --iso-pjm: #6366f1;
+            --iso-isone: #3b82f6;
+            --iso-nyiso: #8b5cf6;
+            --iso-miso: #f59e0b;
+            --iso-ercot: #ef4444;
+            --iso-caiso: #ec4899;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .header-title {
+            display: flex; align-items: center; gap: 12px;
+        }
+        .header-title h1 {
+            font-size: 18px; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), #6ee7b7);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .header-title .subtitle {
+            font-size: 12px; color: var(--text-muted); font-weight: 500;
+        }
+        .header-controls {
+            display: flex; align-items: center; gap: 10px;
+        }
+        .mode-toggle {
+            display: flex; background: var(--bg-primary); border-radius: 8px;
+            border: 1px solid var(--border); overflow: hidden;
+        }
+        .mode-btn {
+            padding: 7px 14px; font-size: 12px; font-weight: 600;
+            background: transparent; color: var(--text-secondary);
+            border: none; cursor: pointer; transition: all 0.2s;
+            font-family: inherit;
+        }
+        .mode-btn.active {
+            background: var(--accent); color: #fff;
+        }
+        .data-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px; padding: 4px 10px;
+            background: var(--accent-dim); color: var(--accent);
+            border-radius: 20px; border: 1px solid var(--accent-glow);
+        }
+
+        /* ── MAIN LAYOUT ── */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 420px;
+            height: calc(100vh - 60px);
+        }
+
+        /* ── MAP PANEL ── */
+        .map-panel {
+            position: relative;
+            background: var(--bg-primary);
+            overflow: hidden;
+            border-right: 1px solid var(--border);
+        }
+        .map-container {
+            width: 100%; height: 100%;
+            position: relative;
+        }
+        .map-svg {
+            width: 100%; height: 100%;
+        }
+
+        /* ISO region polygons */
+        .iso-region {
+            cursor: pointer;
+            transition: all 0.25s ease;
+            stroke: var(--border);
+            stroke-width: 1.5;
+        }
+        .iso-region:hover {
+            filter: brightness(1.3);
+            stroke: var(--text-primary);
+            stroke-width: 2;
+        }
+        .iso-region.selected {
+            stroke: #fff;
+            stroke-width: 2.5;
+            filter: brightness(1.2);
+        }
+
+        /* Zone markers */
+        .zone-marker {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .zone-marker:hover .marker-dot {
+            r: 7;
+            filter: drop-shadow(0 0 6px rgba(255,255,255,0.5));
+        }
+        .zone-marker.selected .marker-dot {
+            r: 8;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+        .zone-marker.compared .marker-ring {
+            opacity: 1;
+        }
+        .marker-ring {
+            fill: none;
+            stroke-width: 2;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .marker-label {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 9px;
+            fill: var(--text-secondary);
+            pointer-events: none;
+            text-anchor: middle;
+        }
+
+        /* ISO legend on map */
+        .map-legend {
+            position: absolute;
+            bottom: 16px; left: 16px;
+            background: rgba(15, 17, 23, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 16px;
+        }
+        .legend-title {
+            font-size: 11px; font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .legend-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 3px 0; font-size: 12px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        .legend-item:hover { color: var(--text-primary); }
+        .legend-item.active { color: var(--text-primary); font-weight: 600; }
+        .legend-dot {
+            width: 10px; height: 10px; border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* Zone tooltip on hover */
+        .zone-tooltip {
+            position: absolute;
+            background: rgba(30, 33, 48, 0.95);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s;
+            z-index: 100;
+            min-width: 160px;
+        }
+        .zone-tooltip.visible { opacity: 1; }
+        .zone-tooltip .tt-name {
+            font-weight: 700; font-size: 13px;
+            color: var(--text-primary);
+        }
+        .zone-tooltip .tt-iso {
+            font-size: 11px; color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+        .zone-tooltip .tt-price {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px; font-weight: 700;
+            color: var(--accent);
+        }
+        .zone-tooltip .tt-label {
+            font-size: 10px; color: var(--text-muted);
+        }
+
+        /* ── DATA PANEL ── */
+        .data-panel {
+            background: var(--bg-secondary);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Zone selector */
+        .zone-selector {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+        }
+        .zone-selector-label {
+            font-size: 11px; font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .zone-chips {
+            display: flex; flex-wrap: wrap; gap: 6px;
+            max-height: 120px; overflow-y: auto;
+        }
+        .zone-chip {
+            padding: 5px 10px; font-size: 11px; font-weight: 600;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .zone-chip:hover {
+            border-color: var(--text-muted);
+            color: var(--text-primary);
+        }
+        .zone-chip.selected {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+        }
+
+        /* Compare bar */
+        .compare-bar {
+            padding: 10px 16px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .compare-count {
+            font-size: 12px; color: var(--text-secondary);
+        }
+        .compare-count strong {
+            color: var(--accent);
+        }
+        .btn-sm {
+            padding: 5px 12px; font-size: 11px; font-weight: 600;
+            background: var(--accent); color: #fff;
+            border: none; border-radius: 6px;
+            cursor: pointer; font-family: inherit;
+            transition: all 0.2s;
+        }
+        .btn-sm:hover { filter: brightness(1.15); }
+        .btn-sm.secondary {
+            background: var(--bg-hover); color: var(--text-secondary);
+        }
+
+        /* Stats row */
+        .stats-row {
+            display: grid; grid-template-columns: repeat(3, 1fr);
+            gap: 1px; background: var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        .stat-card {
+            background: var(--bg-secondary);
+            padding: 14px 16px; text-align: center;
+        }
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px; font-weight: 700;
+            color: var(--text-primary);
+        }
+        .stat-label {
+            font-size: 10px; color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+
+        /* Chart area */
+        .chart-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+        .chart-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+        .chart-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 12px;
+        }
+        .chart-title {
+            font-size: 13px; font-weight: 700;
+            color: var(--text-primary);
+        }
+        .chart-subtitle {
+            font-size: 11px; color: var(--text-muted);
+        }
+        .chart-canvas-wrap {
+            position: relative;
+            height: 200px;
+        }
+        .chart-canvas-wrap.tall {
+            height: 280px;
+        }
+
+        /* Period selector */
+        .period-select {
+            padding: 4px 8px; font-size: 11px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        /* No data state */
+        .no-data {
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            padding: 40px; text-align: center;
+            color: var(--text-muted);
+        }
+        .no-data svg { margin-bottom: 12px; opacity: 0.3; }
+        .no-data p { font-size: 13px; }
+
+        /* Loading */
+        .loading-overlay {
+            position: absolute; inset: 0;
+            background: rgba(15,17,23,0.8);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .spinner {
+            width: 32px; height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .main-layout { grid-template-columns: 1fr; grid-template-rows: 50vh 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-title">
+        <div>
+            <h1>⚡ LMP Geographic Explorer</h1>
+            <div class="subtitle">Interactive US Energy Market Map</div>
+        </div>
+    </div>
+    <div class="header-controls">
+        <div class="mode-toggle">
+            <button class="mode-btn active" id="modeMonthly" onclick="setMode('monthly')">Monthly Avg</button>
+            <button class="mode-btn" id="modeHourly" onclick="setMode('hourly')">Hourly Detail</button>
+        </div>
+        <span class="data-badge" id="dataBadge">Loading...</span>
+    </div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="main-layout">
+
+    <!-- MAP PANEL -->
+    <div class="map-panel" id="mapPanel">
+        <div class="map-container" id="mapContainer"></div>
+
+        <!-- Tooltip -->
+        <div class="zone-tooltip" id="zoneTooltip">
+            <div class="tt-iso" id="ttIso"></div>
+            <div class="tt-name" id="ttName"></div>
+            <div class="tt-label">Latest Avg LMP</div>
+            <div class="tt-price" id="ttPrice">--</div>
+        </div>
+
+        <!-- Legend -->
+        <div class="map-legend">
+            <div class="legend-title">ISO Regions</div>
+            <div id="legendItems"></div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+        </div>
+    </div>
+
+    <!-- DATA PANEL -->
+    <div class="data-panel">
+        <!-- Zone Selector -->
+        <div class="zone-selector">
+            <div class="zone-selector-label">Zones <span id="zoneFilterLabel">(All ISOs)</span></div>
+            <div class="zone-chips" id="zoneChips"></div>
+        </div>
+
+        <!-- Compare Bar -->
+        <div class="compare-bar">
+            <div class="compare-count">Selected: <strong id="compareCount">0</strong> zones</div>
+            <div style="display: flex; gap: 6px;">
+                <button class="btn-sm secondary" onclick="clearSelection()">Clear</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card">
+                <div class="stat-value" id="statAvg">--</div>
+                <div class="stat-label">Avg $/MWh</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statMin">--</div>
+                <div class="stat-label">Min $/MWh</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="statMax">--</div>
+                <div class="stat-label">Max $/MWh</div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-section" id="chartSection">
+            <!-- Monthly Trend -->
+            <div class="chart-card" id="trendCard">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">LMP Trend</div>
+                        <div class="chart-subtitle" id="trendSubtitle">Monthly average $/MWh</div>
+                    </div>
+                    <select class="period-select" id="trendPeriod" onchange="updateCharts()">
+                        <option value="12">Last 12 Mo</option>
+                        <option value="24">Last 24 Mo</option>
+                        <option value="60" selected>Last 5 Yr</option>
+                        <option value="0">All Data</option>
+                    </select>
+                </div>
+                <div class="chart-canvas-wrap tall">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Comparison Bar -->
+            <div class="chart-card" id="compareCard">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">Zone Comparison</div>
+                        <div class="chart-subtitle" id="compareSubtitle">Average LMP by zone</div>
+                    </div>
+                </div>
+                <div class="chart-canvas-wrap">
+                    <canvas id="compareChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Hourly Distribution (shown in hourly mode) -->
+            <div class="chart-card" id="hourlyCard" style="display: none;">
+                <div class="chart-header">
+                    <div>
+                        <div class="chart-title">Hourly Distribution</div>
+                        <div class="chart-subtitle" id="hourlySubtitle">Price by hour of day</div>
+                    </div>
+                    <select class="period-select" id="hourlyMonth" onchange="updateHourlyChart()">
+                        <option value="all">All Available</option>
+                    </select>
+                </div>
+                <div class="chart-canvas-wrap tall">
+                    <canvas id="hourlyChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================
+// CONFIGURATION
+// ============================================
+const AZURE_CONFIG = {
+    endpoint: 'https://ses-data-api-gpaqghfbehhrb6c2.eastus-01.azurewebsites.net/api/data',
+    lmpFile: 'lmp-database.json'
+};
+
+const ZONE_DISPLAY_NAMES = {
+    'AEN': 'AEN', 'CPS': 'CPS Energy', 'HOUSTON': 'Houston', 'LCRA': 'LCRA',
+    'NORTH': 'North', 'RAYBN': 'Rayburn', 'SOUTH': 'South', 'WEST': 'West',
+    '4001_Maine': 'Maine', '4002_NH': 'New Hampshire', '4003_Vermont': 'Vermont',
+    '4004_Connecticut': 'Connecticut', '4005_Rhode_Island': 'Rhode Island',
+    '4006_SEMA': 'SE Mass (SEMA)', '4007_WCMA': 'W/C Mass (WCMA)', '4008_NEMA': 'NE Mass (NEMA)',
+    '4000_ISONE': 'ISO-NE Hub',
+    'ARKANSAS': 'Arkansas', 'ILLINOIS': 'Illinois', 'INDIANA': 'Indiana',
+    'LOUISIANA': 'Louisiana', 'MICHIGAN': 'Michigan', 'MINN': 'Minnesota',
+    'MS': 'Mississippi', 'TEXAS': 'Texas',
+    '61752': 'West (Zone A)', '61753': 'Genesee (Zone B)', '61754': 'Central (Zone C)',
+    '61755': 'North (Zone D)', '61756': 'Mohawk Valley (Zone E)', '61757': 'Capital (Zone F)',
+    '61758': 'Hudson Valley (Zone G)', '61759': 'Millwood (Zone H)',
+    '61760': 'Dunwoodie (Zone I)', '61761': 'NYC (Zone J)', '61762': 'Long Island (Zone K)',
+    '61844': 'Zone J Hub', '61845': 'Zone K Hub', '61846': 'Zone A Hub', '61847': 'Zone F Hub',
+    'AECO': 'AECO', 'AEP': 'AEP', 'APS': 'APS', 'ATSI': 'ATSI', 'BGE': 'BGE',
+    'COMED': 'ComEd', 'DAY': 'Dayton', 'DEOK': 'Duke Energy OH/KY', 'DOM': 'Dominion',
+    'DPL': 'DPL', 'DUQ': 'Duquesne', 'EKPC': 'EKPC', 'EXTERNAL': 'External',
+    'JCPL': 'JCPL', 'METED': 'Met-Ed', 'PECO': 'PECO', 'PENELEC': 'Penelec',
+    'PEPCO': 'Pepco', 'PPL': 'PPL', 'PSEG': 'PSEG', 'RECO': 'RECO'
+};
+function zdn(dbName) { return ZONE_DISPLAY_NAMES[dbName] || dbName; }
+
+const ISO_COLORS = {
+    'PJM': '#6366f1', 'ISONE': '#3b82f6', 'NYISO': '#8b5cf6',
+    'MISO': '#f59e0b', 'ERCOT': '#ef4444', 'CAISO': '#ec4899'
+};
+const ISO_LABELS = {
+    'PJM': 'PJM', 'ISONE': 'ISO-NE', 'NYISO': 'NYISO',
+    'MISO': 'MISO', 'ERCOT': 'ERCOT', 'CAISO': 'CAISO'
+};
+
+// Zone approximate geographic coordinates (lon, lat)
+// These map to SVG positions via mercator-like projection
+const ZONE_GEO = {
+    // ERCOT (Texas)
+    'AEN':      { lat: 30.2, lon: -97.7 }, 'CPS':     { lat: 29.4, lon: -98.5 },
+    'HOUSTON':  { lat: 29.8, lon: -95.4 }, 'LCRA':    { lat: 30.6, lon: -98.0 },
+    'NORTH':    { lat: 33.0, lon: -97.0 }, 'RAYBN':   { lat: 32.5, lon: -96.0 },
+    'SOUTH':    { lat: 28.0, lon: -97.5 }, 'WEST':    { lat: 31.8, lon: -102.0 },
+    // ISO-NE
+    '4001_Maine':       { lat: 44.5, lon: -69.0 }, '4002_NH':          { lat: 43.5, lon: -71.5 },
+    '4003_Vermont':     { lat: 44.0, lon: -72.7 }, '4004_Connecticut': { lat: 41.6, lon: -72.7 },
+    '4005_Rhode_Island':{ lat: 41.7, lon: -71.5 }, '4006_SEMA':        { lat: 41.8, lon: -70.9 },
+    '4007_WCMA':        { lat: 42.3, lon: -72.6 }, '4008_NEMA':        { lat: 42.5, lon: -71.1 },
+    '4000_ISONE':       { lat: 42.0, lon: -71.8 },
+    // MISO
+    'ARKANSAS':  { lat: 34.8, lon: -92.2 }, 'ILLINOIS': { lat: 40.0, lon: -89.5 },
+    'INDIANA':   { lat: 39.8, lon: -86.2 }, 'LOUISIANA':{ lat: 31.0, lon: -92.0 },
+    'MICHIGAN':  { lat: 43.0, lon: -84.5 }, 'MINN':     { lat: 45.5, lon: -93.5 },
+    'MS':        { lat: 32.5, lon: -89.7 }, 'TEXAS':    { lat: 30.5, lon: -94.0 },
+    // NYISO
+    '61752': { lat: 42.9, lon: -78.8 }, '61753': { lat: 43.0, lon: -77.6 },
+    '61754': { lat: 43.0, lon: -76.1 }, '61755': { lat: 44.3, lon: -75.5 },
+    '61756': { lat: 43.0, lon: -74.9 }, '61757': { lat: 42.6, lon: -73.8 },
+    '61758': { lat: 41.5, lon: -74.0 }, '61759': { lat: 41.2, lon: -73.8 },
+    '61760': { lat: 41.0, lon: -73.9 }, '61761': { lat: 40.7, lon: -74.0 },
+    '61762': { lat: 40.8, lon: -73.2 },
+    '61844': { lat: 40.65, lon: -73.95 }, '61845': { lat: 40.75, lon: -73.15 },
+    '61846': { lat: 42.85, lon: -78.85 }, '61847': { lat: 42.55, lon: -73.85 },
+    // PJM
+    'AECO':    { lat: 39.4, lon: -74.5 }, 'AEP':     { lat: 38.5, lon: -82.0 },
+    'APS':     { lat: 40.2, lon: -78.0 }, 'ATSI':    { lat: 41.1, lon: -80.8 },
+    'BGE':     { lat: 39.3, lon: -76.6 }, 'COMED':   { lat: 41.9, lon: -87.7 },
+    'DAY':     { lat: 39.8, lon: -84.2 }, 'DEOK':    { lat: 39.1, lon: -84.5 },
+    'DOM':     { lat: 37.5, lon: -79.5 }, 'DPL':     { lat: 39.0, lon: -75.5 },
+    'DUQ':     { lat: 40.4, lon: -80.0 }, 'EKPC':    { lat: 38.2, lon: -84.9 },
+    'EXTERNAL':{ lat: 39.0, lon: -77.5 }, 'JCPL':    { lat: 40.2, lon: -74.2 },
+    'METED':   { lat: 40.3, lon: -76.0 }, 'PECO':    { lat: 40.0, lon: -75.2 },
+    'PENELEC': { lat: 41.2, lon: -78.5 }, 'PEPCO':   { lat: 38.9, lon: -77.0 },
+    'PPL':     { lat: 40.6, lon: -75.5 }, 'PSEG':    { lat: 40.7, lon: -74.2 },
+    'RECO':    { lat: 41.0, lon: -74.1 }
+};
+
+// ISO region approximate bounding paths (simplified polygons for SVG)
+// Each is an array of [lon, lat] points
+const ISO_REGIONS = {
+    'ERCOT': [
+        [-106,34],[-103,32],[-100,34],[-97,34],[-94,34],[-94,30],[-94,29.5],
+        [-97,26],[-100,27],[-104,30],[-106,32],[-106,34]
+    ],
+    'MISO': [
+        [-96,49],[-96,45],[-94,43],[-93,40],[-91,37],[-91,34],[-93,31],[-94,30],
+        [-95,30],[-95,34],[-91,34],[-89,31],[-89,34],[-86,37],[-85,39],[-85,42],
+        [-83,43],[-83,46],[-85,47],[-89,47],[-90,49],[-96,49]
+    ],
+    'PJM': [
+        [-89,42],[-87,42],[-87,40],[-85,39],[-82,38],[-79,37],[-77,37],[-76,38],
+        [-75,39],[-74,39],[-74,41],[-75,42],[-79,42],[-81,42],[-83,42],[-85,42],[-89,42]
+    ],
+    'NYISO': [
+        [-79.8,42.5],[-75,45],[-73.5,45],[-73.3,42],[-73.7,41],[-74.2,40.5],[-72.5,40.7],
+        [-72,41.2],[-73.5,41.2],[-74.7,41.5],[-76,42],[-79.8,42.5]
+    ],
+    'ISONE': [
+        [-73.5,45],[-73.2,42.7],[-71.8,42.0],[-71.4,41.5],[-70,41.5],[-67,43],
+        [-67,45],[-67,47.5],[-71,47.5],[-73.5,45]
+    ]
+};
+
+// ============================================
+// STATE
+// ============================================
+let lmpDatabase = null;
+let monthlyData = [];
+let hourlyData = [];
+let currentMode = 'monthly';
+let selectedISO = null;
+let selectedZones = [];     // Array of zone dbNames
+let trendChart = null;
+let compareChart = null;
+let hourlyChartObj = null;
+
+// ============================================
+// MAP PROJECTION
+// ============================================
+function geoToSvg(lon, lat, width, height) {
+    // Simple mercator-ish for continental US
+    const lonMin = -108, lonMax = -66, latMin = 25, latMax = 50;
+    const x = ((lon - lonMin) / (lonMax - lonMin)) * width * 0.88 + width * 0.06;
+    const y = ((latMax - lat) / (latMax - latMin)) * height * 0.88 + height * 0.06;
+    return { x, y };
+}
+
+function polyToPath(coords, w, h) {
+    return coords.map((c, i) => {
+        const p = geoToSvg(c[0], c[1], w, h);
+        return `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`;
+    }).join(' ') + ' Z';
+}
+
+// ============================================
+// RENDER MAP
+// ============================================
+function renderMap() {
+    const container = document.getElementById('mapContainer');
+    const w = container.clientWidth || 800;
+    const h = container.clientHeight || 600;
+
+    let svg = `<svg class="map-svg" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">`;
+
+    // Background
+    svg += `<rect width="${w}" height="${h}" fill="${getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim()}"/>`;
+
+    // Grid lines (subtle)
+    for (let lon = -105; lon <= -70; lon += 5) {
+        const p1 = geoToSvg(lon, 25, w, h);
+        const p2 = geoToSvg(lon, 50, w, h);
+        svg += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#1a1d27" stroke-width="0.5"/>`;
+    }
+    for (let lat = 26; lat <= 48; lat += 2) {
+        const p1 = geoToSvg(-108, lat, w, h);
+        const p2 = geoToSvg(-66, lat, w, h);
+        svg += `<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="#1a1d27" stroke-width="0.5"/>`;
+    }
+
+    // ISO region polygons
+    for (const [iso, coords] of Object.entries(ISO_REGIONS)) {
+        const color = ISO_COLORS[iso] || '#555';
+        const path = polyToPath(coords, w, h);
+        const isSelected = selectedISO === iso;
+        svg += `<path d="${path}" 
+            class="iso-region ${isSelected ? 'selected' : ''}" 
+            fill="${color}20" 
+            stroke="${color}" 
+            data-iso="${iso}"
+            onclick="toggleISO('${iso}')"
+            onmouseenter="highlightISO('${iso}', true)"
+            onmouseleave="highlightISO('${iso}', false)"/>`;
+
+        // ISO label
+        const center = coords.reduce((acc, c) => ({ lon: acc.lon + c[0], lat: acc.lat + c[1] }), { lon: 0, lat: 0 });
+        center.lon /= coords.length;
+        center.lat /= coords.length;
+        const lp = geoToSvg(center.lon, center.lat, w, h);
+        svg += `<text x="${lp.x}" y="${lp.y}" 
+            font-family="'DM Sans', sans-serif" font-size="14" font-weight="700"
+            fill="${color}" text-anchor="middle" dominant-baseline="central" opacity="0.6"
+            pointer-events="none">${ISO_LABELS[iso] || iso}</text>`;
+    }
+
+    // Zone markers
+    const zoneAvgs = computeZoneAverages();
+    for (const [zone, geo] of Object.entries(ZONE_GEO)) {
+        // Check if this zone has data
+        const zoneISO = getZoneISO(zone);
+        if (!zoneISO) continue;
+        if (selectedISO && zoneISO !== selectedISO) continue;
+
+        const p = geoToSvg(geo.lon, geo.lat, w, h);
+        const color = ISO_COLORS[zoneISO] || '#888';
+        const isSelected = selectedZones.includes(zone);
+        const avg = zoneAvgs[zone];
+        const radius = isSelected ? 7 : 5;
+
+        svg += `<g class="zone-marker ${isSelected ? 'selected' : ''}" 
+            data-zone="${zone}" data-iso="${zoneISO}"
+            onclick="toggleZone('${zone}')"
+            onmouseenter="showTooltip(event, '${zone}', '${zoneISO}')"
+            onmouseleave="hideTooltip()">
+            <circle class="marker-ring" cx="${p.x}" cy="${p.y}" r="${radius + 4}" stroke="${color}"/>
+            <circle class="marker-dot" cx="${p.x}" cy="${p.y}" r="${radius}" fill="${color}" 
+                stroke="${isSelected ? '#fff' : 'none'}" stroke-width="${isSelected ? 2 : 0}"/>
+        </g>`;
+    }
+
+    svg += '</svg>';
+    container.innerHTML = svg;
+
+    // Build legend
+    buildLegend();
+}
+
+function buildLegend() {
+    const el = document.getElementById('legendItems');
+    const isos = Object.keys(ISO_COLORS);
+    el.innerHTML = isos.map(iso => {
+        const hasData = monthlyData.some(r => r.iso === iso);
+        if (!hasData) return '';
+        const isActive = selectedISO === iso;
+        return `<div class="legend-item ${isActive ? 'active' : ''}" onclick="toggleISO('${iso}')">
+            <div class="legend-dot" style="background: ${ISO_COLORS[iso]}"></div>
+            ${ISO_LABELS[iso] || iso}
+        </div>`;
+    }).join('');
+}
+
+// ============================================
+// ZONE CHIPS
+// ============================================
+function renderZoneChips() {
+    const el = document.getElementById('zoneChips');
+    const filterLabel = document.getElementById('zoneFilterLabel');
+
+    let zones = [...new Set(monthlyData.map(r => r.zone))];
+    if (selectedISO) {
+        zones = [...new Set(monthlyData.filter(r => r.iso === selectedISO).map(r => r.zone))];
+        filterLabel.textContent = `(${ISO_LABELS[selectedISO] || selectedISO})`;
+    } else {
+        filterLabel.textContent = '(All ISOs)';
+    }
+
+    zones.sort((a, b) => zdn(a).localeCompare(zdn(b)));
+
+    el.innerHTML = zones.map(z => {
+        const isSel = selectedZones.includes(z);
+        const iso = getZoneISO(z);
+        const color = ISO_COLORS[iso] || '#888';
+        return `<button class="zone-chip ${isSel ? 'selected' : ''}" 
+            onclick="toggleZone('${z}')"
+            style="${isSel ? `border-color: ${color}; color: ${color}; background: ${color}15` : ''}"
+            >${zdn(z)}</button>`;
+    }).join('');
+
+    document.getElementById('compareCount').textContent = selectedZones.length;
+}
+
+// ============================================
+// INTERACTIONS
+// ============================================
+function toggleISO(iso) {
+    selectedISO = selectedISO === iso ? null : iso;
+    renderMap();
+    renderZoneChips();
+    updateCharts();
+}
+
+function highlightISO(iso, enter) {
+    document.querySelectorAll(`.iso-region[data-iso="${iso}"]`).forEach(el => {
+        el.style.fill = enter ? `${ISO_COLORS[iso]}40` : `${ISO_COLORS[iso]}20`;
+    });
+}
+
+function toggleZone(zone) {
+    const idx = selectedZones.indexOf(zone);
+    if (idx >= 0) {
+        selectedZones.splice(idx, 1);
+    } else {
+        if (selectedZones.length >= 8) {
+            selectedZones.shift(); // Max 8 zones for comparison
+        }
+        selectedZones.push(zone);
+    }
+    renderMap();
+    renderZoneChips();
+    updateStats();
+    updateCharts();
+}
+
+function clearSelection() {
+    selectedZones = [];
+    selectedISO = null;
+    renderMap();
+    renderZoneChips();
+    updateStats();
+    updateCharts();
+}
+
+function showTooltip(event, zone, iso) {
+    const tt = document.getElementById('zoneTooltip');
+    const avgs = computeZoneAverages();
+    const avg = avgs[zone];
+
+    document.getElementById('ttName').textContent = zdn(zone);
+    document.getElementById('ttIso').textContent = ISO_LABELS[iso] || iso;
+    document.getElementById('ttPrice').textContent = avg ? `$${avg.toFixed(2)}/MWh` : 'No data';
+
+    const rect = document.getElementById('mapPanel').getBoundingClientRect();
+    tt.style.left = (event.clientX - rect.left + 14) + 'px';
+    tt.style.top = (event.clientY - rect.top - 10) + 'px';
+    tt.classList.add('visible');
+}
+
+function hideTooltip() {
+    document.getElementById('zoneTooltip').classList.remove('visible');
+}
+
+// ============================================
+// DATA HELPERS
+// ============================================
+function getZoneISO(zone) {
+    const rec = monthlyData.find(r => r.zone === zone);
+    return rec ? rec.iso : null;
+}
+
+function computeZoneAverages() {
+    const avgs = {};
+    const groups = {};
+    monthlyData.forEach(r => {
+        if (!groups[r.zone]) groups[r.zone] = [];
+        groups[r.zone].push(r.lmp);
+    });
+    for (const [z, prices] of Object.entries(groups)) {
+        avgs[z] = prices.reduce((a, b) => a + b, 0) / prices.length;
+    }
+    return avgs;
+}
+
+function getFilteredMonthly() {
+    let data = monthlyData;
+    if (selectedISO) data = data.filter(r => r.iso === selectedISO);
+    if (selectedZones.length > 0) data = data.filter(r => selectedZones.includes(r.zone));
+    return data;
+}
+
+// ============================================
+// STATS
+// ============================================
+function updateStats() {
+    const data = getFilteredMonthly();
+    if (data.length === 0) {
+        document.getElementById('statAvg').textContent = '--';
+        document.getElementById('statMin').textContent = '--';
+        document.getElementById('statMax').textContent = '--';
+        return;
+    }
+    const prices = data.map(r => r.lmp).filter(p => p > 0);
+    if (prices.length === 0) return;
+
+    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+    document.getElementById('statAvg').textContent = '$' + avg.toFixed(2);
+    document.getElementById('statMin').textContent = '$' + Math.min(...prices).toFixed(2);
+    document.getElementById('statMax').textContent = '$' + Math.max(...prices).toFixed(2);
+}
+
+// ============================================
+// MODE
+// ============================================
+function setMode(mode) {
+    currentMode = mode;
+    document.getElementById('modeMonthly').classList.toggle('active', mode === 'monthly');
+    document.getElementById('modeHourly').classList.toggle('active', mode === 'hourly');
+
+    document.getElementById('trendCard').style.display = mode === 'monthly' ? '' : 'none';
+    document.getElementById('compareCard').style.display = '';
+    document.getElementById('hourlyCard').style.display = mode === 'hourly' ? '' : 'none';
+
+    if (mode === 'hourly') {
+        populateHourlyMonths();
+        updateHourlyChart();
+    }
+    updateCharts();
+}
+
+// ============================================
+// CHARTS
+// ============================================
+const CHART_COLORS = ['#3EB489', '#6366f1', '#f59e0b', '#ef4444', '#8b5cf6', '#3b82f6', '#ec4899', '#06b6d4'];
+
+function updateCharts() {
+    if (currentMode === 'monthly') {
+        updateTrendChart();
+    } else {
+        updateHourlyChart();
+    }
+    updateCompareChart();
+}
+
+function updateTrendChart() {
+    const ctx = document.getElementById('trendChart');
+    const period = parseInt(document.getElementById('trendPeriod').value);
+
+    let data = getFilteredMonthly();
+    if (data.length === 0 && selectedZones.length === 0) {
+        // Show all data if nothing selected
+        data = selectedISO ? monthlyData.filter(r => r.iso === selectedISO) : monthlyData;
+    }
+
+    // Filter by period
+    if (period > 0) {
+        const allDates = [...new Set(data.map(r => `${r.year}-${r.month}`))].sort();
+        const cutoff = allDates.slice(-period);
+        data = data.filter(r => cutoff.includes(`${r.year}-${r.month}`));
+    }
+
+    // Group by zone
+    const zones = selectedZones.length > 0 ? selectedZones : [...new Set(data.map(r => r.zone))].slice(0, 5);
+    const allDates = [...new Set(data.map(r => `${r.year}-${r.month}`))].sort();
+
+    const datasets = zones.map((zone, i) => {
+        const zoneData = data.filter(r => r.zone === zone);
+        return {
+            label: zdn(zone),
+            data: allDates.map(d => {
+                const rec = zoneData.find(r => `${r.year}-${r.month}` === d);
+                return rec ? rec.lmp : null;
+            }),
+            borderColor: CHART_COLORS[i % CHART_COLORS.length],
+            backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + '20',
+            tension: 0.3, fill: false, pointRadius: period > 24 ? 0 : 2, borderWidth: 2
+        };
+    });
+
+    if (trendChart) trendChart.destroy();
+    trendChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: allDates, datasets },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: zones.length > 1, labels: { color: '#8b90a5', font: { size: 10, family: 'DM Sans' } } },
+                tooltip: {
+                    backgroundColor: '#1e2130', borderColor: '#2a2e3f', borderWidth: 1,
+                    titleFont: { family: 'DM Sans' }, bodyFont: { family: 'JetBrains Mono', size: 12 },
+                    callbacks: { label: ctx => `${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(2) || '--'}/MWh` }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#5a5f75', font: { size: 9 }, maxTicksLimit: 12 }, grid: { color: '#1a1d27' } },
+                y: { ticks: { color: '#5a5f75', font: { size: 10, family: 'JetBrains Mono' }, callback: v => '$' + v.toFixed(0) }, grid: { color: '#1a1d27' } }
+            }
+        }
+    });
+
+    document.getElementById('trendSubtitle').textContent = zones.length > 0
+        ? `${zones.map(z => zdn(z)).join(', ')}` : 'Select zones to compare';
+}
+
+function updateCompareChart() {
+    const ctx = document.getElementById('compareChart');
+    const avgs = computeZoneAverages();
+
+    let zones;
+    if (selectedZones.length > 0) {
+        zones = selectedZones;
+    } else if (selectedISO) {
+        zones = [...new Set(monthlyData.filter(r => r.iso === selectedISO).map(r => r.zone))];
+    } else {
+        // Show top 10 by avg price
+        zones = Object.entries(avgs).sort((a, b) => b[1] - a[1]).slice(0, 10).map(e => e[0]);
+    }
+
+    const labels = zones.map(z => zdn(z));
+    const values = zones.map(z => avgs[z] || 0);
+    const colors = zones.map(z => {
+        const iso = getZoneISO(z);
+        return ISO_COLORS[iso] || '#888';
+    });
+
+    if (compareChart) compareChart.destroy();
+    compareChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Avg $/MWh',
+                data: values,
+                backgroundColor: colors.map(c => c + '80'),
+                borderColor: colors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1e2130', borderColor: '#2a2e3f', borderWidth: 1,
+                    bodyFont: { family: 'JetBrains Mono', size: 12 },
+                    callbacks: { label: ctx => `$${ctx.parsed.x?.toFixed(2)}/MWh` }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#5a5f75', font: { size: 10, family: 'JetBrains Mono' }, callback: v => '$' + v }, grid: { color: '#1a1d27' } },
+                y: { ticks: { color: '#8b90a5', font: { size: 10 } }, grid: { display: false } }
+            }
+        }
+    });
+
+    document.getElementById('compareSubtitle').textContent = selectedZones.length > 0
+        ? `Comparing ${selectedZones.length} zones` : selectedISO
+        ? `All ${ISO_LABELS[selectedISO]} zones` : 'Top 10 zones by average';
+}
+
+function populateHourlyMonths() {
+    const select = document.getElementById('hourlyMonth');
+    if (!lmpDatabase?.hourly) return;
+
+    const months = new Set();
+    for (const iso of Object.keys(lmpDatabase.hourly)) {
+        for (const ym of Object.keys(lmpDatabase.hourly[iso])) {
+            months.add(ym);
+        }
+    }
+    const sorted = [...months].sort().reverse();
+    select.innerHTML = '<option value="all">All Available</option>' +
+        sorted.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+function updateHourlyChart() {
+    const ctx = document.getElementById('hourlyChart');
+    if (!lmpDatabase?.hourly) return;
+
+    const selMonth = document.getElementById('hourlyMonth').value;
+    const zones = selectedZones.length > 0 ? selectedZones : 
+        (selectedISO ? [...new Set(monthlyData.filter(r => r.iso === selectedISO).map(r => r.zone))].slice(0, 3) :
+        [...new Set(monthlyData.map(r => r.zone))].slice(0, 3));
+
+    // Collect hourly data grouped by hour of day per zone
+    const hourlyByZone = {};
+    for (const iso of Object.keys(lmpDatabase.hourly)) {
+        for (const [ym, records] of Object.entries(lmpDatabase.hourly[iso])) {
+            if (selMonth !== 'all' && ym !== selMonth) continue;
+            for (const rec of records) {
+                const zone = rec.z;
+                if (!zones.includes(zone)) continue;
+                const dt = new Date(rec.dt);
+                const hour = dt.getHours();
+                if (!hourlyByZone[zone]) hourlyByZone[zone] = {};
+                if (!hourlyByZone[zone][hour]) hourlyByZone[zone][hour] = [];
+                hourlyByZone[zone][hour].push(rec.p);
+            }
+        }
+    }
+
+    const hours = Array.from({ length: 24 }, (_, i) => i);
+    const datasets = Object.keys(hourlyByZone).map((zone, i) => ({
+        label: zdn(zone),
+        data: hours.map(h => {
+            const vals = hourlyByZone[zone][h] || [];
+            return vals.length > 0 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+        }),
+        borderColor: CHART_COLORS[i % CHART_COLORS.length],
+        backgroundColor: CHART_COLORS[i % CHART_COLORS.length] + '20',
+        tension: 0.4, fill: false, borderWidth: 2, pointRadius: 3
+    }));
+
+    if (hourlyChartObj) hourlyChartObj.destroy();
+    hourlyChartObj = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: hours.map(h => `${h}:00`),
+            datasets
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: '#8b90a5', font: { size: 10, family: 'DM Sans' } } },
+                tooltip: {
+                    backgroundColor: '#1e2130', borderColor: '#2a2e3f', borderWidth: 1,
+                    bodyFont: { family: 'JetBrains Mono', size: 12 },
+                    callbacks: { label: ctx => `${ctx.dataset.label}: $${ctx.parsed.y?.toFixed(4) || '--'}/MWh` }
+                }
+            },
+            scales: {
+                x: { ticks: { color: '#5a5f75', font: { size: 9 } }, grid: { color: '#1a1d27' } },
+                y: { ticks: { color: '#5a5f75', font: { size: 10, family: 'JetBrains Mono' }, callback: v => '$' + v.toFixed(2) }, grid: { color: '#1a1d27' } }
+            }
+        }
+    });
+
+    document.getElementById('hourlySubtitle').textContent = zones.length > 0
+        ? `Avg price by hour — ${zones.map(z => zdn(z)).join(', ')}` : 'Select zones to view';
+}
+
+// ============================================
+// DATA LOADING
+// ============================================
+function getApiKey() {
+    try {
+        if (window.parent !== window && window.parent.AzureDataService?.apiKey) return window.parent.AzureDataService.apiKey;
+        if (window.parent !== window && window.parent.AzureDataService?.getApiKey?.()) return window.parent.AzureDataService.getApiKey();
+        if (window.parent !== window && window.parent.SharedDataStore?.getAzureApiKey) return window.parent.SharedDataStore.getAzureApiKey();
+    } catch (e) {}
+    try { return localStorage.getItem('ses_azure_api_key'); } catch (e) {}
+    return null;
+}
+
+async function loadData() {
+    console.log('[GeoMap] Loading data...');
+
+    try {
+        // 1. sessionStorage cache
+        const cached = sessionStorage.getItem('lmpGeoCache');
+        if (cached) {
+            lmpDatabase = JSON.parse(cached);
+            console.log('[GeoMap] From cache');
+            processData();
+            return;
+        }
+
+        // 2. AzureDataService (iframe)
+        try {
+            if (window.parent !== window && window.parent.AzureDataService) {
+                const db = await window.parent.AzureDataService.get(AZURE_CONFIG.lmpFile);
+                if (db) { lmpDatabase = db; console.log('[GeoMap] From parent AzureDataService'); }
+            }
+        } catch (e) {}
+
+        // 3. Direct Azure
+        if (!lmpDatabase) {
+            const parentKey = getApiKey();
+            const keys = [parentKey, 'ses-widget-mno345pqr678', 'ses-readonly-portal2026', 'ses-admin-abc123def456'].filter(Boolean);
+            for (const key of keys) {
+                try {
+                    const res = await fetch(`${AZURE_CONFIG.endpoint}/${AZURE_CONFIG.lmpFile}`, {
+                        headers: { 'X-API-Key': key }
+                    });
+                    if (res.ok) { lmpDatabase = await res.json(); console.log('[GeoMap] From Azure'); break; }
+                } catch (e) { continue; }
+            }
+        }
+
+        // 4. GitHub fallback
+        if (!lmpDatabase) {
+            const res = await fetch('https://raw.githubusercontent.com/ClemmensSES/SESSalesResources/main/data/lmp-database.json?t=' + Date.now());
+            if (res.ok) { lmpDatabase = await res.json(); console.log('[GeoMap] From GitHub'); }
+        }
+
+        if (!lmpDatabase) throw new Error('Could not load data');
+
+        sessionStorage.setItem('lmpGeoCache', JSON.stringify(lmpDatabase));
+        processData();
+
+    } catch (err) {
+        console.error('[GeoMap] Load error:', err);
+        document.getElementById('loadingOverlay').innerHTML = `
+            <div style="text-align:center;color:var(--text-muted)">
+                <p style="font-size:14px;margin-bottom:8px">⚠️ Could not load LMP data</p>
+                <p style="font-size:12px">${err.message}</p>
+                <button onclick="location.reload()" style="margin-top:12px" class="btn-sm">Retry</button>
+            </div>`;
+    }
+}
+
+function processData() {
+    monthlyData = [];
+    hourlyData = [];
+
+    if (lmpDatabase.data) {
+        for (const [iso, records] of Object.entries(lmpDatabase.data)) {
+            records.forEach(r => {
+                monthlyData.push({
+                    iso, zone: r.zone, zone_id: r.zone_id,
+                    year: r.year, month: r.month,
+                    lmp: r.avg_da_lmp || r.lmp || 0,
+                    min_price: r.min_price || 0,
+                    max_price: r.max_price || 0
+                });
+            });
+        }
+    }
+
+    if (lmpDatabase.hourly) {
+        for (const [iso, monthData] of Object.entries(lmpDatabase.hourly)) {
+            for (const [ym, records] of Object.entries(monthData)) {
+                records.forEach(r => {
+                    hourlyData.push({ iso, datetime: r.dt, price: r.p, zone: r.z });
+                });
+            }
+        }
+    }
+
+    // Update badge
+    const badge = document.getElementById('dataBadge');
+    badge.textContent = `${monthlyData.length.toLocaleString()} monthly • ${hourlyData.length.toLocaleString()} hourly`;
+
+    // Hide loading
+    document.getElementById('loadingOverlay').style.display = 'none';
+
+    // Render
+    renderMap();
+    renderZoneChips();
+    updateStats();
+    updateCharts();
+}
+
+// ============================================
+// RESIZE
+// ============================================
+let resizeTimeout;
+window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => renderMap(), 200);
+});
+
+// ============================================
+// INIT
+// ============================================
+document.addEventListener('DOMContentLoaded', loadData);
+</script>
+</body>
+</html>
