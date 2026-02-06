@@ -1,41 +1,30 @@
-name: Update LMP Data
+name: Update LMP Data Monthly
 
 on:
   schedule:
-    # Runs at 6 AM UTC on the 3rd of every month (monthly aggregate)
+    # 3rd of every month at 6 AM UTC
     - cron: '0 6 3 * *'
 
   workflow_dispatch:
     inputs:
       start_date:
-        description: 'Start date (YYYY-MM-DD) - defaults to first of previous month'
+        description: 'Start date (YYYY-MM-DD). Blank = previous month.'
         required: false
-        type: string
       end_date:
-        description: 'End date (YYYY-MM-DD) - defaults to last of previous month'
+        description: 'End date (YYYY-MM-DD). Blank = previous month.'
         required: false
-        type: string
       iso_markets:
-        description: 'ISOs to fetch (comma-separated: ISONE,PJM,ERCOT or "all")'
+        description: 'Comma-separated ISOs (e.g. PJM,ISONE). Blank = all.'
         required: false
-        default: 'all'
-        type: string
-      include_hourly:
-        description: 'Fetch hourly granularity data (true/false) - slower but enables hourly analytics'
-        required: false
-        default: 'true'
-        type: string
+        default: ''
 
 permissions:
   contents: read
-  actions: read
-
-env:
-  NODE_VERSION: '20'
 
 jobs:
   fetch-and-update:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
 
     steps:
       - name: Checkout repository
@@ -44,11 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install dependencies
-        run: npm install
-        working-directory: scripts
+          node-version: '20'
 
       - name: Determine date range
         id: dates
@@ -57,38 +42,35 @@ jobs:
             echo "start_date=${{ github.event.inputs.start_date }}" >> $GITHUB_OUTPUT
             echo "end_date=${{ github.event.inputs.end_date }}" >> $GITHUB_OUTPUT
           else
-            PREV_MONTH=$(date -d "$(date +%Y-%m-01) -1 month" +%Y-%m-01)
-            LAST_DAY=$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m-%d)
-            echo "start_date=$PREV_MONTH" >> $GITHUB_OUTPUT
-            echo "end_date=$LAST_DAY" >> $GITHUB_OUTPUT
+            START=$(date -d "$(date +%Y-%m-01) -1 month" +%Y-%m-%d)
+            END=$(date -d "$(date +%Y-%m-01) -1 day" +%Y-%m-%d)
+            echo "start_date=$START" >> $GITHUB_OUTPUT
+            echo "end_date=$END" >> $GITHUB_OUTPUT
           fi
-          echo "Fetching data from $(cat $GITHUB_OUTPUT | grep start_date | cut -d= -f2) to $(cat $GITHUB_OUTPUT | grep end_date | cut -d= -f2)"
+          echo "📅 Range: $(cat $GITHUB_OUTPUT)"
 
-      - name: Fetch LMP Data (Hourly) from Arcadia API
+      - name: Fetch hourly LMP data from Genability
         env:
           ARCADIA_APP_ID: ${{ secrets.ARCADIA_APP_ID }}
           ARCADIA_APP_KEY: ${{ secrets.ARCADIA_APP_KEY }}
           START_DATE: ${{ steps.dates.outputs.start_date }}
           END_DATE: ${{ steps.dates.outputs.end_date }}
           ISO_MARKETS: ${{ github.event.inputs.iso_markets || 'all' }}
-          INCLUDE_HOURLY: ${{ github.event.inputs.include_hourly || 'true' }}
-        run: node fetch-lmp-data-hourly.js
         working-directory: scripts
+        run: node fetch-lmp-data-hourly.js
 
-      - name: Upload to Azure (v2)
+      - name: Process and upload to Azure
         env:
           AZURE_API_ENDPOINT: ${{ secrets.AZURE_API_ENDPOINT }}
           AZURE_API_KEY: ${{ secrets.AZURE_API_KEY }}
-        run: node update-lmp-database-azure-v2.js
         working-directory: scripts
+        run: node update-lmp-database-azure-v2.js
 
       - name: Summary
         run: |
-          HOURLY_FLAG="${{ github.event.inputs.include_hourly || 'true' }}"
           echo "## LMP Data Update Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Date Range:** ${{ steps.dates.outputs.start_date }} to ${{ steps.dates.outputs.end_date }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Markets:** ${{ github.event.inputs.iso_markets || 'all' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Hourly Data:** ${HOURLY_FLAG}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Storage:** Azure Blob (ses-data-api)" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status:** ✅ Completed" >> $GITHUB_STEP_SUMMARY
+          echo "- **Markets:** ${{ github.event.inputs.iso_markets || 'all (ERCOT, ISONE, MISO, NYISO, PJM)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Outputs:** Hourly + Monthly → Azure lmp-database.json" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status:** ✅ Complete" >> $GITHUB_STEP_SUMMARY
