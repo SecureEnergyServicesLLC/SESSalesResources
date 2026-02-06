@@ -147,7 +147,7 @@
                 Complete API-Verified Zone IDs • 5 ISOs • 79 Total Zones
             </p>
             <div style="font-size: 10px; color: #718096; margin-top: 4px;">
-                v5.1.0 FINAL • Azure Proxy + CORS Fallback • API Discovery Verified
+                v5.2.0 FINAL • Azure Proxy + Save to Azure • API Discovery Verified
             </div>
         </div>
         
@@ -216,9 +216,14 @@
             <button class="btn-primary" onclick="fetchData()" style="width: 100%; padding: 14px; font-size: 14px;">
                 ⚡ Fetch Hourly LMP Data
             </button>
-            <button class="btn-success" id="exportBtn" onclick="exportCSV()" style="width: 100%; margin-top: 12px; padding: 12px;" disabled>
-                📥 Export CSV
-            </button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+                <button class="btn-success" id="exportBtn" onclick="exportCSV()" style="width: 100%; padding: 12px;" disabled>
+                    📥 Export CSV
+                </button>
+                <button id="saveAzureBtn" onclick="saveToAzure()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #1565C0, #42A5F5); color: white; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer;" disabled>
+                    ☁️ Save to Azure Database
+                </button>
+            </div>
         </div>
         
         <div class="status-message" id="statusMessage"></div>
@@ -512,6 +517,7 @@
                     displayResults();
                     showStatus(`✅ Successfully fetched ${fetchedData.hourly.length.toLocaleString()} hourly records!`, 'success');
                     document.getElementById('exportBtn').disabled = false;
+                    document.getElementById('saveAzureBtn').disabled = false;
                 } else {
                     showStatus('⚠️ No data found for selected zones and date range', 'error');
                 }
@@ -685,6 +691,211 @@
             a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
             a.download = `lmp_hourly_${currentISO}_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
+        }
+        
+        // ============================================
+        // SAVE TO AZURE - Append/Update lmp-database.json
+        // Same merge logic as update-lmp-database-azure-v2.js
+        // ============================================
+        const AZURE_DATA_API = 'https://ses-data-api-gpaqghfbehhrb6c2.eastus-01.azurewebsites.net/api/data';
+
+        async function saveToAzure() {
+            const portalKey = getPortalApiKey();
+            if (!portalKey) {
+                showStatus('❌ No Azure API key found. Log into the portal first, then try again.', 'error');
+                return;
+            }
+
+            if (!fetchedData.hourly.length) {
+                showStatus('❌ No data to save. Fetch data first.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('saveAzureBtn');
+            btn.disabled = true;
+            btn.textContent = '☁️ Saving to Azure...';
+            showStatus('⏳ Loading existing database from Azure...', 'success');
+
+            try {
+                // ── Step 1: Load existing database ──
+                let database;
+                try {
+                    const res = await fetch(`${AZURE_DATA_API}/lmp-database.json`, {
+                        headers: { 'x-api-key': portalKey }
+                    });
+                    if (res.ok) {
+                        database = await res.json();
+                        if (!database.data) database = { meta: {}, data: {}, hourly: {} };
+                    } else {
+                        database = { meta: {}, data: {}, hourly: {} };
+                    }
+                } catch (e) {
+                    console.warn('No existing database, creating new:', e.message);
+                    database = { meta: {}, data: {}, hourly: {} };
+                }
+                if (!database.hourly) database.hourly = {};
+
+                // ── Step 2: Organize fetched data by ISO and month ──
+                const byIsoMonth = {};
+                const monthlySummaries = {};
+
+                for (const rec of fetchedData.hourly) {
+                    const iso = rec.iso;
+                    const dt = new Date(rec.datetime);
+                    const yearMonth = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+                    const year = dt.getFullYear().toString();
+                    const month = String(dt.getMonth() + 1).padStart(2, '0');
+
+                    // Hourly: group by ISO > yearMonth
+                    if (!byIsoMonth[iso]) byIsoMonth[iso] = {};
+                    if (!byIsoMonth[iso][yearMonth]) byIsoMonth[iso][yearMonth] = [];
+                    byIsoMonth[iso][yearMonth].push({
+                        dt: rec.datetime,
+                        p: rec.price,
+                        z: rec.zone
+                    });
+
+                    // Monthly: accumulate for summaries
+                    const mKey = `${iso}_${rec.zone}_${year}_${month}`;
+                    if (!monthlySummaries[mKey]) {
+                        monthlySummaries[mKey] = {
+                            iso, zone: rec.zone, zone_id: rec.zone_id,
+                            year, month, prices: [], count: 0
+                        };
+                    }
+                    monthlySummaries[mKey].prices.push(rec.price);
+                    monthlySummaries[mKey].count++;
+                }
+
+                // ── Step 3: Merge hourly data ──
+                let hourlyAdded = 0, hourlyUpdated = 0, hourlySkipped = 0;
+
+                for (const [iso, months] of Object.entries(byIsoMonth)) {
+                    if (!database.hourly[iso]) database.hourly[iso] = {};
+
+                    for (const [yearMonth, records] of Object.entries(months)) {
+                        // Safety: skip months where ALL prices are zero
+                        const hasNonZero = records.some(r => r.p !== 0);
+                        if (!hasNonZero) {
+                            console.warn(`Skipping ${iso}/${yearMonth}: all zero prices`);
+                            hourlySkipped++;
+                            continue;
+                        }
+
+                        const isNew = !database.hourly[iso][yearMonth];
+                        database.hourly[iso][yearMonth] = records;
+                        if (isNew) hourlyAdded++;
+                        else hourlyUpdated++;
+                    }
+                }
+
+                // ── Step 4: Merge monthly summaries ──
+                let monthlyAdded = 0, monthlyUpdated = 0, monthlyUnchanged = 0;
+
+                for (const [key, summary] of Object.entries(monthlySummaries)) {
+                    const { iso, zone, zone_id, year, month, prices, count } = summary;
+                    if (!database.data[iso]) database.data[iso] = [];
+
+                    const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+                    const normalized = {
+                        iso, zone, zone_id: zone_id || zone, year, month,
+                        avg_da_lmp: parseFloat(avg.toFixed(4)),
+                        min_price: parseFloat(Math.min(...prices).toFixed(4)),
+                        max_price: parseFloat(Math.max(...prices).toFixed(4)),
+                        record_count: count
+                    };
+
+                    const mKey = (r) => `${r.iso}_${r.zone}_${r.year}_${r.month}`;
+                    const idx = database.data[iso].findIndex(r => mKey(r) === key);
+
+                    // Don't overwrite good data with zeros
+                    if (normalized.avg_da_lmp === 0 && idx >= 0 && database.data[iso][idx].avg_da_lmp > 0) {
+                        monthlyUnchanged++;
+                        continue;
+                    }
+
+                    if (idx === -1) {
+                        database.data[iso].push(normalized);
+                        monthlyAdded++;
+                    } else {
+                        if (Math.abs(database.data[iso][idx].avg_da_lmp - normalized.avg_da_lmp) > 0.0001) {
+                            database.data[iso][idx] = normalized;
+                            monthlyUpdated++;
+                        } else {
+                            monthlyUnchanged++;
+                        }
+                    }
+                }
+
+                // Sort monthly records
+                for (const iso of Object.keys(database.data)) {
+                    database.data[iso].sort((a, b) =>
+                        (a.zone || '').localeCompare(b.zone || '') ||
+                        (a.year || '').localeCompare(b.year || '') ||
+                        (a.month || '').localeCompare(b.month || '')
+                    );
+                }
+
+                // ── Step 5: Update metadata ──
+                let totalMonthly = 0, totalHourly = 0;
+                for (const iso of Object.keys(database.data || {})) {
+                    totalMonthly += (database.data[iso] || []).length;
+                }
+                for (const iso of Object.keys(database.hourly || {})) {
+                    for (const ym of Object.keys(database.hourly[iso] || {})) {
+                        totalHourly += (database.hourly[iso][ym] || []).length;
+                    }
+                }
+
+                database.meta = {
+                    ...database.meta,
+                    lastUpdate: new Date().toISOString(),
+                    lastFetchSource: 'fetcher-widget-v5.1',
+                    storage: 'azure',
+                    version: '3.1',
+                    source: 'arcadia-genability',
+                    hasHourlyData: totalHourly > 0,
+                    totalMonthlyRecords: totalMonthly,
+                    totalHourlyRecords: totalHourly
+                };
+
+                // ── Step 6: Save to Azure ──
+                showStatus('⏳ Saving merged database to Azure...', 'success');
+                const payloadSize = JSON.stringify(database).length;
+                console.log(`[Save] Payload: ${(payloadSize / 1024 / 1024).toFixed(2)} MB`);
+
+                const saveRes = await fetch(`${AZURE_DATA_API}/lmp-database.json`, {
+                    method: 'POST',
+                    headers: {
+                        'x-api-key': portalKey,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(database)
+                });
+
+                if (!saveRes.ok) {
+                    const errBody = await saveRes.text();
+                    throw new Error(`Azure save failed (${saveRes.status}): ${errBody.substring(0, 200)}`);
+                }
+
+                // ── Done ──
+                const summary = [
+                    `✅ Saved to Azure!`,
+                    `Hourly: ${hourlyAdded} months added, ${hourlyUpdated} updated${hourlySkipped ? ', ' + hourlySkipped + ' skipped (zero prices)' : ''}`,
+                    `Monthly: ${monthlyAdded} added, ${monthlyUpdated} updated, ${monthlyUnchanged} unchanged`,
+                    `Database totals: ${totalMonthly.toLocaleString()} monthly, ${totalHourly.toLocaleString()} hourly records`
+                ].join(' • ');
+
+                showStatus(summary, 'success');
+                console.log('[Save] Complete:', summary);
+
+            } catch (err) {
+                showStatus(`❌ Save failed: ${err.message}`, 'error');
+                console.error('[Save] Error:', err);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '☁️ Save to Azure Database';
+            }
         }
         
         document.addEventListener('DOMContentLoaded', init);
