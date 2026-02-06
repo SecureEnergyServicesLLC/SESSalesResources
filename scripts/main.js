@@ -613,25 +613,6 @@ document.getElementById('loginForm').addEventListener('submit', async function(e
             SecureEnergyClients.setCurrentUser(result.user.id);
         }
         
-        // Refresh stores from Azure on login to ensure cross-device data is available
-        if (typeof AnalysisStore !== 'undefined' && AnalysisStore.refresh) {
-            AnalysisStore.refresh().then(function(r) {
-                if (r.success) {
-                    console.log('[Login] AnalysisStore refreshed from Azure:', r.count, 'records');
-                    if (document.getElementById('analysisHistoryContent')) renderAnalysisHistory();
-                }
-            }).catch(function(e) { console.warn('[Login] AnalysisStore refresh failed:', e); });
-        }
-        if (typeof ActivityLog !== 'undefined' && ActivityLog.refresh) {
-            ActivityLog.refresh().then(function(r) {
-                if (r.success) {
-                    console.log('[Login] ActivityLog refreshed from Azure:', r.count, 'entries');
-                    refreshActivityLogIfVisible();
-                    if (document.getElementById('analysisHistoryContent')) renderAnalysisHistory();
-                }
-            }).catch(function(e) { console.warn('[Login] ActivityLog refresh failed:', e); });
-        }
-        
         // Check if user must reset their password before accessing the portal
         if (result.user.forcePasswordReset) {
             showForcePasswordReset(result.user);
@@ -1878,20 +1859,14 @@ function renderAnalysisHistory() {
     
     let analyses = [];
     if (currentUser) {
-        // Try AnalysisStore first (full records with calculation results)
-        if (typeof AnalysisStore !== 'undefined') {
-            // Filter by user FIRST, then check if we have results
-            const storeAnalyses = currentUser.role === 'admin'
+        // Prefer AnalysisStore (full records with calculation results)
+        if (typeof AnalysisStore !== 'undefined' && AnalysisStore.getAll().length > 0) {
+            analyses = currentUser.role === 'admin'
                 ? AnalysisStore.getAll()
                 : AnalysisStore.getByUser(currentUser.id);
-            
-            if (storeAnalyses.length > 0) {
-                analyses = storeAnalyses.slice(0, 50);
-            }
-        }
-        
-        // If AnalysisStore had no results for this user, check ActivityLog as fallback
-        if (analyses.length === 0) {
+            analyses = analyses.slice(0, 50);
+        } else {
+            // Fallback to ActivityLog for legacy records
             const userLogs = currentUser.role === 'admin' 
                 ? ActivityLog.getAll().filter(l => l.action === 'LMP Analysis')
                 : ActivityLog.getByUser(currentUser.id).filter(l => l.action === 'LMP Analysis');
