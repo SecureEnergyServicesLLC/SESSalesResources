@@ -151,7 +151,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     await ActivityLog.init();
     await SecureEnergyData.init();
     if (typeof SecureEnergyClients !== 'undefined') {
-        SecureEnergyClients.init();
+        await SecureEnergyClients.init();
         SecureEnergyClients.subscribe((event, data) => {
             console.log('[Portal] SecureEnergyClients event received:', event);
             if (event === 'activeClientChanged') { 

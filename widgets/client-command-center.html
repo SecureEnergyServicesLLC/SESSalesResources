@@ -1381,12 +1381,17 @@
                 window.parent.postMessage({ type: 'REQUEST_ACTIVE_CLIENT' }, '*');
             }
 
-            // Retry initialization with delays
-            [50, 150, 400, 800, 1500].forEach(delay => {
+            // Retry initialization with delays (extended for Azure load times)
+            [50, 200, 500, 1000, 2000, 4000].forEach(delay => {
                 setTimeout(() => {
                     if (initStores()) {
+                        const prevCount = allClients.length;
                         allClients = ClientStore.getAllClients();
                         activeAccount = ClientStore.getActiveAccount?.() || null;
+                        
+                        if (allClients.length > 0 && prevCount === 0) {
+                            console.log('[CommandCenter] Data loaded at ' + delay + 'ms -', allClients.length, 'clients');
+                        }
                         updateAll();
 
                         // Only subscribe once
@@ -1394,6 +1399,7 @@
                             ClientStore._commandCenterSubscribed = true;
                             ClientStore.subscribe((event, data) => {
                                 allClients = ClientStore.getAllClients();
+                                console.log('[CommandCenter] Store event:', event, '- clients:', allClients.length);
                                 if (event === 'activeClientChanged' || event === 'activeAccountChanged') {
                                     activeAccount = data?.account || ClientStore.getActiveAccount?.() || null;
                                 }
@@ -1437,6 +1443,7 @@
                 if (!ClientStore) initStores();
                 if (ClientStore) {
                     allClients = ClientStore.getAllClients();
+                    console.log('[CommandCenter] CLIENTS_LOADED received -', allClients.length, 'clients');
                     updateAll();
                 }
             }

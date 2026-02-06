@@ -2,9 +2,10 @@
  * Client Store - Centralized Client Management
  * Provides unique client identifiers (CID) across all portal widgets
  * Supports Salesforce data import and cross-widget client context
- * Version: 2.4.0 - Azure Integration
+ * Version: 2.5.0 - Azure Integration + Init Broadcast
  * 
  * CHANGELOG:
+ * v2.5.0 - init() now notifies subscribers and broadcasts CLIENTS_LOADED when data loads
  * v2.4.0 - Azure Blob Storage integration for data persistence
  * v2.3.1 - Added local broadcast() helper to fix "Can't find variable: broadcast" error
  * v2.3.0 - User-specific active client/account selection
@@ -170,11 +171,15 @@
             console.log('[ClientStore] Initialized with', Object.keys(clients).length, 'clients');
             pendingCallbacks.forEach(cb => cb());
             pendingCallbacks = [];
+            notifySubscribers('dataLoaded', { clientCount: Object.keys(clients).length });
+            broadcastToWidgets({ type: 'CLIENTS_LOADED', clientCount: Object.keys(clients).length });
             return getStats();
         }).catch(err => {
             console.error('[ClientStore] Data load failed, trying localStorage fallback:', err);
             loadFromLocalStorage();
             initialized = true;
+            notifySubscribers('dataLoaded', { clientCount: Object.keys(clients).length, fallback: true });
+            broadcastToWidgets({ type: 'CLIENTS_LOADED', clientCount: Object.keys(clients).length });
             return getStats();
         });
     }
