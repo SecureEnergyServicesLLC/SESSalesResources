@@ -147,7 +147,7 @@
                 Complete API-Verified Zone IDs • 5 ISOs • 79 Total Zones
             </p>
             <div style="font-size: 10px; color: #718096; margin-top: 4px;">
-                v5.0.0 FINAL • Auto-generated from API Discovery Tool
+                v5.0.1 FINAL • CORS Proxy Failover • Auto-generated from API Discovery Tool
             </div>
         </div>
         
@@ -370,7 +370,40 @@
         let currentISO = null;
         let selectedZones = [];
         let fetchedData = { hourly: [] };
-        
+
+        // ============================================
+        // CORS PROXY FAILOVER CHAIN
+        // Auto-rotates if a proxy goes down
+        // ============================================
+        const CORS_PROXIES = [
+            {
+                name: 'allorigins',
+                buildUrl: (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+            },
+            {
+                name: 'corsproxy.io',
+                buildUrl: (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`
+            },
+            {
+                name: 'corsproxy.org',
+                buildUrl: (url) => `https://corsproxy.org/?${encodeURIComponent(url)}`
+            }
+        ];
+        let currentProxyIndex = 0;
+
+        function getProxyUrl(targetUrl) {
+            return CORS_PROXIES[currentProxyIndex].buildUrl(targetUrl);
+        }
+
+        function tryNextProxy() {
+            if (currentProxyIndex < CORS_PROXIES.length - 1) {
+                currentProxyIndex++;
+                console.log(`[CORS] Switching to proxy: ${CORS_PROXIES[currentProxyIndex].name}`);
+                return true;
+            }
+            return false;
+        }
+
         function init() {
             // Set dates to past week
             const today = new Date();
@@ -509,26 +542,61 @@
                     pageCount: 1000
                 });
                 
-                const url = `https://corsproxy.io/?${encodeURIComponent(`${base}/${propKey}/lookups?${params}`)}`;
-                const res = await fetch(url, { headers: { 'Authorization': `Basic ${creds}` } });
-                
-                if (!res.ok) {
-                    if (res.status === 401) throw new Error('Invalid API credentials');
-                    throw new Error(`API error: ${res.status}`);
-                }
-                
-                const data = await res.json();
-                
-                if (data.results?.length) {
-                    all.push(...data.results.map(i => ({ 
-                        datetime: i.fromDateTime,
-                        price: parseFloat(i.actualValue || i.bestValue || 0)
-                    })).filter(r => !isNaN(r.price)));
-                    
-                    more = data.count > page + 1000;
-                    page += 1000;
-                } else {
-                    more = false;
+                const rawUrl = `${base}/${propKey}/lookups?${params}`;
+                let fetched = false;
+                let lastError = null;
+
+                // Try current proxy, failover to next on error
+                const startProxy = currentProxyIndex;
+                do {
+                    const proxyUrl = getProxyUrl(rawUrl);
+                    try {
+                        console.log(`[CORS] Using ${CORS_PROXIES[currentProxyIndex].name} for ${zoneId} page ${page}`);
+                        
+                        const res = await fetch(proxyUrl, {
+                            method: 'GET',
+                            headers: { 
+                                'Authorization': `Basic ${creds}`,
+                                'Accept': 'application/json'
+                            }
+                        });
+                        
+                        if (res.status === 401) throw new Error('Invalid API credentials');
+                        
+                        if (!res.ok) {
+                            throw new Error(`Proxy ${CORS_PROXIES[currentProxyIndex].name} returned ${res.status}`);
+                        }
+
+                        const data = await res.json();
+                        
+                        if (data.results?.length) {
+                            all.push(...data.results.map(i => ({ 
+                                datetime: i.fromDateTime,
+                                price: parseFloat(i.actualValue || i.bestValue || 0)
+                            })).filter(r => !isNaN(r.price)));
+                            
+                            more = data.count > page + 1000;
+                            page += 1000;
+                        } else {
+                            more = false;
+                        }
+                        fetched = true;
+
+                    } catch (err) {
+                        lastError = err;
+                        // Don't rotate on auth errors
+                        if (err.message.includes('Invalid API credentials')) throw err;
+                        
+                        console.warn(`[CORS] ${CORS_PROXIES[currentProxyIndex].name} failed: ${err.message}`);
+                        if (!tryNextProxy()) {
+                            currentProxyIndex = 0; // reset for next call
+                            break;
+                        }
+                    }
+                } while (!fetched);
+
+                if (!fetched) {
+                    throw new Error(`All CORS proxies failed for ${zoneId}. Last error: ${lastError?.message || 'unknown'}`);
                 }
             }
             
