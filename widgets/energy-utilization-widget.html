@@ -1148,7 +1148,7 @@
             const historyFilter = document.getElementById('historyYearFilter');
             const currentYear = new Date().getFullYear();
             const years = [];
-            for (let y = currentYear - 2; y <= currentYear + 2; y++) years.push(y);
+            for (let y = 2016; y <= currentYear + 2; y++) years.push(y);
             
             [yearSelect, importYear].forEach(sel => {
                 if (!sel) return;
