@@ -412,13 +412,13 @@
             </div>
             <div class="control-group">
                 <label>Zone</label>
-                <select id="zoneSelect" onchange="updateAnalytics()">
+                <select id="zoneSelect" onchange="currentMode === 'monthly' ? updateAnalytics() : updateHourlyAnalytics()">
                     <option value="all">All Zones</option>
                 </select>
             </div>
             <div class="control-group">
                 <label>Time Period</label>
-                <select id="periodSelect" onchange="updateAnalytics()">
+                <select id="periodSelect" onchange="currentMode === 'monthly' ? updateAnalytics() : updateHourlyAnalytics()">
                     <option value="all">All Time</option>
                     <option value="5y">Last 5 Years</option>
                     <option value="3y">Last 3 Years</option>
@@ -482,6 +482,43 @@
         let trendChart = null;
         let comparisonChart = null;
         let hourlyChart = null;
+
+        // ============================================
+        // ZONE DISPLAY NAMES
+        // Maps raw database zone keys to user-friendly names
+        // ============================================
+        const ZONE_DISPLAY_NAMES = {
+            // ERCOT
+            'AEN': 'AEN', 'CPS': 'CPS Energy', 'HOUSTON': 'Houston', 'LCRA': 'LCRA',
+            'NORTH': 'North', 'RAYBN': 'Rayburn', 'SOUTH': 'South', 'WEST': 'West',
+            // ISO-NE
+            '4001_Maine': 'Maine', '4002_NH': 'New Hampshire', '4003_Vermont': 'Vermont',
+            '4004_Connecticut': 'Connecticut', '4005_Rhode_Island': 'Rhode Island',
+            '4006_SEMA': 'SE Mass (SEMA)', '4007_WCMA': 'W/C Mass (WCMA)', '4008_NEMA': 'NE Mass (NEMA)',
+            '4000_ISONE': 'ISO-NE Hub',
+            // MISO
+            'ARKANSAS': 'Arkansas', 'ILLINOIS': 'Illinois', 'INDIANA': 'Indiana',
+            'LOUISIANA': 'Louisiana', 'MICHIGAN': 'Michigan', 'MINN': 'Minnesota',
+            'MS': 'Mississippi', 'TEXAS': 'Texas',
+            // NYISO
+            '61752': 'West (Zone A)', '61753': 'Genesee (Zone B)', '61754': 'Central (Zone C)',
+            '61755': 'North (Zone D)', '61756': 'Mohawk Valley (Zone E)', '61757': 'Capital (Zone F)',
+            '61758': 'Hudson Valley (Zone G)', '61759': 'Millwood (Zone H)',
+            '61760': 'Dunwoodie (Zone I)', '61761': 'NYC (Zone J)', '61762': 'Long Island (Zone K)',
+            '61844': 'Zone J Hub', '61845': 'Zone K Hub', '61846': 'Zone A Hub', '61847': 'Zone F Hub',
+            // PJM
+            'AECO': 'AECO', 'AEP': 'AEP', 'APS': 'APS', 'ATSI': 'ATSI', 'BGE': 'BGE',
+            'COMED': 'ComEd', 'DAY': 'Dayton', 'DEOK': 'Duke Energy OH/KY', 'DOM': 'Dominion',
+            'DPL': 'DPL', 'DUQ': 'Duquesne', 'EKPC': 'EKPC', 'EXTERNAL': 'External',
+            'JCPL': 'JCPL', 'METED': 'Met-Ed', 'PECO': 'PECO', 'PENELEC': 'Penelec',
+            'PEPCO': 'Pepco', 'PPL': 'PPL', 'PSEG': 'PSEG', 'RECO': 'RECO',
+            // CAISO
+            'SP15': 'SP15 (South)', 'NP15': 'NP15 (North)', 'ZP26': 'ZP26 (Central)',
+            'TH_SP15_GEN-APND': 'SP15 Gen', 'TH_NP15_GEN-APND': 'NP15 Gen',
+            'DLAP_PGAE-APND': 'PG&E', 'DLAP_SCE-APND': 'SCE', 'DLAP_SDGE-APND': 'SDG&E'
+        };
+        /** Get display name for a zone key */
+        function zdn(dbName) { return ZONE_DISPLAY_NAMES[dbName] || dbName; }
 
         // ============================================
         // LMP DATA PROCESSOR (inline for standalone use)
@@ -774,16 +811,19 @@
             const iso = document.getElementById('isoSelect').value;
             const zoneSelect = document.getElementById('zoneSelect');
             
+            // Use appropriate data source based on current mode
+            const dataSource = currentMode === 'hourly' && hourlyData.length > 0 ? hourlyData : monthlyData;
+            
             let zones;
             if (iso === 'all') {
-                zones = [...new Set(monthlyData.map(r => r.zone))];
+                zones = [...new Set(dataSource.map(r => r.zone))];
             } else {
-                zones = [...new Set(monthlyData.filter(r => r.iso === iso).map(r => r.zone))];
+                zones = [...new Set(dataSource.filter(r => r.iso === iso).map(r => r.zone))];
             }
 
             zoneSelect.innerHTML = '<option value="all">All Zones</option>';
-            zones.sort().forEach(zone => {
-                zoneSelect.innerHTML += `<option value="${zone}">${zone}</option>`;
+            zones.sort((a, b) => zdn(a).localeCompare(zdn(b))).forEach(zone => {
+                zoneSelect.innerHTML += `<option value="${zone}">${zdn(zone)}</option>`;
             });
         }
 
@@ -823,6 +863,9 @@
                 document.getElementById('hourlyStats').textContent = `${hourlyData.length.toLocaleString()} records loaded`;
             }
 
+            // Refresh zone dropdown for the new data source
+            updateZoneDropdown();
+            
             renderMainContent();
         }
 
@@ -993,7 +1036,7 @@
             const colors = ['#3EB489', '#8b5cf6', '#f59e0b', '#ef4444', '#3b82f6', '#10b981', '#ec4899', '#06b6d4'];
 
             const datasets = Object.keys(zoneData).slice(0, 8).map((zone, i) => ({
-                label: zone,
+                label: zdn(zone),
                 data: allDates.map(d => {
                     const rec = zoneData[zone].find(r => r.date === d);
                     return rec ? rec.lmp : null;
@@ -1047,7 +1090,7 @@
             comparisonChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
-                    labels: chartData.map(d => d.zone),
+                    labels: chartData.map(d => zdn(d.zone)),
                     datasets: [{
                         label: 'Avg LMP ($/MWh)',
                         data: chartData.map(d => d.avg),
@@ -1101,7 +1144,7 @@
                         ${stats.map(s => `
                             <tr>
                                 <td><strong>${s.iso}</strong></td>
-                                <td>${s.zone}</td>
+                                <td>${zdn(s.zone)}</td>
                                 <td>${s.count.toLocaleString()}</td>
                                 <td>${s.years}</td>
                                 <td style="color: var(--accent-success);">$${s.min.toFixed(2)}</td>
@@ -1210,7 +1253,7 @@
             const colors = ['#8b5cf6', '#3EB489', '#f59e0b', '#ef4444', '#3b82f6', '#10b981'];
 
             const datasets = Object.keys(zoneData).slice(0, 6).map((zone, i) => ({
-                label: zone,
+                label: zdn(zone),
                 data: allPeriods.map(p => {
                     const rec = zoneData[zone].find(r => r.period === p);
                     return rec ? rec.avg : null;
@@ -1347,13 +1390,13 @@
             let exportData;
             if (currentMode === 'monthly') {
                 exportData = data.map(r => ({
-                    ISO: r.iso, Zone: r.zone, Year: r.year, Month: r.month,
+                    ISO: r.iso, Zone: zdn(r.zone), Year: r.year, Month: r.month,
                     'LMP ($/MWh)': r.lmp.toFixed(2), 'Min': r.min_price?.toFixed(2) || '', 
                     'Max': r.max_price?.toFixed(2) || '', 'Records': r.record_count || ''
                 }));
             } else {
                 exportData = data.map(r => ({
-                    ISO: r.iso, Zone: r.zone, Datetime: r.datetime, 'Price ($/MWh)': r.price.toFixed(2)
+                    ISO: r.iso, Zone: zdn(r.zone), Datetime: r.datetime, 'Price ($/MWh)': r.price.toFixed(2)
                 }));
             }
 
