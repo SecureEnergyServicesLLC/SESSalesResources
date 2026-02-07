@@ -2,10 +2,10 @@
  * Client Store - Centralized Client Management
  * Provides unique client identifiers (CID) across all portal widgets
  * Supports Salesforce data import and cross-widget client context
- * Version: 2.6.0 - Updated SF Report Mappings + Parent Grouping + Append/Replace
+ * Version: 2.7.0 - Utilization Import + Rollups
  * 
- * v2.6.0 - Updated field maps for new Parent/Child SF reports, parent grouping import,
- *          contract-level data separation, Pending Opportunity auto-create, append/replace modes
+ * v2.7.0 - Supplier Utilization import (Step 3), account-level utilization tracking,
+ *          parent-level rollup summaries (totals, averages, account counts, date ranges)
  * v2.5.0 - init() now notifies subscribers and broadcasts CLIENTS_LOADED when data loads
  * 
  * CHANGELOG:
@@ -182,6 +182,20 @@
         'Supplier Annual KWH': 'supplierAnnualKwh',
         'Supplier Annual DTH': 'supplierAnnualDth',
         'Parent Account': 'parentAccountName'
+    };
+
+    const UTILIZATION_FIELD_MAP = {
+        'Supplier Payment Number': 'supplierPaymentNumber',
+        'LDC_Account_No': 'ldcAccountNumber',
+        'Account #': 'accountNumber',
+        'LDC Status': 'ldcStatus',
+        'Meter Contract: Supplier Applied Payment Number': 'meterContractSupplierPaymentNumber',
+        'Parent Account: Account Name': 'parentAccountName',
+        'Total Usage': 'totalUsage',
+        'Usage Comm Amount': 'usageCommAmount',
+        'Start Date': 'usageStartDate',
+        'End Date': 'usageEndDate',
+        'Parent Account: Account ID': 'parentAccountId'
     };
 
     // ========================================
@@ -979,6 +993,254 @@
 
     function getClientAccounts(clientId) { return clients[clientId]?.accounts || []; }
 
+    // ========================================
+    // Utilization Import (Step 3)
+    // ========================================
+    function importUtilization(data, options = {}) {
+        const results = { imported: 0, updated: 0, skipped: 0, orphanedAccounts: 0, orphanedParents: 0, parentsUpdated: 0, errors: [] };
+        let records = [];
+
+        if (typeof data === 'string') records = parseCSV(data);
+        else if (Array.isArray(data)) records = data;
+        else if (data && typeof data === 'object') records = [data];
+
+        // Replace mode: clear utilization from all accounts
+        if (options.replaceAll) {
+            console.log('[ClientStore] REPLACE ALL UTILIZATION mode — clearing existing utilization data');
+            Object.values(clients).forEach(c => {
+                (c.accounts || []).forEach(acc => { acc.utilization = []; });
+                delete c.utilizationSummary;
+            });
+            saveToStorage();
+        }
+
+        startBatch();
+
+        // Track which parents need rollup recalc
+        const affectedParents = new Set();
+
+        records.forEach((record, index) => {
+            try {
+                const mapped = mapUtilizationFields(record);
+
+                // Find parent by SF ID or name
+                let parentClient = null;
+                if (mapped.parentAccountId) {
+                    parentClient = getClientBySalesforceId(String(mapped.parentAccountId));
+                }
+                if (!parentClient && mapped.parentAccountName) {
+                    parentClient = getClientByName(mapped.parentAccountName);
+                }
+
+                if (!parentClient) {
+                    results.orphanedParents++;
+                    results.errors.push(`Row ${index + 1}: Parent "${mapped.parentAccountName || mapped.parentAccountId}" not found`);
+                    return;
+                }
+
+                // Find matching account under parent by accountNumber or supplierPaymentNumber
+                const accounts = parentClient.accounts || [];
+                let matchedAccount = null;
+
+                if (mapped.accountNumber) {
+                    matchedAccount = accounts.find(a => String(a.accountNumber) === String(mapped.accountNumber));
+                }
+                if (!matchedAccount && mapped.supplierPaymentNumber) {
+                    matchedAccount = accounts.find(a =>
+                        String(a.supplierPaymentNumber || '') === String(mapped.supplierPaymentNumber) ||
+                        String(a.accountNumber || '') === String(mapped.supplierPaymentNumber)
+                    );
+                }
+                if (!matchedAccount && mapped.ldcAccountNumber) {
+                    matchedAccount = accounts.find(a => String(a.accountNumber || '') === String(mapped.ldcAccountNumber));
+                }
+
+                if (!matchedAccount) {
+                    // If no accounts exist at all, store utilization at parent level as unmatched
+                    results.orphanedAccounts++;
+                    if (options.createUnmatched) {
+                        // Create a minimal account stub
+                        const stub = {
+                            id: 'ACC-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+                            accountNumber: mapped.accountNumber || mapped.ldcAccountNumber || '',
+                            accountName: 'Account #' + (mapped.accountNumber || mapped.ldcAccountNumber || 'Unknown'),
+                            supplierPaymentNumber: mapped.supplierPaymentNumber || '',
+                            source: 'Auto-created from Utilization Import',
+                            utilization: [],
+                            importedAt: new Date().toISOString()
+                        };
+                        if (!clients[parentClient.id].accounts) clients[parentClient.id].accounts = [];
+                        clients[parentClient.id].accounts.push(stub);
+                        matchedAccount = stub;
+                    } else {
+                        results.errors.push(`Row ${index + 1}: No matching account for Acct# "${mapped.accountNumber}" / SPN "${mapped.supplierPaymentNumber}" under "${parentClient.name}"`);
+                        return;
+                    }
+                }
+
+                // Build utilization record
+                const utilRec = {
+                    id: 'UTL-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5),
+                    totalUsage: parseFloat(mapped.totalUsage) || 0,
+                    usageCommAmount: parseFloat(mapped.usageCommAmount) || 0,
+                    usageStartDate: mapped.usageStartDate || '',
+                    usageEndDate: mapped.usageEndDate || '',
+                    ldcAccountNumber: mapped.ldcAccountNumber || '',
+                    ldcStatus: mapped.ldcStatus || '',
+                    meterContractSupplierPaymentNumber: mapped.meterContractSupplierPaymentNumber || '',
+                    importedAt: new Date().toISOString()
+                };
+
+                // Initialize utilization array if needed
+                if (!matchedAccount.utilization) matchedAccount.utilization = [];
+
+                // Check for existing record with same date range
+                const existingIdx = matchedAccount.utilization.findIndex(u =>
+                    u.usageStartDate === utilRec.usageStartDate && u.usageEndDate === utilRec.usageEndDate
+                );
+
+                if (existingIdx >= 0) {
+                    if (options.updateExisting) {
+                        matchedAccount.utilization[existingIdx] = { ...matchedAccount.utilization[existingIdx], ...utilRec, updatedAt: new Date().toISOString() };
+                        results.updated++;
+                    } else {
+                        results.skipped++;
+                    }
+                } else {
+                    matchedAccount.utilization.push(utilRec);
+                    results.imported++;
+                }
+
+                affectedParents.add(parentClient.id);
+
+            } catch (e) { results.errors.push(`Row ${index + 1}: ${e.message}`); }
+        });
+
+        // Recalculate rollups for affected parents
+        affectedParents.forEach(clientId => {
+            updateUtilizationRollups(clientId);
+            results.parentsUpdated++;
+        });
+
+        endBatch();
+        notifySubscribers('utilizationImport', results);
+        return results;
+    }
+
+    function mapUtilizationFields(record) {
+        const mapped = {};
+        Object.entries(record).forEach(([key, value]) => {
+            const trimmedKey = key.trim();
+            const internalField = UTILIZATION_FIELD_MAP[trimmedKey];
+            if (internalField) mapped[internalField] = value;
+        });
+        return mapped;
+    }
+
+    /**
+     * Recalculate utilization rollups for a parent client.
+     * Aggregates across all accounts: totals, averages, counts, date range.
+     */
+    function updateUtilizationRollups(clientId) {
+        const client = clients[clientId];
+        if (!client) return;
+
+        const accounts = client.accounts || [];
+        let totalUsage = 0, totalCommAmount = 0;
+        let accountsWithUtil = 0, totalRecords = 0;
+        let earliestStart = null, latestEnd = null;
+        const accountSummaries = [];
+
+        accounts.forEach(acc => {
+            const utils = acc.utilization || [];
+            if (utils.length === 0) return;
+
+            accountsWithUtil++;
+            let accUsage = 0, accComm = 0;
+            let accEarliest = null, accLatest = null;
+
+            utils.forEach(u => {
+                accUsage += u.totalUsage || 0;
+                accComm += u.usageCommAmount || 0;
+                totalRecords++;
+
+                if (u.usageStartDate) {
+                    const sd = new Date(u.usageStartDate);
+                    if (!isNaN(sd) && (!accEarliest || sd < accEarliest)) accEarliest = sd;
+                    if (!isNaN(sd) && (!earliestStart || sd < earliestStart)) earliestStart = sd;
+                }
+                if (u.usageEndDate) {
+                    const ed = new Date(u.usageEndDate);
+                    if (!isNaN(ed) && (!accLatest || ed > accLatest)) accLatest = ed;
+                    if (!isNaN(ed) && (!latestEnd || ed > latestEnd)) latestEnd = ed;
+                }
+            });
+
+            // Per-account summary stored on the account
+            acc.utilizationSummary = {
+                totalUsage: accUsage,
+                totalCommAmount: accComm,
+                recordCount: utils.length,
+                startDate: accEarliest ? accEarliest.toISOString().split('T')[0] : '',
+                endDate: accLatest ? accLatest.toISOString().split('T')[0] : '',
+                lastCalculated: new Date().toISOString()
+            };
+
+            accountSummaries.push({
+                accountId: acc.id,
+                accountName: acc.accountName || acc.accountNumber || '',
+                totalUsage: accUsage,
+                totalCommAmount: accComm,
+                recordCount: utils.length
+            });
+
+            totalUsage += accUsage;
+            totalCommAmount += accComm;
+        });
+
+        // Parent-level rollup
+        client.utilizationSummary = {
+            totalUsage,
+            totalCommAmount,
+            avgUsagePerAccount: accountsWithUtil > 0 ? totalUsage / accountsWithUtil : 0,
+            avgCommPerAccount: accountsWithUtil > 0 ? totalCommAmount / accountsWithUtil : 0,
+            accountsWithUtilization: accountsWithUtil,
+            totalAccounts: accounts.length,
+            totalRecords,
+            startDate: earliestStart ? earliestStart.toISOString().split('T')[0] : '',
+            endDate: latestEnd ? latestEnd.toISOString().split('T')[0] : '',
+            topAccounts: accountSummaries.sort((a, b) => b.totalUsage - a.totalUsage).slice(0, 5),
+            lastCalculated: new Date().toISOString()
+        };
+
+        clients[clientId].updatedAt = new Date().toISOString();
+        saveToStorage();
+    }
+
+    /**
+     * Get utilization summary for a client (parent-level rollup).
+     */
+    function getClientUtilizationSummary(clientId) {
+        const client = clients[clientId];
+        if (!client) return null;
+        if (!client.utilizationSummary) updateUtilizationRollups(clientId);
+        return client.utilizationSummary || null;
+    }
+
+    /**
+     * Get utilization data for a specific account.
+     */
+    function getAccountUtilization(clientId, accountId) {
+        const client = clients[clientId];
+        if (!client?.accounts) return null;
+        const account = client.accounts.find(a => a.id === accountId);
+        if (!account) return null;
+        return {
+            records: account.utilization || [],
+            summary: account.utilizationSummary || null
+        };
+    }
+
     function parseCSV(csvString) {
         const lines = csvString.split('\n');
         if (lines.length < 2) return [];
@@ -1152,12 +1414,13 @@
         getAllClients, getActiveClients, getClientsBySalesRep, getClientsByISO, searchClients, deleteClient,
         addLocation, updateLocation, removeLocation,
         importAccounts, addAccountToClient, updateAccountInClient, removeAccountFromClient, getClientAccounts,
+        importUtilization, getClientUtilizationSummary, getAccountUtilization, updateUtilizationRollups,
         linkAnalysis, linkBid, getClientAnalyses, getClientBids,
         importFromSalesforce, exportClients, exportForGitHub, downloadClientsJSON,
         syncToGitHub, loadFromGitHub, hasUnsavedChanges, onReady,
         startBatch, endBatch, getStorageInfo, clearAllClients,
         subscribe, getStats, getClientDropdownOptions,
-        SALESFORCE_FIELD_MAP, ACCOUNT_FIELD_MAP, PARENT_LEVEL_FIELDS, CONTRACT_LEVEL_FIELDS
+        SALESFORCE_FIELD_MAP, ACCOUNT_FIELD_MAP, UTILIZATION_FIELD_MAP, PARENT_LEVEL_FIELDS, CONTRACT_LEVEL_FIELDS
     };
 
 })();

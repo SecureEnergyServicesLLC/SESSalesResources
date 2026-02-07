@@ -1435,6 +1435,38 @@
                     <div id="accountImportPreview" style="display:none; margin-top: 12px;"></div>
                     <div id="accountImportResults" style="display:none; margin-top: 12px;"></div>
                 </div>
+                <!-- Utilization Import -->
+                <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+                    <h4 style="font-size: 0.88rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px;">
+                        <span style="background: #10b981; color: white; padding: 2px 7px; border-radius: 3px; font-size: 0.65rem;">3</span>
+                        Import Supplier Utilization
+                    </h4>
+                    <p style="color: var(--text-secondary); font-size: 0.78rem; margin-bottom: 10px;">
+                        Upload the <strong>Supplier Utilization</strong> report. Records are matched to accounts under each parent via <em>Account #</em> or <em>Supplier Payment Number</em>. Utilization summaries roll up to the parent level automatically.
+                    </p>
+                    <div class="import-field-list">
+                        <strong>Expected columns:</strong> Supplier Payment Number, LDC_Account_No, Account #, LDC Status, Meter Contract: Supplier Applied Payment Number, Parent Account: Account Name, Total Usage, Usage Comm Amount, Start Date, End Date, Parent Account: Account ID
+                    </div>
+                    <div class="import-mode-toggle" id="utilImportMode">
+                        <button class="import-mode-btn active" onclick="setImportMode('util','append',this)">📎 Append &amp; Update</button>
+                        <button class="import-mode-btn" onclick="setImportMode('util','replace',this)">🔄 Replace All</button>
+                    </div>
+                    <div class="import-mode-warn" id="utilReplaceWarn">⚠️ Replace All will <strong>clear all utilization data</strong> from every account and import fresh.</div>
+                    <div class="import-zone" id="utilImportZone" onclick="document.getElementById('utilImportFile').click()" style="border-color: rgba(16,185,129,0.3);">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="1.5" style="margin-bottom: 6px;">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        <p><strong>Click to upload</strong> utilization data</p>
+                        <p style="font-size: 0.72rem;">Excel (.xlsx), CSV, or JSON</p>
+                        <input type="file" id="utilImportFile" accept=".xlsx,.xls,.csv,.json" style="display:none;" onchange="handleUtilFileSelect(event)">
+                    </div>
+                    <div class="import-options">
+                        <label class="import-option"><input type="checkbox" id="optUtilUpdateExisting" checked> Update existing periods</label>
+                        <label class="import-option"><input type="checkbox" id="optUtilCreateUnmatched"> Create stub accounts for unmatched</label>
+                    </div>
+                    <div id="utilImportPreview" style="display:none; margin-top: 12px;"></div>
+                    <div id="utilImportResults" style="display:none; margin-top: 12px;"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1517,6 +1549,7 @@
         let isAdmin = false;
         let pendingImportData = null;
         let pendingAccountData = null;
+        let pendingUtilData = null;
         let currentFilter = 'all';
 
         // Widget definitions for the portal
@@ -2133,12 +2166,63 @@
                     </div>`;
             }
 
+            // Utilization summary
+            let utilInfo = '';
+            const utilSummary = client.utilizationSummary;
+            if (utilSummary && utilSummary.totalRecords > 0) {
+                const fmtNum = (n) => n != null ? Number(n).toLocaleString(undefined, {maximumFractionDigits: 0}) : '0';
+                const fmtDec = (n) => n != null ? Number(n).toLocaleString(undefined, {maximumFractionDigits: 2}) : '0';
+                utilInfo = `
+                    <div style="background: rgba(16,185,129,0.08); border: 1px solid rgba(16,185,129,0.2); border-radius: var(--radius-sm); padding: 10px; margin-bottom: 14px;">
+                        <div style="font-size: 0.7rem; color: #10b981; font-weight: 600; margin-bottom: 6px;">⚡ Utilization Summary — ${utilSummary.accountsWithUtilization} of ${utilSummary.totalAccounts} accounts (${utilSummary.totalRecords} records)</div>
+                        <div class="detail-grid">
+                            <div class="detail-item"><div class="detail-label">Total Usage</div><div class="detail-value">${fmtNum(utilSummary.totalUsage)}</div></div>
+                            <div class="detail-item"><div class="detail-label">Total Comm Amount</div><div class="detail-value">$${fmtDec(utilSummary.totalCommAmount)}</div></div>
+                            <div class="detail-item"><div class="detail-label">Avg Usage / Account</div><div class="detail-value">${fmtNum(utilSummary.avgUsagePerAccount)}</div></div>
+                            <div class="detail-item"><div class="detail-label">Avg Comm / Account</div><div class="detail-value">$${fmtDec(utilSummary.avgCommPerAccount)}</div></div>
+                            <div class="detail-item"><div class="detail-label">Date Range</div><div class="detail-value">${utilSummary.startDate || 'N/A'} — ${utilSummary.endDate || 'N/A'}</div></div>
+                        </div>
+                        ${utilSummary.topAccounts?.length > 0 ? '<div style="margin-top:8px;font-size:0.68rem;color:var(--text-muted);"><strong>Top accounts:</strong> ' + utilSummary.topAccounts.map(a => a.accountName + ' (' + fmtNum(a.totalUsage) + ')').join(', ') + '</div>' : ''}
+                    </div>`;
+            }
+
+            // Contracts list
+            let contractsInfo = '';
+            const contracts = client.contracts || [];
+            if (contracts.length > 0) {
+                const rows = contracts.map(c => `
+                    <tr style="font-size:0.72rem;border-bottom:1px solid var(--border);">
+                        <td style="padding:4px 6px;">${c.contractName || c.opportunityName || 'N/A'}</td>
+                        <td style="padding:4px 6px;">${c.contractStatus || ''}</td>
+                        <td style="padding:4px 6px;">${c.currentSupplier || ''}</td>
+                        <td style="padding:4px 6px;">${c.contractStartDate || ''}</td>
+                        <td style="padding:4px 6px;">${c.contractEndDate || ''}</td>
+                    </tr>`).join('');
+                contractsInfo = `
+                    <div class="detail-section">
+                        <div class="detail-section-title">Contracts (${contracts.length})</div>
+                        <div style="overflow-x:auto;max-height:200px;overflow-y:auto;">
+                            <table style="width:100%;border-collapse:collapse;font-size:0.72rem;">
+                                <thead><tr style="background:var(--bg-input);position:sticky;top:0;">
+                                    <th style="padding:4px 6px;text-align:left;">Name</th>
+                                    <th style="padding:4px 6px;text-align:left;">Status</th>
+                                    <th style="padding:4px 6px;text-align:left;">Supplier</th>
+                                    <th style="padding:4px 6px;text-align:left;">Start</th>
+                                    <th style="padding:4px 6px;text-align:left;">End</th>
+                                </tr></thead>
+                                <tbody>${rows}</tbody>
+                            </table>
+                        </div>
+                    </div>`;
+            }
+
             panel.innerHTML = `
                 <div style="display: flex; gap: 8px; margin-bottom: 14px;">
                     <button class="btn btn-ghost btn-sm" onclick="editActiveClient()">✏️ Edit</button>
                     <button class="btn btn-danger btn-sm" onclick="deleteActiveClient()">🗑 Delete</button>
                 </div>
                 ${aggregateInfo}
+                ${utilInfo}
                 <div class="detail-section">
                     <div class="detail-section-title">Account Info</div>
                     <div class="detail-grid">
@@ -2148,6 +2232,7 @@
                         <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">${client.contractStatus || client.status || 'Active'}</div></div>
                     </div>
                 </div>
+                ${contractsInfo}
                 <div class="detail-section">
                     <div class="detail-section-title">Contract Details</div>
                     <div class="detail-grid">
@@ -2507,7 +2592,8 @@
         function initDragDrop() {
             const zones = [
                 { el: document.getElementById('importZone'), handler: handleFile },
-                { el: document.getElementById('accountImportZone'), handler: handleAccountFile }
+                { el: document.getElementById('accountImportZone'), handler: handleAccountFile },
+                { el: document.getElementById('utilImportZone'), handler: handleUtilFile }
             ];
             zones.forEach(({ el, handler }) => {
                 if (!el) return;
@@ -2523,14 +2609,18 @@
         // Import mode state
         let parentImportMode = 'append'; // 'append' or 'replace'
         let accountImportMode = 'append';
+        let utilImportMode = 'append';
 
         function setImportMode(type, mode, btn) {
             if (type === 'parent') {
                 parentImportMode = mode;
                 document.getElementById('parentReplaceWarn').classList.toggle('visible', mode === 'replace');
-            } else {
+            } else if (type === 'account') {
                 accountImportMode = mode;
                 document.getElementById('accountReplaceWarn').classList.toggle('visible', mode === 'replace');
+            } else if (type === 'util') {
+                utilImportMode = mode;
+                document.getElementById('utilReplaceWarn').classList.toggle('visible', mode === 'replace');
             }
             // Toggle active state on buttons
             btn.parentElement.querySelectorAll('.import-mode-btn').forEach(b => b.classList.remove('active', 'danger'));
@@ -2647,6 +2737,66 @@
         }
 
         function cancelAccountImport() { pendingAccountData = null; document.getElementById('accountImportPreview').style.display = 'none'; document.getElementById('accountImportFile').value = ''; }
+
+        function handleUtilFileSelect(e) { if (e.target.files.length) handleUtilFile(e.target.files[0]); }
+
+        function handleUtilFile(file) {
+            const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+            const isCSV = file.name.endsWith('.csv');
+            const isJSON = file.name.endsWith('.json');
+
+            const r = new FileReader();
+            r.onload = (e) => {
+                try {
+                    let data;
+                    if (isJSON) { data = JSON.parse(e.target.result); }
+                    else if (isExcel) { const wb = XLSX.read(e.target.result, { type: 'array' }); data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); }
+                    else if (isCSV) { const wb = XLSX.read(e.target.result, { type: 'string' }); data = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }); }
+                    else { data = e.target.result; }
+
+                    pendingUtilData = data;
+                    const count = Array.isArray(data) ? data.length : 1;
+                    document.getElementById('utilImportPreview').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;">' +
+                        '<strong>' + (count > 0 ? '✓' : '⚠') + '</strong> ' + count + ' utilization records from ' + file.name +
+                        '<div style="margin-top:10px;"><button class="btn btn-sm" style="background:#10b981;color:white;" onclick="executeUtilImport()">Import Utilization</button> <button class="btn btn-ghost btn-sm" onclick="cancelUtilImport()">Cancel</button></div></div>';
+                    document.getElementById('utilImportPreview').style.display = 'block';
+                } catch (err) { showToast('Parse error: ' + err.message, 'error'); }
+            };
+            if (isExcel) r.readAsArrayBuffer(file); else r.readAsText(file);
+        }
+
+        function executeUtilImport() {
+            if (!pendingUtilData || !ClientStore?.importUtilization) { showToast('No data or utilization import not supported', 'error'); return; }
+            const isReplace = utilImportMode === 'replace';
+            if (isReplace && !confirm('⚠️ REPLACE ALL will clear all utilization data from every account and import fresh.\n\nThis cannot be undone. Continue?')) return;
+            const opts = {
+                updateExisting: document.getElementById('optUtilUpdateExisting')?.checked,
+                createUnmatched: document.getElementById('optUtilCreateUnmatched')?.checked,
+                replaceAll: isReplace
+            };
+            try {
+                const r = ClientStore.importUtilization(pendingUtilData, opts);
+                let msg = '<strong>Done:</strong> ' + r.imported + ' imported, ' + r.updated + ' updated, ' + r.skipped + ' skipped';
+                msg += '<br>' + r.parentsUpdated + ' parents updated with rollups';
+                if (r.orphanedParents > 0) msg += ', <span style="color:var(--danger);">' + r.orphanedParents + ' orphaned (no parent)</span>';
+                if (r.orphanedAccounts > 0) msg += ', <span style="color:#f59e0b;">' + r.orphanedAccounts + ' unmatched accounts</span>';
+                if (r.errors?.length > 0) {
+                    msg += '<br><span style="color:var(--danger);font-size:0.72rem;">' + r.errors.length + ' errors — check console</span>';
+                    console.warn('[Util Import] Errors:', r.errors);
+                }
+                document.getElementById('utilImportResults').innerHTML = '<div style="padding:10px;background:var(--bg-input);border-radius:6px;">' + msg + '</div>';
+                document.getElementById('utilImportResults').style.display = 'block';
+                document.getElementById('utilImportPreview').style.display = 'none';
+                allClients = ClientStore.getAllClients();
+                updateBannerStats();
+                if (selectedClient) updateClientDetails();
+                showToast((isReplace ? 'Replaced: ' : '') + r.imported + ' utilization records imported', 'success');
+            } catch (e) { showToast('Import failed: ' + e.message, 'error'); }
+            pendingUtilData = null;
+            document.getElementById('utilImportFile').value = '';
+        }
+
+        function cancelUtilImport() { pendingUtilData = null; document.getElementById('utilImportPreview').style.display = 'none'; document.getElementById('utilImportFile').value = ''; }
 
         function downloadForGitHub() {
             if (!ClientStore) { showToast('Store not available', 'error'); return; }

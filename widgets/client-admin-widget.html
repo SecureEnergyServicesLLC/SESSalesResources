@@ -571,6 +571,39 @@
                     <div id="accountImportPreview" style="display:none;margin-top:16px;"></div>
                     <div id="accountImportResults" style="display:none;margin-top:16px;"></div>
                 </div>
+                
+                <!-- Utilization Import -->
+                <div style="margin-top:30px;padding-top:24px;border-top:1px solid var(--border);">
+                    <h3 style="margin-bottom:12px;font-size:1.1rem;">
+                        <span style="background:#10b981;color:white;padding:2px 8px;border-radius:4px;font-size:0.7rem;margin-right:8px;">3</span>
+                        Import Supplier Utilization
+                    </h3>
+                    <p style="color:var(--text-secondary);margin-bottom:12px;font-size:0.85rem;">
+                        Upload the <strong>Supplier Utilization</strong> report. Records are matched to accounts under each parent via <em>Account #</em> or <em>Supplier Payment Number</em>. Utilization summaries roll up to the parent level automatically.
+                    </p>
+                    <div class="import-field-list">
+                        <strong>Expected columns:</strong> Supplier Payment Number, LDC_Account_No, Account #, LDC Status, Meter Contract: Supplier Applied Payment Number, Parent Account: Account Name, Total Usage, Usage Comm Amount, Start Date, End Date, Parent Account: Account ID
+                    </div>
+                    <div class="import-mode-toggle" id="utilImportMode">
+                        <button class="import-mode-btn active" onclick="setImportMode('util','append',this)">📎 Append &amp; Update</button>
+                        <button class="import-mode-btn" onclick="setImportMode('util','replace',this)">🔄 Replace All</button>
+                    </div>
+                    <div class="import-mode-warn" id="utilReplaceWarn">⚠️ Replace All will <strong>clear all utilization data</strong> from every account and import fresh.</div>
+                    <div class="import-zone" id="utilImportZone" onclick="document.getElementById('utilImportFile').click()" style="border-color:#10b981;">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:#10b981;margin-bottom:8px;">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                        <p><strong>Click to upload</strong> utilization data</p>
+                        <p style="font-size:0.8rem;">Excel (.xlsx), CSV, or JSON — Supplier Utilization report</p>
+                        <input type="file" id="utilImportFile" accept=".xlsx,.xls,.csv,.json" style="display:none;" onchange="handleUtilFileSelect(event)">
+                    </div>
+                    <div class="import-options">
+                        <label class="import-option"><input type="checkbox" id="optUtilUpdateExisting" checked> Update existing periods</label>
+                        <label class="import-option"><input type="checkbox" id="optUtilCreateUnmatched"> Create stub accounts for unmatched</label>
+                    </div>
+                    <div id="utilImportPreview" style="display:none;margin-top:16px;"></div>
+                    <div id="utilImportResults" style="display:none;margin-top:16px;"></div>
+                </div>
             </div>
         </div>
         
@@ -699,6 +732,7 @@
         let selectedClientId = null;
         let pendingImportData = null;
         let pendingAccountData = null;
+        let pendingUtilData = null;
         
         function initStores() {
             if (window.parent?.SecureEnergyClients) {
@@ -833,6 +867,14 @@
                 ['dragleave','drop'].forEach(e => az.addEventListener(e, ev => { ev.preventDefault(); az.classList.remove('dragover'); }));
                 az.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handleAccountFile(ev.dataTransfer.files[0]); });
             }
+            
+            // Utilization import zone
+            const uz = document.getElementById('utilImportZone');
+            if (uz) {
+                ['dragenter','dragover'].forEach(e => uz.addEventListener(e, ev => { ev.preventDefault(); uz.classList.add('dragover'); }));
+                ['dragleave','drop'].forEach(e => uz.addEventListener(e, ev => { ev.preventDefault(); uz.classList.remove('dragover'); }));
+                uz.addEventListener('drop', ev => { if (ev.dataTransfer.files.length) handleUtilFile(ev.dataTransfer.files[0]); });
+            }
         }
         
         function loadClients(q = '') {
@@ -886,15 +928,11 @@
             if (!c) return;
             const d = document.getElementById('clientDetails');
             
-            // Format annual usage - convert kWh to MWh if needed
             let usageDisplay = 'N/A';
-            if (c.annualUsageMWh) {
-                usageDisplay = Number(c.annualUsageMWh).toLocaleString() + ' MWh';
-            } else if (c.annualUsageKwh) {
-                usageDisplay = Number(c.annualUsageKwh).toLocaleString() + ' kWh';
-            }
+            if (c.annualUsageMWh) usageDisplay = Number(c.annualUsageMWh).toLocaleString() + ' MWh';
+            else if (c.annualUsageKwh) usageDisplay = Number(c.annualUsageKwh).toLocaleString() + ' kWh';
             
-            // Check for aggregates from child accounts
+            // Aggregates
             let aggregateInfo = '';
             if (c.aggregates && c.aggregates.accountCount > 0) {
                 aggregateInfo = '<div class="detail-section" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);border-radius:8px;padding:12px;margin-bottom:16px;">' +
@@ -906,25 +944,78 @@
                     '</div></div>';
             }
             
-            // Build accounts tree if present
+            // Utilization summary (parent-level rollup)
+            let utilInfo = '';
+            const us = c.utilizationSummary;
+            if (us && us.totalRecords > 0) {
+                const fN = (n) => n != null ? Number(n).toLocaleString(undefined, {maximumFractionDigits: 0}) : '0';
+                const fD = (n) => n != null ? Number(n).toLocaleString(undefined, {maximumFractionDigits: 2}) : '0';
+                utilInfo = '<div class="detail-section" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:8px;padding:12px;margin-bottom:16px;">' +
+                    '<div class="detail-section-title" style="color:#10b981;">⚡ Utilization Summary — ' + us.accountsWithUtilization + ' of ' + us.totalAccounts + ' accounts (' + us.totalRecords + ' records)</div>' +
+                    '<div class="detail-grid">' +
+                    '<div class="detail-item"><div class="detail-label">Total Usage</div><div class="detail-value">' + fN(us.totalUsage) + '</div></div>' +
+                    '<div class="detail-item"><div class="detail-label">Total Comm Amount</div><div class="detail-value">$' + fD(us.totalCommAmount) + '</div></div>' +
+                    '<div class="detail-item"><div class="detail-label">Avg Usage / Acct</div><div class="detail-value">' + fN(us.avgUsagePerAccount) + '</div></div>' +
+                    '<div class="detail-item"><div class="detail-label">Avg Comm / Acct</div><div class="detail-value">$' + fD(us.avgCommPerAccount) + '</div></div>' +
+                    '<div class="detail-item"><div class="detail-label">Date Range</div><div class="detail-value">' + (us.startDate || 'N/A') + ' — ' + (us.endDate || 'N/A') + '</div></div>' +
+                    '</div>' +
+                    (us.topAccounts?.length > 0 ? '<div style="margin-top:8px;font-size:0.72rem;color:var(--text-secondary);"><strong>Top accounts:</strong> ' + us.topAccounts.map(a => a.accountName + ' (' + fN(a.totalUsage) + ')').join(', ') + '</div>' : '') +
+                    '</div>';
+            }
+            
+            // Contracts table
+            let contractsInfo = '';
+            const contracts = c.contracts || [];
+            if (contracts.length > 0) {
+                let rows = '';
+                contracts.forEach(ct => {
+                    rows += '<tr style="font-size:0.78rem;border-bottom:1px solid var(--border);">' +
+                        '<td style="padding:4px 6px;">' + (ct.contractName || ct.opportunityName || 'N/A') + '</td>' +
+                        '<td style="padding:4px 6px;">' + (ct.contractStatus || '') + '</td>' +
+                        '<td style="padding:4px 6px;">' + (ct.currentSupplier || '') + '</td>' +
+                        '<td style="padding:4px 6px;">' + (ct.contractStartDate || '') + '</td>' +
+                        '<td style="padding:4px 6px;">' + (ct.contractEndDate || '') + '</td>' +
+                        '</tr>';
+                });
+                contractsInfo = '<div class="detail-section"><div class="detail-section-title">Contracts (' + contracts.length + ')</div>' +
+                    '<div style="overflow-x:auto;max-height:180px;overflow-y:auto;">' +
+                    '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">' +
+                    '<thead><tr style="background:var(--bg-input);position:sticky;top:0;">' +
+                    '<th style="padding:4px 6px;text-align:left;">Name</th>' +
+                    '<th style="padding:4px 6px;text-align:left;">Status</th>' +
+                    '<th style="padding:4px 6px;text-align:left;">Supplier</th>' +
+                    '<th style="padding:4px 6px;text-align:left;">Start</th>' +
+                    '<th style="padding:4px 6px;text-align:left;">End</th>' +
+                    '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+            }
+            
+            // Accounts tree with per-account utilization
             let accountsTree = '';
             const activeAccountId = ClientStore?.getActiveAccountId?.() || null;
             const isActiveClient = ClientStore?.getActiveClientId?.() === c.id;
             
             if (c.accounts && c.accounts.length > 0) {
                 accountsTree = '<div class="accounts-section">' +
-                    '<div class="accounts-header">' +
-                    '<div class="accounts-title">' +
+                    '<div class="accounts-header"><div class="accounts-title">' +
                     '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' +
                     '<path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/>' +
-                    '</svg>' +
-                    'Accounts / Locations (' + c.accounts.length + ')' +
-                    '</div>' +
-                    '</div>' +
-                    '<div class="account-list">';
+                    '</svg>Accounts / Locations (' + c.accounts.length + ')' +
+                    '</div></div><div class="account-list">';
                 
                 c.accounts.forEach((acc, idx) => {
                     const isActiveAccount = activeAccountId === acc.id;
+                    // Per-account utilization snippet
+                    let accUtilSnippet = '';
+                    const accUtil = acc.utilizationSummary;
+                    if (accUtil && accUtil.recordCount > 0) {
+                        accUtilSnippet = '<div class="account-meta" style="margin-top:4px;color:#10b981;">' +
+                            '<span>⚡ ' + Number(accUtil.totalUsage).toLocaleString(undefined, {maximumFractionDigits:0}) + ' usage</span>' +
+                            '<span>$' + Number(accUtil.totalCommAmount).toLocaleString(undefined, {maximumFractionDigits:2}) + ' comm</span>' +
+                            '<span>' + accUtil.recordCount + ' periods</span>' +
+                            (accUtil.startDate ? '<span>' + accUtil.startDate + ' — ' + accUtil.endDate + '</span>' : '') +
+                            '</div>';
+                    }
+                    
                     accountsTree += '<div class="account-card' + (isActiveAccount ? ' active-account' : '') + '">' +
                         '<div class="account-name">' +
                         (acc.accountName || 'Account ' + (idx + 1)) +
@@ -941,29 +1032,25 @@
                             (acc.supplierAnnualKwh ? '<span style="color:#10b981;">' + Number(acc.supplierAnnualKwh).toLocaleString() + ' kWh</span>' : '') +
                             (acc.supplierAnnualDth ? '<span style="color:#f59e0b;">' + Number(acc.supplierAnnualDth).toLocaleString() + ' Dth</span>' : '') +
                             '</div>' : '') +
+                        accUtilSnippet +
                         '<div class="account-actions">' +
                         (isActiveClient && !isActiveAccount ? 
                             '<button class="btn btn-success btn-sm" onclick="setAccountAsActive(\'' + acc.id + '\')" style="font-size:0.7rem;padding:3px 8px;">Set Active</button>' : '') +
                         (isActiveAccount ? 
                             '<button class="btn btn-secondary btn-sm" onclick="clearActiveAccount()" style="font-size:0.7rem;padding:3px 8px;">Clear Active</button>' : '') +
                         '<button class="btn btn-danger btn-sm" onclick="removeAccount(\'' + c.id + '\',\'' + acc.id + '\')" style="font-size:0.7rem;padding:3px 8px;">Remove</button>' +
-                        '</div>' +
-                        '</div>';
+                        '</div></div>';
                 });
                 
                 accountsTree += '</div>';
-                
-                // Add note if client is not active
                 if (!isActiveClient) {
                     accountsTree += '<div style="margin-top:10px;padding:8px;background:rgba(255,193,7,0.15);border-radius:6px;font-size:0.75rem;color:#d4a200;">' +
-                        '💡 Set this client as active to select an account for use in other widgets.' +
-                        '</div>';
+                        '💡 Set this client as active to select an account for use in other widgets.</div>';
                 }
-                
                 accountsTree += '</div>';
             }
             
-            d.innerHTML = aggregateInfo +
+            d.innerHTML = aggregateInfo + utilInfo +
                 '<div class="detail-section"><div class="detail-section-title">Account Info</div>' +
                 '<div class="detail-grid">' +
                 '<div class="detail-item"><div class="detail-label">Client ID</div><div class="detail-value">' + c.id + '</div></div>' +
@@ -972,7 +1059,7 @@
                 '<div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">' + (c.contractStatus || c.status || 'Active') + '</div></div>' +
                 '</div></div>' +
                 
-                accountsTree +
+                contractsInfo + accountsTree +
                 
                 '<div class="detail-section"><div class="detail-section-title">Contract Details</div>' +
                 '<div class="detail-grid">' +
@@ -1263,14 +1350,18 @@
         // Import mode state
         let parentImportMode = 'append';
         let accountImportMode = 'append';
+        let utilImportMode = 'append';
 
         function setImportMode(type, mode, btn) {
             if (type === 'parent') {
                 parentImportMode = mode;
                 document.getElementById('parentReplaceWarn').classList.toggle('visible', mode === 'replace');
-            } else {
+            } else if (type === 'account') {
                 accountImportMode = mode;
                 document.getElementById('accountReplaceWarn').classList.toggle('visible', mode === 'replace');
+            } else if (type === 'util') {
+                utilImportMode = mode;
+                document.getElementById('utilReplaceWarn').classList.toggle('visible', mode === 'replace');
             }
             btn.parentElement.querySelectorAll('.import-mode-btn').forEach(b => b.classList.remove('active', 'danger'));
             btn.classList.add('active');
@@ -1506,6 +1597,102 @@
             pendingAccountData = null;
             document.getElementById('accountImportPreview').style.display = 'none';
             document.getElementById('accountImportFile').value = '';
+        }
+        
+        // ========================================
+        // Utilization Import (Step 3)
+        // ========================================
+        
+        function handleUtilFileSelect(e) { 
+            if (e.target.files.length) handleUtilFile(e.target.files[0]); 
+        }
+        
+        function handleUtilFile(file) {
+            console.log('[ClientAdmin] handleUtilFile called with:', file.name);
+            const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+            const isCSV = file.name.endsWith('.csv');
+            const isJSON = file.name.endsWith('.json');
+            
+            const r = new FileReader();
+            r.onload = (e) => {
+                try {
+                    let data;
+                    if (isJSON) { data = JSON.parse(e.target.result); }
+                    else if (isExcel) {
+                        const workbook = XLSX.read(e.target.result, { type: 'array' });
+                        data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+                    } else if (isCSV) {
+                        const workbook = XLSX.read(e.target.result, { type: 'string' });
+                        data = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { defval: '' });
+                    }
+                    
+                    pendingUtilData = data;
+                    const count = Array.isArray(data) ? data.length : 1;
+                    document.getElementById('utilImportPreview').innerHTML = 
+                        '<div style="padding:12px;background:var(--bg-input);border-radius:6px;">' +
+                        '<strong>' + count + '</strong> utilization records ready from <em>' + file.name + '</em>' +
+                        '<div style="margin-top:12px;">' +
+                        '<button class="btn btn-primary" onclick="executeUtilImport()" style="background:#10b981;">Import Utilization</button> ' +
+                        '<button class="btn btn-ghost" onclick="cancelUtilImport()">Cancel</button></div></div>';
+                    document.getElementById('utilImportPreview').style.display = 'block';
+                } catch (err) {
+                    console.error('[ClientAdmin] Util parse error:', err);
+                    showToast('Error parsing file: ' + err.message, 'error');
+                }
+            };
+            if (isExcel) r.readAsArrayBuffer(file); else r.readAsText(file);
+        }
+        
+        function executeUtilImport() {
+            if (!pendingUtilData) { showToast('No utilization data to import', 'error'); return; }
+            if (!ClientStore || !ClientStore.importUtilization) { showToast('Utilization import not supported - update client-store.js to v2.7+', 'error'); return; }
+            
+            const isReplace = utilImportMode === 'replace';
+            if (isReplace && !confirm('⚠️ REPLACE ALL will clear all utilization data from every account and import fresh.\n\nThis cannot be undone. Continue?')) return;
+            
+            const opts = {
+                updateExisting: document.getElementById('optUtilUpdateExisting')?.checked,
+                createUnmatched: document.getElementById('optUtilCreateUnmatched')?.checked,
+                replaceAll: isReplace
+            };
+            
+            try {
+                const r = ClientStore.importUtilization(pendingUtilData, opts);
+                let resultHtml = '<div style="padding:12px;background:var(--bg-input);border-radius:6px;">' +
+                    '<strong>Utilization Import Complete</strong><br>' +
+                    '✓ Imported: ' + r.imported + '<br>' +
+                    '↻ Updated: ' + r.updated + '<br>' +
+                    '⊘ Skipped: ' + r.skipped + '<br>' +
+                    '📊 Parents updated: ' + r.parentsUpdated;
+                if (r.orphanedParents > 0) resultHtml += '<br><span style="color:#dc3545;">⚠ Orphaned parents: ' + r.orphanedParents + '</span>';
+                if (r.orphanedAccounts > 0) resultHtml += '<br><span style="color:#f59e0b;">⚠ Unmatched accounts: ' + r.orphanedAccounts + '</span>';
+                if (r.errors?.length > 0) {
+                    resultHtml += '<br><br><strong style="color:#dc3545;">Errors (' + r.errors.length + '):</strong>';
+                    resultHtml += '<div style="max-height:100px;overflow-y:auto;font-size:0.75rem;color:#dc3545;margin-top:4px;">';
+                    r.errors.slice(0, 10).forEach(err => { resultHtml += err + '<br>'; });
+                    if (r.errors.length > 10) resultHtml += '... and ' + (r.errors.length - 10) + ' more';
+                    resultHtml += '</div>';
+                }
+                resultHtml += '</div>';
+                document.getElementById('utilImportResults').innerHTML = resultHtml;
+                document.getElementById('utilImportResults').style.display = 'block';
+                document.getElementById('utilImportPreview').style.display = 'none';
+                loadClients();
+                updateStats();
+                if (selectedClientId) showClientDetails(selectedClientId);
+                showToast((isReplace ? 'Replaced: ' : '') + r.imported + ' utilization records, ' + r.parentsUpdated + ' parents updated', 'success');
+            } catch (e) {
+                console.error('[ClientAdmin] Util import error:', e);
+                showToast('Import failed: ' + e.message, 'error');
+            }
+            pendingUtilData = null;
+            document.getElementById('utilImportFile').value = '';
+        }
+        
+        function cancelUtilImport() {
+            pendingUtilData = null;
+            document.getElementById('utilImportPreview').style.display = 'none';
+            document.getElementById('utilImportFile').value = '';
         }
         
         function downloadForGitHub() {
