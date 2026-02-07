@@ -1138,14 +1138,15 @@ async function loadData() {
     console.log('[GeoMap] Loading data...');
 
     try {
-        // 1. sessionStorage cache
-        const cached = sessionStorage.getItem('lmpGeoCache');
-        if (cached) {
-            lmpDatabase = JSON.parse(cached);
-            console.log('[GeoMap] From cache');
-            processData();
-            return;
-        }
+        // 1. Try parent's SharedDataStore LMP cache (if another widget already loaded it)
+        try {
+            if (window.parent !== window && window.parent.SharedDataStore?.lmpDatabase) {
+                lmpDatabase = window.parent.SharedDataStore.lmpDatabase;
+                console.log('[GeoMap] From parent SharedDataStore cache');
+                processData();
+                return;
+            }
+        } catch (e) {}
 
         // 2. AzureDataService (iframe)
         try {
@@ -1177,7 +1178,6 @@ async function loadData() {
 
         if (!lmpDatabase) throw new Error('Could not load data');
 
-        sessionStorage.setItem('lmpGeoCache', JSON.stringify(lmpDatabase));
         processData();
 
     } catch (err) {
@@ -1245,6 +1245,18 @@ window.addEventListener('resize', () => {
 // ============================================
 // INIT
 // ============================================
+
+// Listen for data pushed from parent/sibling widgets
+window.addEventListener('message', (event) => {
+    try {
+        if (event.data?.type === 'lmpData' && event.data.database) {
+            console.log('[GeoMap] Received data via postMessage');
+            lmpDatabase = event.data.database;
+            processData();
+        }
+    } catch (e) { console.warn('[GeoMap] postMessage error:', e); }
+});
+
 document.addEventListener('DOMContentLoaded', loadData);
 </script>
 </body>
